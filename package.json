@@ -1,0 +1,12 @@
+{
+  "name": "ea-weekly-report",
+  "private": true,
+  "version": "0.1.0",
+  "description": "EAユーザー向け週次レポート自動生成（GitHub Actions）",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
