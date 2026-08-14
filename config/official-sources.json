@@ -139,19 +139,22 @@
       "status": "active",
       "country": "CA",
       "kinds": ["employment_situation", "trade_balance"],
-      "type": "weekly_scrape",
+      "type": "annual_schedule_config",
       "recurring_check_refs": [],
       "access": {
         "robots_check": true,
         "targets": [
-          { "label": "release_schedule_html", "url": "https://www150.statcan.gc.ca/n1/dai-quo/cal1-eng.htm", "crawl_delay_seconds": 2 }
+          { "label": "annual_release_dates_pdf", "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf", "crawl_delay_seconds": 2 }
         ]
       },
       "announce_time_by_kind": {
         "employment_situation": { "local_time": "08:30", "tz": "America/Toronto" },
         "trade_balance": { "local_time": "08:30", "tz": "America/Toronto" }
       },
-      "notes": "実データで『Labour Force Survey』『Canadian international merchandise trade』という調査名（選択肢一覧）は確認済み（config/event-names.json照合済み）だが、【2026-08-14実測で判明した構造上の問題】cal1-eng.htm自体は調査名・月のプルダウンを持つ検索フォームページであり、個別の発表日程は本ページの静的HTMLには含まれない（フォーム送信後にJS/AJAXで結果を描画する構造の可能性）。年次PDF（n1/release-diffusion/{年}-eng.pdf）も直リンクせず中間HTML着地ページに転送されるため直接取得は不可。両経路とも実装保留とし、抽出は現時点で構造的に失敗する設計とした（フェールクローズ規則に接続）。実際の検索結果取得経路の調査を別タスクとする"
+      "residual_monitor_weeks": 4,
+      "schedule_status": "confirmed",
+      "schedule": [],
+      "notes": "【2026-08-14再実測で訂正】前回記録（cal1-eng.htmは検索フォームで発表日程を含まない・年次PDFは中間HTML着地ページに転送され直接取得不可）のうち、年次PDF側の判断は誤りだったと判明した。cal1-eng.htm自身が年次PDF（n1/release-diffusion/2026-eng.pdf）へのリンクを含んでおり、このURLへ直接フェッチするとHTTP 200・content-type application/pdf・リダイレクト無しで『2026-2027 release dates Major economic releases』というタイトルのPDF本体（約159KB）が取得できることを確認した（前回の判断はcal1-eng.htm自体の到達性テストと混同していた可能性が高い）。PDFはStatistics Canadaが毎年公表する主要経済指標の年次発表日程表で、Labour Force Survey（雇用統計）・Canadian international merchandise trade（国際商品貿易）を含む全指標の発表日・対象期間が2026年1月〜2027年3月分まで掲載されている。しょうさん指示の優先順(a)API/RSS/ICS→(b)年次PDFのうち(b)で解決。scripts/checkers/extractors/statcan.jsで抽出し、既刊ground truth（CA国際商品貿易2026-08-04＝2026年6月分、CA雇用統計2026-08-07＝2026年7月分）と完全一致を確認した。typeをweekly_scrapeからannual_schedule_configへ再分類し、抽出結果をscheduleへ投入予定（下記schedule配列は投入待ちの空配列 — 抽出スクリプト実装後に埋める）"
     },
     {
       "id": "au_abs",

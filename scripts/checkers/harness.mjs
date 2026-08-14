@@ -147,7 +147,8 @@ function classifyRowKind(row, source, eventNames) {
 }
 
 // weekly_scrape型: robots.txt確認→フェッチ→（登録済みなら）発表元別の抽出処理。
-// 抽出ルール未登録のソース（nz_statsnz・ca_statcan。実測の結果JS描画/検索フォームで静的取得不可と判明）は
+// 抽出ルール未登録のソース（nz_statsnz。実測の結果JS描画で静的取得不可と判明。ca_statcanは
+// 2026-08-14の再実測で年次PDFが直接取得可能と判明しannual_schedule_config型へ再分類済み）は
 // 明示的に「抽出ルール未実装」の失敗を返す（フェールクローズ設計。誤って「イベントなし」を返さない）
 export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = fetch, robotsChecker, eventNames = [], importanceRules } = {}) {
   const targets = source.access?.targets || [];
