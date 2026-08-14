@@ -21,6 +21,14 @@ const TARGETS = {
   nextweek: 'https://nfs.faireconomy.media/ff_calendar_nextweek.json',
 };
 
+// FFのcountryは通貨コード（USD/AUD等）、official-sources.jsonのcountryはISO国コード（US/AU等）。
+// この不一致に気づかず初回実行で「全イベントに追跡ソース無し」という誤った結果を出したため
+// （しょうさん指摘の前段階で自己発見）、明示的な対応表で変換する
+const CURRENCY_TO_COUNTRY = {
+  USD: 'US', JPY: 'JP', GBP: 'GB', AUD: 'AU', CAD: 'CA', NZD: 'NZ', CNY: 'CN', CHF: 'CH',
+  EUR: null, // ユーロ圏は単一countryに対応しないため対象外（ECB等は別途要検討）
+};
+
 function jstDateTime(isoStr) {
   const d = new Date(isoStr);
   if (isNaN(d)) return null;
@@ -63,7 +71,7 @@ async function main() {
     for (const e of r.events) {
       const jst = jstDateTime(e.date);
       if (!jst) continue;
-      allEvents.push({ feedName: name, jstDate: jst.date, jstTime: jst.time, country: e.country, impact: e.impact, title: e.title });
+      allEvents.push({ feedName: name, jstDate: jst.date, jstTime: jst.time, country: e.country, isoCountry: CURRENCY_TO_COUNTRY[e.country] ?? null, impact: e.impact, title: e.title });
     }
   }
 
@@ -131,7 +139,8 @@ async function main() {
   }
   console.log(`\n===== 分析対象週のFFイベント: ${dedup.length}件 =====`);
   for (const e of dedup) {
-    const tracked = (kindsByCountry[e.country] || []).map((k) => `${k.kind}(${k.sourceId}/${k.status})`).join(', ') || '(追跡ソース無し)';
+    const isoCountry = CURRENCY_TO_COUNTRY[e.country];
+    const tracked = (kindsByCountry[isoCountry] || []).map((k) => `${k.kind}(${k.sourceId}/${k.status})`).join(', ') || (isoCountry ? '(追跡ソース無し)' : '(対応countryコード無し)');
     console.log(`- ${e.jstDate} ${e.jstTime} [${e.country}] impact=${e.impact} "${e.title}" | この国の追跡kind: ${tracked}`);
   }
   if (dedup.length === 0) {
