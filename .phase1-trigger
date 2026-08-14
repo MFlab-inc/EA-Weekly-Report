@@ -1,1 +1,5 @@
-{"run_recon": false, "verify_fred": false, "run_recon_b": false, "collect_fixtures": true, "only_ids_fixtures": "jp_mof,us_frb_speeches", "note": "task11-round3-mof-month-page-frb-rss-20260814"}
+{
+  "run_recon": false,
+  "run_recon_b": false,
+  "run_recon_c": true
+}
