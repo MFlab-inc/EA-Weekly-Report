@@ -25,8 +25,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
+      - name: Resolve only-ids from .phase1-trigger
+        id: cfg
+        run: |
+          node -e '
+            const fs = require("fs");
+            let cfg = {};
+            try { cfg = JSON.parse(fs.readFileSync(".phase1-trigger", "utf8")); } catch (e) {}
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "only_ids=" + (cfg.only_ids || "") + "\n");
+          '
       - name: Source recon
-        run: node scripts/phase1/source-recon.mjs
+        run: node scripts/phase1/source-recon.mjs '${{ steps.cfg.outputs.only_ids }}'
       - name: Upload raw data
         if: always()
         uses: actions/upload-artifact@v4

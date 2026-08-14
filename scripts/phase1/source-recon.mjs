@@ -11,6 +11,8 @@ import { join } from 'node:path';
 const OUT_DIR = 'phase1-out';
 const UA = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; phase1-source-recon)';
 const WAIT_MS = 1500;
+// カンマ区切りのソースIDを指定すると対象を絞る（アクセス回数を必要最小限にするため）。省略時は全9元。
+const ONLY_IDS = (process.argv[2] || '').split(',').map((s) => s.trim()).filter(Boolean);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
@@ -182,7 +184,9 @@ async function getRobotsForHost(origin) {
   section(`phase1 source-recon start ${nowIso()}`);
   const report = { startedAt: nowIso(), sources: [] };
 
-  for (const src of SOURCES) {
+  const targetSources = ONLY_IDS.length ? SOURCES.filter((s) => ONLY_IDS.includes(s.id)) : SOURCES;
+  if (ONLY_IDS.length) log(`(絞り込み実行: ${ONLY_IDS.join(', ')})`);
+  for (const src of targetSources) {
     section(`SOURCE: ${src.id} (${src.name})`);
     const entry = { id: src.id, name: src.name, annualHint: src.annualHint, targets: [] };
 
@@ -216,6 +220,7 @@ async function getRobotsForHost(origin) {
           label: t.label, url: t.url, fetched: true, status: res.status, bytes: res.bytes,
           contentType: res.contentType, sha256: res.sha256, savedAs: filePath, finalUrl: res.finalUrl,
         });
+        verifyNamesAgainst(src.id, t.label, res.buf, res.contentType);
       } else {
         log(`[FETCH-ERR] ${t.label}: ${res?.error || res?.status}`);
         entry.targets.push({ label: t.label, url: t.url, fetched: false, reason: res?.error || `HTTP ${res?.status}` });
@@ -232,6 +237,33 @@ async function getRobotsForHost(origin) {
   }
   section(`phase1 source-recon end ${nowIso()}`);
 })();
+
+// event-names.json の source_verified:false 項目（優先度A関連分）の実データ照合用。
+// 取得したテキスト系コンテンツ内に検索語が出現するか確認し、周辺文脈をログへ出す
+// （artifactダウンロードが環境上できないため、Actionsログに直接出力する方式とした）。
+const NAME_VERIFICATION_TERMS = [
+  { key: 'US employment_indicator: JOLTS', terms: ['JOLTS', 'Job Openings'] },
+  { key: 'US pmi_ism: ISM Services', terms: ['ISM Services', 'ISM Non-Manufacturing', 'Services PMI'] },
+  { key: 'US trade_balance', terms: ['Trade Balance', 'International Trade'] },
+  { key: 'CA trade_balance', terms: ['Merchandise Trade', 'International Trade', 'Trade Balance'] },
+  { key: 'AU trade_balance', terms: ['Trade Balance', 'International Trade'] },
+  { key: 'NZ employment_situation', terms: ['Labour market statistics', 'Household Labour Force', 'Employment Change', 'Unemployment'] },
+  { key: 'CA employment_situation', terms: ['Labour Force Survey', 'Employment Change', 'Unemployment'] },
+];
+
+function verifyNamesAgainst(sourceId, label, buf, contentType) {
+  if (!/text|html|xml|json/i.test(contentType || '')) return;
+  const text = buf.toString('utf8');
+  for (const item of NAME_VERIFICATION_TERMS) {
+    for (const term of item.terms) {
+      const idx = text.toLowerCase().indexOf(term.toLowerCase());
+      if (idx >= 0) {
+        const ctx = text.slice(Math.max(0, idx - 60), idx + term.length + 100).replace(/\s+/g, ' ');
+        log(`  [NAME-VERIFY] ${item.key} matched "${term}" in ${sourceId}.${label}: >>> ${ctx} <<<`);
+      }
+    }
+  }
+}
 
 function guessExt(contentType, url) {
   if (/pdf/i.test(contentType || '')) return '.pdf';
