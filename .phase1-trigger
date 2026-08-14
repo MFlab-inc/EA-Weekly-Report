@@ -1,1 +1,1 @@
-{"run_recon": false, "verify_fred": false, "collect_fixtures": true, "note": "task9-fixture-collection-20260814"}
+{"run_recon": false, "verify_fred": false, "collect_fixtures": false, "run_recon_b": true, "note": "task11-priority-b-recon-20260814"}

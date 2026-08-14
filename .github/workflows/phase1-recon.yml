@@ -35,6 +35,8 @@ jobs:
             const out = [
               "only_ids=" + (cfg.only_ids || ""),
               "run_recon=" + (cfg.run_recon === false ? "false" : "true"),
+              "run_recon_b=" + (cfg.run_recon_b === true ? "true" : "false"),
+              "only_ids_b=" + (cfg.only_ids_b || ""),
               "verify_fred=" + (cfg.verify_fred === true ? "true" : "false"),
               "collect_fixtures=" + (cfg.collect_fixtures === true ? "true" : "false"),
             ].join("\n") + "\n";
@@ -43,6 +45,9 @@ jobs:
       - name: Source recon
         if: steps.cfg.outputs.run_recon == 'true'
         run: node scripts/phase1/source-recon.mjs '${{ steps.cfg.outputs.only_ids }}'
+      - name: Source recon (priority B)
+        if: steps.cfg.outputs.run_recon_b == 'true'
+        run: node scripts/phase1/source-recon-b.mjs '${{ steps.cfg.outputs.only_ids_b }}'
       - name: FRED API verify
         if: steps.cfg.outputs.verify_fred == 'true'
         env:
