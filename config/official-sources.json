@@ -175,20 +175,23 @@
     {
       "id": "us_ism",
       "name_ja": "ISM",
-      "status": "draft_schedule",
+      "status": "active",
       "country": "US",
       "kinds": ["pmi_ism"],
       "type": "annual_schedule_config",
       "recurring_check_refs": [],
       "residual_monitor_weeks": 4,
-      "schedule_status": "pending_manual_verification",
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-08-14",
+      "confirmed_by": "しょうさん（ISM公式カレンダーページの目視確認）",
+      "confirmed_note": "2026年9月・10月分（製造業9/1・非製造業9/3、製造業10/1・非製造業10/5）をドラフト提示し、ISM公式カレンダーページと一致することを確認済み。8月分は既刊ground truthとも一致。次回の年次確認は残量監視WARN（対象週+4週先までscheduleに日程が無い場合）で促す運用とする",
       "schedule": [
-        { "date": "2026-08-03", "kind": "pmi_ism", "subtype": "manufacturing", "note": "ground truth us_ism_mfg_20260803と一致確認済み（機械計算）" },
-        { "date": "2026-08-05", "kind": "pmi_ism", "subtype": "services", "note": "ground truth us_ism_services_20260805と一致確認済み（機械計算）" },
-        { "date": "2026-09-01", "kind": "pmi_ism", "subtype": "manufacturing" },
-        { "date": "2026-09-03", "kind": "pmi_ism", "subtype": "services" },
-        { "date": "2026-10-01", "kind": "pmi_ism", "subtype": "manufacturing" },
-        { "date": "2026-10-05", "kind": "pmi_ism", "subtype": "services" }
+        { "date": "2026-08-03", "kind": "pmi_ism", "subtype": "manufacturing", "note": "ground truth us_ism_mfg_20260803と一致確認済み（機械計算＋しょうさん目視確認2026-08-14）" },
+        { "date": "2026-08-05", "kind": "pmi_ism", "subtype": "services", "note": "ground truth us_ism_services_20260805と一致確認済み（機械計算＋しょうさん目視確認2026-08-14）" },
+        { "date": "2026-09-01", "kind": "pmi_ism", "subtype": "manufacturing", "note": "しょうさん目視確認2026-08-14（ISM公式カレンダーと一致）" },
+        { "date": "2026-09-03", "kind": "pmi_ism", "subtype": "services", "note": "しょうさん目視確認2026-08-14（ISM公式カレンダーと一致）" },
+        { "date": "2026-10-01", "kind": "pmi_ism", "subtype": "manufacturing", "note": "しょうさん目視確認2026-08-14（ISM公式カレンダーと一致）" },
+        { "date": "2026-10-05", "kind": "pmi_ism", "subtype": "services", "note": "しょうさん目視確認2026-08-14（ISM公式カレンダーと一致）" }
       ],
       "draft_rule": {
         "description": "製造業PMI=毎月第1営業日、非製造業(Services)PMI=毎月第3営業日、いずれも米東部時間10:00。米連邦祝日を考慮して機械計算したドラフトを人間が年1回、公式カレンダーページと突合・確定する",
@@ -204,7 +207,7 @@
       "announce_time_by_kind": {
         "pmi_ism": { "local_time": "10:00", "tz": "America/New_York" }
       },
-      "notes": "2026-08-14: ドラフト生成コード実装（scripts/lib/ism-schedule.js）。既刊ground truth（2026-08-03=製造業・2026-08-05=非製造業）と一致することを確認済み。2026-08〜10月分をscheduleへ機械投入したが、しょうさんによる公式カレンダーページとの目視突合・確定はまだ（schedule_statusはpending_manual_verificationのまま）。docs/annual-schedule-maintenance.md参照"
+      "notes": "2026-08-14: ドラフト生成コード実装（scripts/lib/ism-schedule.js）。既刊ground truth（2026-08-03=製造業・2026-08-05=非製造業）と一致することを確認済み。2026-08〜10月分をscheduleへ機械投入し、しょうさんによる公式カレンダーページとの目視突合・確定が完了（confirmed_at参照）。docs/annual-schedule-maintenance.md参照"
     },
     {
       "id": "jp_boj",
