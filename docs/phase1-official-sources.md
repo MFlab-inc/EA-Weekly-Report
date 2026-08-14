@@ -115,7 +115,45 @@
 
 残り4件はPhase 1実装（優先度B・BLS/ISM代替手段確立）と合わせて確認する（§3手順6）。
 
-### 5-4. BLS・ISMの代替手段（検討事項）
+### 5-4. BLS・ISMの代替手段（2026-08-14確定・しょうさん承認済み）
 
-- **BLS**: robots.txt自体が403。本番Actionsランナーは実測時と同じAzure IPレンジのため、同じ制限を受ける可能性が高い。対応候補: (a) 実ブラウザに近いUser-Agent/ヘッダーでの再試行、(b) `bls.ics`（iCalフィード）が別ドメイン/別経路で配信されていないか調査、(c) 上記いずれも不可の場合はBLS担当イベント（CPI・PPI・雇用統計・JOLTS）をPFEI（Census経由の政府横断スケジュール、実データ取得済み）で代替できないか検討——PFEIはBLS発表分の日程も含む政府横断スケジュールのため、発表元表記は変わるが日程取得の代替になり得る
-- **ISM**: robots.txtは許可だが実ページがCAPTCHA。年次固定日程（製造業=毎月第1営業日、非製造業=第3営業日、米東部10:00、祝日ずれのみ例外）を`config/official-sources.json`に組み込み、日々のスクレイピングを行わない方式を採用する。祝日ずれの検知は限定的な頻度（年数回）でのアクセスに抑えられる
+#### BLS → FRED（セントルイス連銀）採用
+
+**方針**: UAを偽装してrobots.txt/WAFのブロックを回避することはしない（サイト側の拒否を偽装で回避しない、という本プロジェクトの一貫方針）。代わりに**FRED（Federal Reserve Bank of St. Louis）の公式APIを日付ソースとして採用**する。
+
+**調査結果（WebSearch、2026-08-14。egressブロックのためドキュメント調査のみ・実APIコールは未実施）**:
+
+| 項目 | 結果 |
+|---|---|
+| エンドポイント | `GET https://api.stlouisfed.org/fred/releases/dates`（全リリース一括）または `fred/release/dates`（release_id指定） |
+| 対象release_id | CPI=10、PPI=46、雇用統計（Employment Situation）=50、JOLTS=192（fred.stlouisfed.org/release?rid=Nで確認） |
+| APIキー | 無料・即時発行のセルフサービス登録（fred.stlouisfed.org/docs/api/api_key.html）。パラメータ名は`api_key` |
+| レート制限 | 120リクエスト/分（週次runには十分すぎる余裕） |
+| 利用規約 | BLSデータは米連邦政府作成物のためpublic domain。FREDでも「Public Domain: Citation Requested」タグ（Copyrighted区分ではない）。出典（BLS）とFRED経由取得である旨の明記が求められる程度 |
+| 時刻データ | **APIレスポンスには含まれない**（日付のみ）。Webサイトのカレンダー表示には時刻注記があるようだがAPI経由では未確認 |
+| **未確認事項（重要）** | `releases/dates`が**未来（未発表）の日付を返すか**は、ドキュメント上は強く示唆される（BLSは年次で先の日程を公表しており、その日程がFREDに反映される設計と読める）が、実APIコールでの確認はAPIキーがないため未実施 |
+
+**採用設計**（しょうさん指示どおり）:
+- (a) **日付**: FRED `releases/dates`（対象release_id: 10・46・50・192）
+- (b) **発表時刻**: 指標別固定時刻を`config/official-sources.json`に保持（米CPI/PPI/雇用統計=08:30 ET、JOLTS=10:00 ET が慣行値。要最終確認）し、`scripts/lib/tz-convert.js`でDST対応のJST換算を行う
+- (c) **ドリフト検知**: 月曜FF事後突合（SPEC §3.3）で(a)(b)の組み合わせ結果とFF実データを突合し、相違があれば`discrepancy-report.json`に記録
+
+**必要なSecrets登録（しょうさんの操作をお願いします）**:
+
+1. https://fredaccount.stlouisfed.org/apikeys にアクセスし、St. Louis Fed アカウントを作成（無料・メールアドレスのみ）
+2. ログイン後「Request API Key」からAPIキーを発行（即時発行・審査待ちなし）
+3. 本リポジトリのGitHub画面で: **Settings → Secrets and variables → Actions → New repository secret**
+4. Name欄に `FRED_API_KEY`、Secret欄に発行されたキーを貼り付けて保存
+
+登録後、Claude Codeが実際に`fred/release/dates`へライブ呼び出しを行い、未来日程が返るか（上表の未確認事項）を確認したうえで実装に組み込みます。
+
+#### ISM → 年次スケジュールconfig型に統一（しょうさん承認済み）
+
+BOJ・Census(PFEI)・Statistics Canadaと同じ「年次スケジュールconfig型」（SPEC §3.5）に位置付ける。ISM固有のドラフト生成規則を追加する:
+
+1. **ルールによる年間ドラフト自動生成**: 製造業PMI=各月第1営業日、非製造業(Services)PMI=各月第3営業日、いずれも米東部時間10:00。祝日カレンダー（米連邦祝日）を考慮して「営業日」を計算し、`config/official-sources.json`のISMエントリに翌年分ドラフトを機械生成する
+2. **人間による年1回の照合・確定**: ドラフト生成後、**しょうさんまたはClaude Codeが年1回、ISM公式の年間カレンダーページ（`ismworld.org/.../rob-report-calendar/`）を手動で閲覧し、ドラフトと突合・確定**する（自動スクレイピングはCAPTCHAのため不可なので、この工程のみ人手を挟む）。確定後の値を`config/official-sources.json`にコミットする
+3. **残量監視**: 他の年次スケジュールconfig型と同じ仕組み（対象週+4週先までの日程が無ければWARN。SPEC §3.5・`docs/annual-schedule-maintenance.md`）で、次年分の手動確定を促す
+4. **ドリフト検知**: 月曜FF事後突合で実際の発表日と確定済みドラフトを突合し、祝日ずれ等の見落としを検知する
+
+`docs/annual-schedule-maintenance.md` の年次公表時期一覧にISMの手動確定プロセスを追加する。

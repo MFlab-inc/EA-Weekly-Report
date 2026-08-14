@@ -21,7 +21,16 @@ WARNが出たら、そのメッセージ（対象ソース名）をそのままC
 | MOF（国債発行計画） | 毎年12月頃（翌年度＝4月始まり分） | 年間発行計画。年度途中（6月頃）に改定あり | mof.go.jp/jgbs/issuance_plan/fy{年度}/ |
 | RBA（理事会日程） | 前年内（例: 2025年に2026年分） | 翌年の会合日程 | rba.gov.au 媒体発表（"[Year] Monetary Policy Board Meeting Dates"） |
 | Statistics Canada（主要統計） | 毎年公表（当年+翌年分をカバー） | CPI・GDP・雇用統計等の発表日一覧 | statcan.gc.ca/n1/release-diffusion/{年}-eng.pdf |
-| ISM等の民間指数機関 | 未確認（優先度B実装時に調査） | — | — |
+| ISM（製造業/非製造業PMI） | **手動確定が必要（自動取得不可）**。年1回、下記手順で確定 | 製造業=第1営業日・非製造業=第3営業日・米東部10:00（規則ドラフト） | ismworld.org/.../rob-report-calendar/（CAPTCHAのため自動取得不可） |
+
+### ISM固有の手順（年1回・手動照合が必須）
+
+ISM公式サイトは自動取得がCAPTCHAでブロックされるため、他ソースと異なり**人手による年1回の照合**が必須の工程として組み込まれている（`docs/phase1-official-sources.md` §5-4）:
+
+1. ルールベースで翌年分ドラフトを機械生成（製造業=各月第1営業日、非製造業=各月第3営業日、米東部10:00、米連邦祝日を考慮）
+2. しょうさんまたはClaude Codeが、ismworld.orgのリリースカレンダーページをブラウザで開き、ドラフトと目視で突合（祝日ずれ等の例外を確認）
+3. 確定した日程を`config/official-sources.json`のISMエントリへ手動反映・コミット
+4. 以後は残量監視WARN（本文の仕組み参照）が翌年分の確定時期を知らせる
 
 **要確認（実測で確定次第この表を更新）**: RBA議会証言（aph.gov.au）・ABS（6ヶ月先までしか公表されない可能性・要確認）・Stats NZ（公表期間未確定）・ONS（release stub pageが1年超先まで存在する例を確認済みだが、確定日程かどうか要区別）は年次config型に向かない、または年次+都度確認のハイブリッドが必要な可能性がある。詳細は `docs/phase1-official-sources.md` の実測結果参照。
 
