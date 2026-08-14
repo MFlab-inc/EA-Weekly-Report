@@ -62,7 +62,7 @@ function haltDayCard(day, reportPolicy) {
     }
     return `${pillHtml}　${labelHtml}　${rangeHtml}${annotationHtml}`;
   });
-  const bodyHtml = windowLines.join('<br>');
+  const bodyHtml = windowLines.length > 0 ? windowLines.join('<br>') : esc(reportPolicy.halt_no_star3_note);
 
   return `    <div class="ea-halt-day" data-ea-date="${day.date}" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px 11px;margin-bottom:10px;">
       <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;">

@@ -10,6 +10,7 @@ const { join } = require('node:path');
 const { buildReportData } = require('../scripts/render/build-report-data');
 const { renderReportHtml } = require('../scripts/render/html-renderer');
 const weekData20260810 = require('../scripts/render/week-data-20260810');
+const weekData20260803 = require('../scripts/render/week-data-20260803');
 
 const reportPolicy = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'report-policy.json'), 'utf8'));
 const btcGuide = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'btc-weekend-guide.json'), 'utf8'));
@@ -93,4 +94,24 @@ test('renderer: 禁止語（JST・仮想通貨）が読者向け文言に出な�
   for (const term of reportPolicy.forbidden_reader_terms) {
     assert.ok(!generated.includes(term), `禁止語「${term}」が出力に含まれている`);
   }
+});
+
+// しょうさん指摘（2026-08-14修正1）: ★★★イベントがゼロの日は帯・▲・件数バッジ・説明文が
+// すべて空になり、「イベントなし」と「取得失敗」の区別がつかなかった。halt_no_star3_noteを
+// 説明文位置に明示することで解消する（8/3週の2026-08-04が実例）。
+const generated0803 = renderReportHtml(buildReportData(weekData20260803), { reportPolicy, btcGuide });
+
+test('renderer: ★★★イベントがゼロの日はhalt_no_star3_noteが説明文位置に出る（帯・▲は空のまま）', () => {
+  const block = haltDayBlock(generated0803, '2026-08-04');
+  const { bars, triangles } = barsAndTriangles(block);
+  assert.deepEqual(bars, [], '2026-08-04: ★★★がないため帯は空のはず');
+  assert.deepEqual(triangles, [], '2026-08-04: ★★★がないため▲は空のはず');
+  assert.ok(block.includes(reportPolicy.halt_no_star3_note), 'halt_no_star3_noteが出力に含まれていない');
+});
+
+// しょうさん指摘（2026-08-14修正2・任意対応）: 同一時刻の▲が完全に重なる場合は重複描画しない
+test('renderer: 同一時刻（同一leftPct）の▲は重複描画されない（8/7 カナダ雇用統計・米雇用統計とも21:30）', () => {
+  const block = haltDayBlock(generated0803, '2026-08-07');
+  const { triangles } = barsAndTriangles(block);
+  assert.equal(triangles.length, 1, '21:30の▲は1つにまとめられているはず');
 });

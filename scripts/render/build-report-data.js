@@ -21,7 +21,10 @@ function buildDayHaltCard(day) {
     leftPct: pct(iv.start),
     widthPct: pct(iv.end - iv.start),
   }));
-  const triangles = (day.windowGroups || []).flatMap((g) => (g.labelItems || []).map((li) => ({ time: li.time, leftPct: pct(parseHHMM(li.time)) })));
+  const rawTriangles = (day.windowGroups || []).flatMap((g) => (g.labelItems || []).map((li) => ({ time: li.time, leftPct: pct(parseHHMM(li.time)) })));
+  // 同一時刻（同一leftPct）の▲は完全に重なり見た目上1つのため、重複を除いて描画する
+  const seenLeftPct = new Set();
+  const triangles = rawTriangles.filter((t) => (seenLeftPct.has(t.leftPct) ? false : (seenLeftPct.add(t.leftPct), true)));
 
   const star3Count = day.events.filter((e) => e.importance === 3).length;
   return { date: day.date, md: day.md, weekday: day.weekday, star3Count, windows, bars, triangles };
