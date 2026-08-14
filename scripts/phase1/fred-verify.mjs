@@ -8,11 +8,14 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const OUT_DIR = 'phase1-out';
-const API_KEY = process.env.FRED_API_KEY;
+const RAW_KEY = process.env.FRED_API_KEY || '';
+const API_KEY = RAW_KEY.trim();
 if (!API_KEY) {
   console.error('[FATAL] FRED_API_KEY が設定されていません（GitHub Secretsを確認）');
   process.exit(1);
 }
+// 診断ログ（キー自体は出力しない。長さと空白混入の有無のみ）
+console.log(`[DIAG] key length=${API_KEY.length} (trim前後で差分: ${RAW_KEY.length !== API_KEY.length}) 形式=${/^[a-z0-9]{32}$/.test(API_KEY) ? '32桁英数字(想定どおり)' : '想定外（32桁小文字英数字ではない）'}`);
 
 const RELEASES = [
   { id: 10, kind: 'cpi', name: 'CPI' },
