@@ -1,40 +1,17 @@
 {
-  "collectedAt": "2026-08-14T14:32:25.903Z",
+  "collectedAt": "2026-08-14T15:59:47.156Z",
   "sources": [
     {
-      "id": "jp_mof",
+      "id": "ca_statcan",
       "files": [
         {
-          "label": "auction_calendar_index",
-          "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm",
+          "label": "annual_release_dates_pdf",
+          "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
           "saved": true,
-          "path": "test/fixtures/official-sources/jp_mof/auction_calendar_index.html",
+          "path": "test/fixtures/official-sources/ca_statcan/annual_release_dates_pdf.pdf",
           "status": 200,
-          "bytes": 23700,
-          "contentType": "text/html"
-        },
-        {
-          "label": "auction_calendar_2608",
-          "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/2608e.htm",
-          "saved": true,
-          "path": "test/fixtures/official-sources/jp_mof/auction_calendar_2608.html",
-          "status": 200,
-          "bytes": 27585,
-          "contentType": "text/html"
-        }
-      ]
-    },
-    {
-      "id": "us_frb_speeches",
-      "files": [
-        {
-          "label": "speeches_rss",
-          "url": "https://www.federalreserve.gov/feeds/speeches.xml",
-          "saved": true,
-          "path": "test/fixtures/official-sources/us_frb_speeches/speeches_rss.xml",
-          "status": 200,
-          "bytes": 9682,
-          "contentType": "text/xml"
+          "bytes": 158855,
+          "contentType": "application/pdf"
         }
       ]
     }
