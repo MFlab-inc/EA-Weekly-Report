@@ -249,6 +249,22 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
     }
     candidates.push(candidate);
   }
+
+  // access.next_release_pointer: true のソース（例: nz_statsnz）向けの鮮度チェック。
+  // 「直近に公表されたページ」を指すURLを四半期ごとに手動更新する運用のため、
+  // 抽出結果（次回リリース予定日）が全件すでに対象週より過去＝URL更新漏れの疑いとして
+  // 構造的失敗を返す（フェールクローズ規則へ接続。docs/annual-schedule-maintenance.md参照）
+  if (source.access?.next_release_pointer && candidates.length > 0 && candidates.every((c) => c.date < targetWeek.targetWeekStart)) {
+    return {
+      ok: false,
+      reason: `抽出結果（次回リリース予定日）がすべて対象週より過去（最新候補: ${candidates[candidates.length - 1].date}）。access.targetsのURL更新漏れの疑い（next_release_maintenance参照）`,
+      fetched: fetched.map(({ body, ...rest }) => rest),
+      annualConfigHasTargetWeek: false,
+      recurringCheckMatches: false,
+      foundKinds: [],
+    };
+  }
+
   const thisWeek = candidates.filter((c) => isWithinWeek(c.date, targetWeek.targetWeekStart, targetWeek.targetWeekEnd));
 
   return {

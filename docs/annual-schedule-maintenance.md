@@ -43,8 +43,10 @@ Stats NZはopen data API（api.stats.govt.nz）が2024-08-30に閉鎖済み、�
 この方式は**四半期ごとに`access.targets`のURLを最新の公表ページへ手動更新する必要がある**（jp_mofの月次URL更新と同種の運用）:
 
 1. 新しい四半期のLabour market statisticsが公表されたら（例年2月・5月・8月・11月上旬）、`config/official-sources.json`のnz_statsnz.access.targets[0].urlを新しいページ（例: `labour-market-statistics-september-2026-quarter`）へ更新する
-2. URLの更新を怠ると、ページに埋め込まれた「次回リリース予定日」が既に過ぎた日付になり、抽出結果が対象週と一致しなくなる。この場合`extractNzNextRelease`は次回リリース予定日の埋め込みテキスト自体は見つかる可能性があるが、対象週の日程を含まない結果になるため、フェールクローズ規則（該当週に必要ならHOLD）で安全側に倒れる
-3. しょうさんへの通知は不要（Claude Code側でURL更新を検知・実施する運用を想定）だが、残量監視の仕組みがannual_schedule_config型と異なりまだ無いため、当面は月次の定期確認（task化検討）が必要
+2. URLの更新を怠ると、ページに埋め込まれた「次回リリース予定日」が既に過ぎた日付になる。この場合`config/official-sources.json`のnz_statsnz.access.next_release_pointer:trueにより、`checkWeeklyScrapeSource`が「抽出結果が全件対象週より過去＝URL更新漏れの疑い」として構造的失敗（ok:false）を明示的に返すよう実装済み（2026-08-14・task #18対応時に追加）。annual_schedule_config型の残量監視WARN（4週先までの日程確認）とは仕組みが異なるが、同じ「更新漏れを黙って見逃さない」という目的をweekly_scrape型なりの方式で満たしている
+3. しょうさんへの通知は不要（Claude Code側でURL更新を検知・実施する運用を想定）。更新漏れは上記2の構造的失敗が対象週で顕在化した時点でActionsログ・hold-report経由で分かる
+
+**次回のURL更新目安**: 2026年11月上旬（2026年9月期のLabour market statisticsが公表され次第、`labour-market-statistics-september-2026-quarter`へ更新）。
 
 **初回実施記録（2026-08-14）**: 前四半期（2026年3月期）ページの埋め込みテキストが「Labour market statistics: June 2026 quarter will be released on 5 August 2026」を予告しており、ground truth（nz_labour_q2_20260805）と完全一致することを確認した。
 

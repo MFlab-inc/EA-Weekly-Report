@@ -299,6 +299,20 @@ test('Stats NZ(nz_statsnz, weekly_scrape): 次回リリース予定日の埋め�
   assert.match(rNz.reason, /抽出失敗/);
 });
 
+test('Stats NZ(nz_statsnz, weekly_scrape): 抽出結果が全件対象週より過去の場合はURL更新漏れ疑いとして明示的にok:falseを返す（next_release_pointer鮮度チェック）', async () => {
+  const { checkWeeklyScrapeSource } = await import('../scripts/checkers/harness.mjs');
+  const nzSource = sourcesConfig.sources.find((s) => s.id === 'nz_statsnz');
+  // latest_labour_market_release.html（2026年6月期ページ）は次サイクル（2026年9月期＝2026-11-04）を
+  // 予告する。それより後の対象週（2026-12週）で照合すると「全候補が対象週より過去」となるはず
+  const latestHtml = readFixture('nz_statsnz', 'latest_labour_market_release.html');
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => latestHtml });
+  const futureWeek = { targetWeekStart: '2026-12-07', targetWeekEnd: '2026-12-11', dates: ['2026-12-07', '2026-12-08', '2026-12-09', '2026-12-10', '2026-12-11'].map((date) => ({ date })) };
+
+  const r = await checkWeeklyScrapeSource(nzSource, futureWeek, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /URL更新漏れ/);
+});
+
 test('Stats NZ(nz_statsnz, weekly_scrape): 前四半期ページの実fixtureからground truth（nz_labour_q2、2026-08-05）を日時・重要度・名称とも完全一致で捕捉できる', async () => {
   const { checkWeeklyScrapeSource } = await import('../scripts/checkers/harness.mjs');
   const nzSource = sourcesConfig.sources.find((s) => s.id === 'nz_statsnz');
