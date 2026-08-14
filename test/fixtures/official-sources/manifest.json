@@ -1,20 +1,6 @@
 {
-  "collectedAt": "2026-08-14T14:26:47.033Z",
+  "collectedAt": "2026-08-14T14:32:25.903Z",
   "sources": [
-    {
-      "id": "us_treasury",
-      "files": [
-        {
-          "label": "fiscaldata_upcoming_auctions",
-          "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions",
-          "saved": true,
-          "path": "test/fixtures/official-sources/us_treasury/fiscaldata_upcoming_auctions.json",
-          "status": 200,
-          "bytes": 21646,
-          "contentType": "application/json"
-        }
-      ]
-    },
     {
       "id": "jp_mof",
       "files": [
@@ -26,6 +12,15 @@
           "status": 200,
           "bytes": 23700,
           "contentType": "text/html"
+        },
+        {
+          "label": "auction_calendar_2608",
+          "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/2608e.htm",
+          "saved": true,
+          "path": "test/fixtures/official-sources/jp_mof/auction_calendar_2608.html",
+          "status": 200,
+          "bytes": 27585,
+          "contentType": "text/html"
         }
       ]
     },
@@ -33,36 +28,13 @@
       "id": "us_frb_speeches",
       "files": [
         {
-          "label": "speeches_index",
-          "url": "https://www.federalreserve.gov/newsevents/speeches-testimony.htm",
+          "label": "speeches_rss",
+          "url": "https://www.federalreserve.gov/feeds/speeches.xml",
           "saved": true,
-          "path": "test/fixtures/official-sources/us_frb_speeches/speeches_index.html",
+          "path": "test/fixtures/official-sources/us_frb_speeches/speeches_rss.xml",
           "status": 200,
-          "bytes": 87534,
-          "contentType": "text/html"
-        },
-        {
-          "label": "feeds_hub",
-          "url": "https://www.federalreserve.gov/feeds/feeds.htm",
-          "saved": true,
-          "path": "test/fixtures/official-sources/us_frb_speeches/feeds_hub.html",
-          "status": 200,
-          "bytes": 90029,
-          "contentType": "text/html"
-        }
-      ]
-    },
-    {
-      "id": "ca_ivey",
-      "files": [
-        {
-          "label": "faq",
-          "url": "https://iveypmi.uwo.ca/faq/",
-          "saved": true,
-          "path": "test/fixtures/official-sources/ca_ivey/faq.html",
-          "status": 200,
-          "bytes": 61440,
-          "contentType": "text/html; charset=utf-8"
+          "bytes": 9682,
+          "contentType": "text/xml"
         }
       ]
     }
