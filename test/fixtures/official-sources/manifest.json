@@ -1,26 +1,73 @@
 {
-  "collectedAt": "2026-08-14T16:04:15.213Z",
+  "collectedAt": "2026-08-14T17:56:22.751Z",
   "sources": [
     {
-      "id": "nz_statsnz",
+      "id": "us_frb_policy_rate",
       "files": [
         {
-          "label": "latest_labour_market_release",
-          "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
+          "label": "fomc_calendars",
+          "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "saved": true,
-          "path": "test/fixtures/official-sources/nz_statsnz/latest_labour_market_release.html",
+          "path": "test/fixtures/official-sources/us_frb_policy_rate/fomc_calendars.html",
           "status": 200,
-          "bytes": 115169,
-          "contentType": "text/html; charset=utf-8"
-        },
+          "bytes": 164431,
+          "contentType": "text/html"
+        }
+      ]
+    },
+    {
+      "id": "ecb_policy_rate",
+      "files": [
         {
-          "label": "TEMP_ground_truth_validation_prior_quarter",
-          "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-march-2026-quarter/",
+          "label": "gc_calendar",
+          "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
           "saved": true,
-          "path": "test/fixtures/official-sources/nz_statsnz/TEMP_ground_truth_validation_prior_quarter.html",
+          "path": "test/fixtures/official-sources/ecb_policy_rate/gc_calendar.html",
           "status": 200,
-          "bytes": 106255,
+          "bytes": 106653,
+          "contentType": "text/html; charset=UTF-8"
+        }
+      ]
+    },
+    {
+      "id": "boe_policy_rate",
+      "files": [
+        {
+          "label": "upcoming_mpc_dates",
+          "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates",
+          "saved": true,
+          "path": "test/fixtures/official-sources/boe_policy_rate/upcoming_mpc_dates.html",
+          "status": 200,
+          "bytes": 78342,
           "contentType": "text/html; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "id": "boc_policy_rate",
+      "files": [
+        {
+          "label": "upcoming_events",
+          "url": "https://www.bankofcanada.ca/press/upcoming-events/",
+          "saved": true,
+          "path": "test/fixtures/official-sources/boc_policy_rate/upcoming_events.html",
+          "status": 200,
+          "bytes": 148724,
+          "contentType": "text/html; charset=UTF-8"
+        }
+      ]
+    },
+    {
+      "id": "snb_policy_rate",
+      "files": [
+        {
+          "label": "decisions_page",
+          "url": "https://www.snb.ch/en/the-snb/mandates-goals/monetary-policy/decisions",
+          "saved": true,
+          "path": "test/fixtures/official-sources/snb_policy_rate/decisions_page.html",
+          "status": 200,
+          "bytes": 253069,
+          "contentType": "text/html;charset=UTF-8"
         }
       ]
     }
