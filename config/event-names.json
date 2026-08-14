@@ -1,0 +1,26 @@
+{
+  "_comment": "統計指標の英名（公式発表元/FFのタイトル）→日本語正規名の辞書。2026-08-14新設（みんかぶ不使用の代替。SPEC §3.1・§4.2）。未登録イベントはWARN＋掲載除外（推測翻訳は禁止）。matchは正規化後（小文字化）の部分一致キーワード。display_nameは対象期間を含まない基底形（period_unitに従いrenderer側で『（2026年7月）』等を付記）。国名接頭辞は原則含めない（国ピルと重複するため。design-mock_v1.2 §13.5-1の規則を踏襲）。発言・入札・中銀系（policy_rate/press_conference/testimony/opinions_summary/minutes_summary/official_speech/bond_auction）はSPEC §4.2の規則生成対象のためここには含めない",
+  "source_verified_note": "source_verified:true は Phase 0実測（2026-08-14、FF thisweek.jsonの実データ）で確認済み。false は既刊サンプル（reference/sample-report_20260808.html、8/3週）からの表記のみで、実データのタイトル文言は未照合（lastweek.jsonが404のため測れなかった）。Phase 1で各ソースの実データ取得時にmatch/表記を確認し、trueへ更新すること",
+  "entries": [
+    { "country": "US", "kind": "cpi", "match": ["cpi m/m", "cpi y/y", "consumer price index"], "display_name": "消費者物価指数（CPI）", "period_unit": "month", "source_verified": true },
+    { "country": "US", "kind": "cpi", "match": ["core cpi"], "display_name": "消費者物価指数【コア】", "period_unit": "month", "source_verified": true },
+    { "country": "US", "kind": "ppi", "match": ["ppi m/m"], "display_name": "生産者物価指数（PPI）", "period_unit": "month", "source_verified": true },
+    { "country": "US", "kind": "ppi", "match": ["core ppi"], "display_name": "生産者物価指数【コア】", "period_unit": "month", "source_verified": true },
+    { "country": "GB", "kind": "gdp", "match": ["gdp m/m", "prelim gdp q/q"], "display_name": "GDP【速報値】", "period_unit": "quarter", "source_verified": true, "note": "既刊表記は『第2四半期GDP【速報値】』。四半期番号はrenderer側で付与" },
+    { "country": "US", "kind": "retail_sales", "match": ["retail sales m/m", "core retail sales m/m"], "display_name": "小売売上高＆【除自動車】", "period_unit": "month", "source_verified": true, "bundle_as_one_line": true, "note": "総合＋除自動車の2系列を1イベントに束ねて表示（既刊踏襲）" },
+    { "country": "US", "kind": "employment_situation", "match": ["non-farm employment change", "unemployment rate", "average hourly earnings"], "display_name": "雇用統計：非農業部門雇用者数・失業率・平均時給", "period_unit": "month", "source_verified": true, "bundle_as_one_line": true, "note": "3系列を1イベントに束ねる（既刊踏襲）" },
+    { "country": "CN", "kind": "pmi_ism", "match": ["manufacturing pmi"], "display_name": "RatingDog(旧財新)製造業PMI", "period_unit": "month", "source_verified": false },
+    { "country": "CN", "kind": "pmi_ism", "match": ["services pmi", "non-manufacturing pmi"], "display_name": "RatingDog(旧財新)非製造業PMI", "period_unit": "month", "source_verified": false },
+    { "country": "US", "kind": "pmi_ism", "match": ["ism manufacturing pmi"], "display_name": "ISM製造業景況指数", "period_unit": "month", "source_verified": true },
+    { "country": "US", "kind": "pmi_ism", "match": ["ism services pmi", "ism non-manufacturing"], "display_name": "ISM非製造業景況指数", "period_unit": "month", "source_verified": false },
+    { "country": "GB", "kind": "pmi_ism", "match": ["construction pmi"], "display_name": "建設業PMI", "period_unit": "month", "source_verified": false },
+    { "country": "CA", "kind": "pmi_ism", "match": ["ivey pmi", "ivey"], "display_name": "Ivey購買部協会景況指数", "period_unit": "month", "source_verified": false },
+    { "country": "CA", "kind": "trade_balance", "match": ["trade balance"], "display_name": "国際商品貿易", "period_unit": "month", "source_verified": false },
+    { "country": "US", "kind": "trade_balance", "match": ["trade balance"], "display_name": "貿易収支", "period_unit": "month", "source_verified": false },
+    { "country": "AU", "kind": "trade_balance", "match": ["trade balance"], "display_name": "貿易収支", "period_unit": "month", "source_verified": false },
+    { "country": "US", "kind": "employment_indicator", "match": ["jolts job openings", "jolts"], "display_name": "JOLTS求人・離職動向調査", "period_unit": "month", "source_verified": false },
+    { "country": "US", "kind": "employment_indicator", "match": ["adp non-farm employment change", "adp employment change", "adp"], "display_name": "ADP雇用統計", "period_unit": "month", "source_verified": false },
+    { "country": "NZ", "kind": "employment_situation", "match": ["employment change", "unemployment rate"], "display_name": "雇用統計", "period_unit": "quarter", "source_verified": false },
+    { "country": "CA", "kind": "employment_situation", "match": ["employment change", "unemployment rate"], "display_name": "雇用統計", "period_unit": "month", "source_verified": false }
+  ]
+}
