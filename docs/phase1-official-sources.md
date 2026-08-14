@@ -300,6 +300,19 @@ task #11終盤時点の未解決5元（Stats NZ・Statistics Canada・中国PMI�
 
 `nz_statsnz`・`ca_statcan`がともに構造的失敗を返し続けていた状態（毎週2件同時失敗＝SPEC §3.4の無条件HOLDが必ず発動し、実装が完了するまで一度もOK配信できなかった問題）はこれで解消された。
 
-### 9-4. テスト
+### 9-4. テスト（9-1〜9-3分）
 
 `test/extractors-statcan.test.js`（実fixture=年次PDFからの抽出単体テスト）・`test/extractors-nz-statsnz.test.js`（実fixture=情報公開ページ2種からの抽出単体テスト）を追加。`test/ground-truth-capture.test.js`の該当テストを更新（旧: 両ソースとも抽出ルール未登録でok:false → 新: 実際の抽出結果を既刊ground truthと照合）。`npm test`で162件全PASS。
+
+### 9-5. RBA総裁の下院経済委員会証言（★★★・task #18）: 構造的ブロッカー（未解決）＋暫定WARN緩和
+
+しょうさん指示（2026-08-14、修正1・2検収後）の優先順①として着手。RBAではなく豪州議会（aph.gov.au）側の告知が必要な事案（§7-2既知）。
+
+- **候補調査**: WebSearchで`House Committees: Upcoming Public Hearings`ページ・`House/Economics`委員会ページ・RSS候補2種（Senate側で確認されたパターンのHouse版）を発見
+- **実測結果**: 4候補すべてrobots.txt取得自体がHTTP 403（`scripts/phase1/source-recon-c.mjs`のau_aph_economicsエントリ、Actions run 31822745685）。BLS・S&P Globalと同種のインフラ側ブロックで、パス単位のDisallowではなくドメイン全体が到達不可と判明。追加調査してもtask #15のような(b)年次PDF等の代替経路が見つかる保証はなく、Playwright導入（(c)）でも同じインフラブロックの前では無力な可能性が高い
+- **RBA自身のサイトも不可**: rba.gov.auの講演アーカイブにはこの証言の冒頭陳述（Opening Statement）が事後掲載されるのみで、事前の日程公表ではない。accountability.htmlページは「年2回（通常2月・8月）」という頻度の記述はあるが、開催週まで特定できる情報源ではない
+- **暫定緩和（フェールクローズの可視化強化）**: `config/importance-rules.json`に`recurring_checks`エントリ「RBA総裁下院経済委員会証言」（ルール: 毎年2月・8月）を追加し、`scripts/lib/recurring-rules.js`に月列挙ルールの汎用マッチャーを実装、`scripts/checkers/harness.mjs`の`RECURRING_CHECK_KIND`へ配線した。これにより対象週が2月・8月に該当する場合は`recurringMissingWarnings`にWARNが出るようになった（担当ソースが無いため恒常的にWARNが出る想定だが、「その週に本当に証言があるか」をしょうさんが目視確認するきっかけを可視化する目的）。**根本解決（実際の日程を自動取得する経路）は依然として未解決**であり、WARNが出た週は人手での確認・掲載判断が必要
+
+### 9-6. テスト（9-5分）
+
+`test/recurring-rules.test.js`に月列挙ルールのテストを追加。`npm test`で164件全PASS。

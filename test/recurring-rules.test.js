@@ -27,3 +27,14 @@ test('matchesRecurringRule: 未知のルール文字列はfalse（例外を投�
   const rule = { rule: '未定義のルール' };
   assert.equal(matchesRecurringRule(rule, ['2026-08-10']), false);
 });
+
+test('matchesRecurringRule: 「2月・8月」のような月列挙ルールは対象月内の週すべてでtrue（RBA証言等・担当ソース未定義の年数回イベント向け）', () => {
+  const rule = { rule: '毎年2月・8月（開催日は豪州議会日程による）' };
+  assert.equal(matchesRecurringRule(rule, ['2026-08-10', '2026-08-11', '2026-08-12', '2026-08-13', '2026-08-14']), true);
+  assert.equal(matchesRecurringRule(rule, ['2026-02-02', '2026-02-03', '2026-02-04', '2026-02-05', '2026-02-06']), true);
+});
+
+test('matchesRecurringRule: 「2月・8月」ルールは対象外の月ではfalse', () => {
+  const rule = { rule: '毎年2月・8月（開催日は豪州議会日程による）' };
+  assert.equal(matchesRecurringRule(rule, ['2026-05-04', '2026-05-05', '2026-05-06', '2026-05-07', '2026-05-08']), false);
+});

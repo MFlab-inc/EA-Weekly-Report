@@ -29,11 +29,14 @@ import { extractNzNextRelease } from './extractors/nz-statsnz.js';
 
 export const USER_AGENT = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; checker-harness)';
 
-// recurring_checks の名称→担当kindの対応。現状2件のみ（config/importance-rules.json）。
+// recurring_checks の名称→担当kindの対応（config/importance-rules.json）。
 // ルールが増えたらここに追記する
 const RECURRING_CHECK_KIND = {
   米雇用統計: 'employment_situation',
   米CPI: 'cpi',
+  // RBA総裁下院経済委員会証言（testimony）は担当ソース未定義（task #18）のため、
+  // このWARNは恒常的に出続ける想定。しょうさんが手動でその週の実施有無を確認する運用
+  RBA総裁下院経済委員会証言: 'testimony',
 };
 
 // weekly_scrapeソースごとの抽出関数レジストリ。source.idで引く。
