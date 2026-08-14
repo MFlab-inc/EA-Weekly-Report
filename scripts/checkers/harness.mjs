@@ -26,6 +26,10 @@ import { extractCensusCalendar } from './extractors/census.js';
 import { extractAbsCalendar } from './extractors/abs.js';
 import { extractOnsReleases } from './extractors/ons.js';
 import { extractNzNextRelease } from './extractors/nz-statsnz.js';
+import { extractBocPolicyRateSchedule } from './extractors/boc-policy-rate.js';
+import { extractMofAuctions } from './extractors/mof.js';
+import { extractUsTreasuryAuctions } from './extractors/us-treasury.js';
+import { extractFrbSpeeches } from './extractors/frb-speeches.js';
 
 export const USER_AGENT = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; checker-harness)';
 
@@ -39,10 +43,29 @@ const RECURRING_CHECK_KIND = {
   RBA総裁下院経済委員会証言: 'testimony',
 };
 
+// jp_mof向け: auction_calendar_index.htmは月別ローリング公表（年次一括ではない）ため、対象週が
+// またがる月ごとに{YY}{MM}e.htmを動的に組み立てる（config/official-sources.json jp_mof.access.
+// month_url_patternのプレースホルダを置換）。週が月をまたぐ場合（例: 1/28〜2/3）は2ページとも対象にする
+function buildMofMonthTargets(source, targetWeek) {
+  const pattern = source.access?.month_url_pattern;
+  if (!pattern) return source.access?.targets || [];
+  const months = [...new Set([targetWeek.targetWeekStart.slice(0, 7), targetWeek.targetWeekEnd.slice(0, 7)])].sort();
+  return months.map((ym) => {
+    const [y, m] = ym.split('-');
+    const yy = y.slice(2);
+    return { label: `auction_calendar_${yy}${m}`, url: pattern.replace('{YY}', yy).replace('{MM}', m) };
+  });
+}
+
 // weekly_scrapeソースごとの抽出関数レジストリ。source.idで引く。
-// primaryLabel: source.access.targetsのうち抽出に使うfetch結果のlabel
-// parseFn: 生テキスト → { ok, rows } （rows内の各行を toRow() で共通行形式へ変換）
-// toRow: 抽出結果の1行 → { title, date?, localTime?, utcInstant? }（resolveCandidateEventの入力形）
+// primaryLabel: source.access.targetsのうち抽出に使うfetch結果のlabel（未指定の場合はfetch成功した
+// 全targetをparseFnで解析しrowsをマージする。動的複数ページ生成のjp_mof等で使用）
+// buildTargets: (source, targetWeek) => [{label, url}]（省略時はsource.access.targetsをそのまま使う。
+// 月別ローリング公表など対象週に応じてURLを動的生成する必要があるソース向け）
+// parseFn: (生テキスト, {targetWeek, source}) → { ok, rows }（rows内の各行を toRow() で共通行形式へ変換。
+// 第2引数は対象週フィルタ等が必要な抽出関数向けの追加コンテキスト。既存の単一引数parseFnは無視して動作する）
+// toRow: 抽出結果の1行 → { title, date?, localTime?, utcInstant?, kind? }（resolveCandidateEventの入力形。
+// kindを含めるとSPEC §4.2の規則生成命名kind向けのruleGenerated分岐が効く。他行分類classifyRowKindより優先）
 const WEEKLY_SCRAPE_EXTRACTORS = {
   us_census: {
     primaryLabel: 'calendar_listview',
@@ -66,6 +89,35 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     primaryLabel: 'latest_labour_market_release',
     parseFn: extractNzNextRelease,
     toRow: (r) => ({ title: 'Labour market statistics', date: r.releaseDate, localTime: '10:45' }),
+  },
+  // BOC: row.kindが抽出側で確定済み（policy_rate / quarterly_report）。SPEC §4.2の
+  // 規則生成命名kindのためevent-names.json辞書照合を行わない（harness側のruleGenerated分岐）
+  boc_policy_rate: {
+    primaryLabel: 'upcoming_events',
+    parseFn: extractBocPolicyRateSchedule,
+    toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime, kind: r.kind }),
+  },
+  // MOF: row.kind='bond_auction'は抽出側で確定済み（time-exempt。resolveCandidateEventのTIME_EXEMPT_KINDS
+  // 分岐でtime:null扱い）。primaryLabel未指定のためbuildTargetsが返す全月ページをマージして解析する
+  jp_mof: {
+    buildTargets: buildMofMonthTargets,
+    parseFn: extractMofAuctions,
+    toRow: (r) => ({ title: r.issueRaw, date: r.date, kind: r.kind }),
+  },
+  // 米財務省: extractUsTreasuryAuctionsは(json, weekStart, weekEnd)を取るため、harnessが渡す
+  // 第2引数ctx.targetWeekから抽出する。row.kind='bond_auction'は抽出側で確定済み（MOFと同様time-exempt）
+  us_treasury: {
+    primaryLabel: 'fiscaldata_upcoming_auctions',
+    parseFn: (body, ctx) => extractUsTreasuryAuctions(body, ctx.targetWeek.targetWeekStart, ctx.targetWeek.targetWeekEnd),
+    toRow: (r) => ({ title: r.securityTerm, date: r.date, kind: r.kind }),
+  },
+  // FRB理事講演: pubDateが絶対UTC値のためutcInstantとして渡す（DST判定不要）。row.kind='official_speech'は
+  // ここで付与する（SPEC §4.2の規則生成命名kind）。話者の人名・役職解決（officials.json拡充、task #17）は
+  // 未実装のためdisplayNameは解決されない（ruleGenerated分岐でdictionary照合自体を行わないため実害なし）
+  us_frb_speeches: {
+    primaryLabel: 'speeches_rss',
+    parseFn: extractFrbSpeeches,
+    toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech' }),
   },
 };
 
@@ -166,7 +218,10 @@ function classifyRowKind(row, source, eventNames) {
 // 手動更新が必要 — next_release_maintenance参照）。ca_statcanは同日の再実測で年次PDFが
 // 直接取得可能と判明しannual_schedule_config型へ再分類済み（本関数の対象外）
 export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = fetch, robotsChecker, eventNames = [], importanceRules } = {}) {
-  const targets = source.access?.targets || [];
+  const extractor = WEEKLY_SCRAPE_EXTRACTORS[source.id];
+  // buildTargets登録ソース（例: jp_mof）は対象週の月に応じてURLを動的に組み立てる。
+  // 未登録の場合は従来どおりsource.access.targetsの静的一覧を使う
+  const targets = extractor?.buildTargets ? extractor.buildTargets(source, targetWeek) : (source.access?.targets || []);
   if (targets.length === 0) {
     return { ok: false, reason: '対象URL未設定（recon未実施）', annualConfigHasTargetWeek: false, recurringCheckMatches: false, foundKinds: [] };
   }
@@ -199,7 +254,6 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
     };
   }
 
-  const extractor = WEEKLY_SCRAPE_EXTRACTORS[source.id];
   if (!extractor) {
     return {
       ok: false,
@@ -211,38 +265,64 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
     };
   }
 
-  const primary = fetched.find((f) => f.label === extractor.primaryLabel);
-  if (!primary?.ok || !primary.body) {
-    return {
-      ok: false,
-      reason: `抽出対象(${extractor.primaryLabel})の取得に失敗`,
-      fetched: fetched.map(({ body, ...rest }) => rest),
-      annualConfigHasTargetWeek: false,
-      recurringCheckMatches: false,
-      foundKinds: [],
-    };
+  const toRows = (parsed) => (parsed.rows || parsed.meetings || parsed.entries || parsed.releases || parsed.items || []).map(extractor.toRow);
+  const parseCtx = { targetWeek, source };
+  let rawRows = [];
+  if (extractor.primaryLabel) {
+    const primary = fetched.find((f) => f.label === extractor.primaryLabel);
+    if (!primary?.ok || !primary.body) {
+      return {
+        ok: false,
+        reason: `抽出対象(${extractor.primaryLabel})の取得に失敗`,
+        fetched: fetched.map(({ body, ...rest }) => rest),
+        annualConfigHasTargetWeek: false,
+        recurringCheckMatches: false,
+        foundKinds: [],
+      };
+    }
+    const parsed = extractor.parseFn(primary.body, parseCtx);
+    if (!parsed.ok) {
+      return {
+        ok: false,
+        reason: `抽出失敗（構造変化の疑い）: ${parsed.reason}`,
+        fetched: fetched.map(({ body, ...rest }) => rest),
+        annualConfigHasTargetWeek: false,
+        recurringCheckMatches: false,
+        foundKinds: [],
+      };
+    }
+    rawRows = toRows(parsed);
+  } else {
+    // primaryLabel未指定（buildTargets等の動的複数ページ生成ソース）: フェッチ成功した
+    // 全targetをparseFnで解析しrowsをマージする（例: jp_mofの月またぎ週で2ページ分）
+    const okTargets = fetched.filter((f) => f.ok && f.body);
+    for (const t of okTargets) {
+      const parsed = extractor.parseFn(t.body, parseCtx);
+      if (!parsed.ok) {
+        return {
+          ok: false,
+          reason: `抽出失敗（構造変化の疑い、${t.label}）: ${parsed.reason}`,
+          fetched: fetched.map(({ body, ...rest }) => rest),
+          annualConfigHasTargetWeek: false,
+          recurringCheckMatches: false,
+          foundKinds: [],
+        };
+      }
+      rawRows.push(...toRows(parsed));
+    }
   }
-
-  const parsed = extractor.parseFn(primary.body);
-  if (!parsed.ok) {
-    return {
-      ok: false,
-      reason: `抽出失敗（構造変化の疑い）: ${parsed.reason}`,
-      fetched: fetched.map(({ body, ...rest }) => rest),
-      annualConfigHasTargetWeek: false,
-      recurringCheckMatches: false,
-      foundKinds: [],
-    };
-  }
-
-  const rawRows = (parsed.rows || parsed.meetings || parsed.entries || parsed.releases || []).map(extractor.toRow);
   const candidates = [];
   const unregistered = [];
   for (const row of rawRows) {
-    const kind = classifyRowKind(row, source, eventNames);
+    // row.kindが抽出側で既に確定している行（SPEC §4.2の規則生成命名kind: policy_rate・
+    // bond_auction・official_speech等）は、event-names.json辞書照合（classifyRowKind）を
+    // 経由せずそのkindをそのまま使う。ruleGenerated:trueをresolveCandidateEventへ伝え、
+    // 辞書照合をスキップさせる（displayNameは解決しない。naming.js統合はレンダラー側の責務）
+    const ruleGenerated = Boolean(row.kind);
+    const kind = row.kind || classifyRowKind(row, source, eventNames);
     if (!kind) continue; // このソースが追跡していない無関係な行
     const tz = source.announce_time_by_kind?.[kind]?.tz;
-    const candidate = resolveCandidateEvent(row, { country: source.country, kind, tz, eventNames, importanceRules });
+    const candidate = resolveCandidateEvent(row, { country: source.country, kind, tz, eventNames, importanceRules, ruleGenerated });
     if (!candidate.ok) {
       unregistered.push(candidate.reason);
       continue;

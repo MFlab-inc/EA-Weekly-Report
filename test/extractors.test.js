@@ -7,7 +7,7 @@ const { extractCensusCalendar } = require('../scripts/checkers/extractors/census
 const { extractAbsCalendar } = require('../scripts/checkers/extractors/abs');
 const { extractOnsReleases } = require('../scripts/checkers/extractors/ons');
 const { extractRbaMeetings, buildRbaSchedule } = require('../scripts/checkers/extractors/rba');
-const { extractBojSchedule } = require('../scripts/checkers/extractors/boj');
+const { extractBojSchedule, parseMpmDecisionDate } = require('../scripts/checkers/extractors/boj');
 
 const FIXTURE_ROOT = join(__dirname, 'fixtures', 'official-sources');
 const fx = (...p) => readFileSync(join(FIXTURE_ROOT, ...p), 'utf8');
@@ -90,4 +90,24 @@ test('extractBojSchedule: 実fixtureからground truth（議事要旨8/5・主�
 test('extractBojSchedule: テーブルが無い入力は構造的失敗を返す', () => {
   const r = extractBojSchedule('<html>no table</html>');
   assert.equal(r.ok, false);
+});
+
+// task #19（coverage-gap-2026-08-15.md）: 列[1]「Date of MPM」から政策金利決定発表日（会合2日目）を追加抽出
+test('parseMpmDecisionDate: "Jan. 22 (Thurs.), 23 (Fri.)"→会合2日目の"2026-01-23"', () => {
+  assert.equal(parseMpmDecisionDate('Jan. 22 (Thurs.), 23 (Fri.) [PDF 171KB]', 2026), '2026-01-23');
+});
+
+test('parseMpmDecisionDate: 改行混入セルも正規化して解析できる', () => {
+  assert.equal(parseMpmDecisionDate('Mar. 17\n  (Wed.), 18 (Thurs.)', 2027), '2027-03-18');
+});
+
+test('extractBojSchedule: 実fixtureから2026・2027年とも年8回のpolicy_rateが抽出できる（既存opinions/minutesと会合回数一致）', () => {
+  const r = extractBojSchedule(fx('jp_boj', 'mpm_index.html'));
+  assert.equal(r.ok, true);
+  for (const year of ['2026', '2027']) {
+    const dates = r.entries.filter((e) => e.kind === 'policy_rate' && e.date.startsWith(year));
+    assert.equal(dates.length, 8, `${year}年のpolicy_rate件数が想定と異なる: ${dates.length}`);
+  }
+  // 直近の既実施会合（2026-07-31、既存minutes_summary 2026-08-05の直前会合）が含まれることを確認
+  assert.ok(r.entries.some((e) => e.date === '2026-07-31' && e.kind === 'policy_rate'));
 });

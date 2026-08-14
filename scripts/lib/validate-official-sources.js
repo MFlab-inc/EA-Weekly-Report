@@ -53,4 +53,4 @@ function validateOfficialSources(config) {
   return errors;
 }
 
-module.exports = { validateOfficialSources };
+module.exports = { validateOfficialSources, TIME_EXEMPT_KINDS };

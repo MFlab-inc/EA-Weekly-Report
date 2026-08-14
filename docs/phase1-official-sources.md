@@ -316,3 +316,11 @@ task #11終盤時点の未解決5元（Stats NZ・Statistics Canada・中国PMI�
 ### 9-6. テスト（9-5分）
 
 `test/recurring-rules.test.js`に月列挙ルールのテストを追加。`npm test`で164件全PASS。
+
+### 9-7. RBNZ方式（annual_schedule_config手動確定）の適用検討（2026-08-15・task #19付随）
+
+しょうさん指示: 「RBNZと同じ手入力方式がtask #18にも適用できないか検討してください」。RBNZ・SNBの再調査と合わせてWebSearchで再確認した結果:
+
+- RBNZのOCR決定日程は「until February 2027」のような専用ページで**翌年分を一括先行公表**しており、この「1枚のページに将来の全日程が載っている」という構造がannual_schedule_config手動確定方式（ISM・RBNZ）の前提条件になっている
+- RBA総裁の下院経済委員会証言はこの前提を満たさない。House of Representatives Standing Committee on Economicsの公聴会は、その回が近づいてから（2026年2月分の実例では実施の数週間前）aph.gov.auのメディアリリースとして個別に告知される運用で、翌年分・向こう1年分をまとめて先行公表するページは存在しない（2026-08-15 WebSearch再調査でも同様の結論。§9-5の実測結果と整合）
+- したがって**RBNZ方式（年1回まとめて手動確定）はtask #18には適用できない**と判断する。§9-5で導入済みのWARNベースの暫定緩和（毎年2月・8月のrecurring_check）が、現時点で実現可能な最善の可視化策として妥当。根本解決（該当週が近づいた時点でaph.gov.auの当該公聴会告知を都度確認する運用）は、担当ソースそのものを自動化できる代替経路が見つからない限り、人手確認に頼らざるを得ない

@@ -60,3 +60,41 @@ test('resolveCandidateEvent: 時刻情報が全く無い場合はok:false', () =
   const r = resolveCandidateEvent(row, { country: 'AU', kind: 'trade_balance', eventNames: EVENT_NAMES, importanceRules: IMPORTANCE_RULES });
   assert.equal(r.ok, false);
 });
+
+// SPEC §4.2の規則生成命名kind（policy_rate等）向け: ctx.ruleGenerated=trueは
+// event-names.json辞書照合をスキップする（task #19、BOC等がevent-names.json未登録でも
+// WARN誤検知にならないようにするための分岐）
+test('resolveCandidateEvent: ruleGenerated=trueはevent-names.json未登録でも辞書照合をスキップしdisplayName=nullで成功する', () => {
+  const row = { title: 'Interest Rate Announcement', date: '2026-09-02', localTime: '09:45' };
+  const r = resolveCandidateEvent(row, {
+    country: 'CA', kind: 'policy_rate', tz: 'America/Toronto', eventNames: EVENT_NAMES, importanceRules: IMPORTANCE_RULES, ruleGenerated: true,
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.displayName, null);
+  assert.equal(r.kind, 'policy_rate');
+});
+
+test('resolveCandidateEvent: ruleGenerated=falseかつeventNames未登録の場合は従来どおりWARN対象', () => {
+  const row = { title: 'Interest Rate Announcement', date: '2026-09-02', localTime: '09:45' };
+  const r = resolveCandidateEvent(row, {
+    country: 'CA', kind: 'policy_rate', tz: 'America/Toronto', eventNames: EVENT_NAMES, importanceRules: IMPORTANCE_RULES,
+  });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /未登録/);
+});
+
+// bond_auction等の時刻未公表kind（validate-official-sources.jsのTIME_EXEMPT_KINDSと同一基準）は
+// localTime/utcInstantが無くてもtime:nullで成功扱いとする（no_time_note、SPEC report-policy.json）
+test('resolveCandidateEvent: bond_auctionはlocalTime無しでもtime:nullで成功する', () => {
+  const row = { title: '10-year JGB auction', date: '2026-08-04' };
+  const r = resolveCandidateEvent(row, { country: 'JP', kind: 'bond_auction', eventNames: EVENT_NAMES, importanceRules: IMPORTANCE_RULES, ruleGenerated: true });
+  assert.equal(r.ok, true);
+  assert.equal(r.date, '2026-08-04');
+  assert.equal(r.time, null);
+});
+
+test('resolveCandidateEvent: time-exempt対象外のkindはlocalTime無しだとok:falseのまま', () => {
+  const row = { title: 'International Trade in Goods', date: '2026-08-06' };
+  const r = resolveCandidateEvent(row, { country: 'AU', kind: 'trade_balance', eventNames: EVENT_NAMES, importanceRules: IMPORTANCE_RULES, ruleGenerated: true });
+  assert.equal(r.ok, false);
+});

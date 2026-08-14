@@ -6,13 +6,23 @@
 const { zonedWallTimeToJst, utcToJstParts } = require('./tz-convert');
 const { findEventName } = require('./match-event-name');
 const { resolveImportance } = require('./importance');
+const { TIME_EXEMPT_KINDS } = require('./validate-official-sources');
 
-// row: { title, date？, localTime？, utcInstant？ }
-// ctx: { country, kind, tz, eventNames(config/event-names.json.entries), importanceRules }
+// row: { title, date？, localTime？, utcInstant？, kind？ }
+// ctx: { country, kind, tz, eventNames(config/event-names.json.entries), importanceRules, ruleGenerated？ }
+// ctx.ruleGenerated=true（またはrow.kindが抽出側で既に確定している場合）は、SPEC §4.2の
+// 規則生成命名kind（policy_rate・bond_auction・official_speech等）向けの分岐。
+// これらはevent-names.json辞書に載らない設計のため、辞書照合（findEventName）を行わず
+// displayNameは解決しない（naming.js統合はレンダラー側の責務。task #12以降のスコープ）。
+// 辞書照合型kind（cpi・trade_balance等、従来どおり）は今までと同じ挙動を維持する
 function resolveCandidateEvent(row, ctx) {
-  const nameEntry = findEventName(ctx.eventNames, ctx.country, ctx.kind, row.title);
-  if (!nameEntry) {
-    return { ok: false, reason: `event-names.json未登録（WARN・掲載除外対象）: country=${ctx.country} kind=${ctx.kind} title="${row.title}"` };
+  let displayName = null;
+  if (!ctx.ruleGenerated) {
+    const nameEntry = findEventName(ctx.eventNames, ctx.country, ctx.kind, row.title);
+    if (!nameEntry) {
+      return { ok: false, reason: `event-names.json未登録（WARN・掲載除外対象）: country=${ctx.country} kind=${ctx.kind} title="${row.title}"` };
+    }
+    displayName = nameEntry.display_name;
   }
   let jst;
   if (row.utcInstant) {
@@ -21,6 +31,11 @@ function resolveCandidateEvent(row, ctx) {
     const [y, mo, d] = row.date.split('-').map(Number);
     const [h, mi] = row.localTime.split(':').map(Number);
     jst = zonedWallTimeToJst(y, mo, d, h, mi, ctx.tz);
+  } else if (row.date && TIME_EXEMPT_KINDS.has(ctx.kind)) {
+    // bond_auction等、既刊ground truthで一貫して時刻未公表のkind（validate-official-sources.js
+    // のTIME_EXEMPT_KINDSと同一基準）。TZ変換は行わずソース側の日付をそのまま採用する
+    // （observation-run.mjsのannualEntryToCandidateと同じ「time:null」方針）
+    jst = { date: row.date, time: null };
   } else {
     return { ok: false, reason: `時刻情報が不足（utcInstantまたはdate+localTime+tzが必要）: title="${row.title}"` };
   }
@@ -30,7 +45,7 @@ function resolveCandidateEvent(row, ctx) {
     time: jst.time,
     kind: ctx.kind,
     country: ctx.country,
-    displayName: nameEntry.display_name,
+    displayName,
     importance: resolveImportance(ctx.kind, ctx.country, ctx.importanceRules),
     rawTitle: row.title,
   };
