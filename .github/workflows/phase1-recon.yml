@@ -39,6 +39,8 @@ jobs:
               "only_ids_b=" + (cfg.only_ids_b || ""),
               "run_recon_c=" + (cfg.run_recon_c === true ? "true" : "false"),
               "only_ids_c=" + (cfg.only_ids_c || ""),
+              "run_recon_d=" + (cfg.run_recon_d === true ? "true" : "false"),
+              "only_ids_d=" + (cfg.only_ids_d || ""),
               "verify_fred=" + (cfg.verify_fred === true ? "true" : "false"),
               "collect_fixtures=" + (cfg.collect_fixtures === true ? "true" : "false"),
               "only_ids_fixtures=" + (cfg.only_ids_fixtures || ""),
@@ -74,6 +76,9 @@ jobs:
           done
           echo "----- nz_statsnz.labour_market_2026q2.html: 'next' / 'release' context lines -----"
           grep -oE '.{80}[Nn]ext [Rr]elease.{80}|.{80}will be released.{80}' phase1-out/nz_statsnz.labour_market_2026q2.html | head -20 || echo "(no matches)"
+      - name: Source recon (中銀policy_rate 6元, task #19)
+        if: steps.cfg.outputs.run_recon_d == 'true'
+        run: node scripts/phase1/source-recon-d.mjs '${{ steps.cfg.outputs.only_ids_d }}'
       - name: FRED API verify
         if: steps.cfg.outputs.verify_fred == 'true'
         env:
