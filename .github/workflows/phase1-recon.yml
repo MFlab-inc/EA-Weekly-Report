@@ -54,6 +54,26 @@ jobs:
       - name: Source recon (Stats NZ / Statistics Canada, task #15)
         if: steps.cfg.outputs.run_recon_c == 'true'
         run: node scripts/phase1/source-recon-c.mjs '${{ steps.cfg.outputs.only_ids_c }}'
+      - name: Extract StatCan annual PDF text (diagnostic, task #15)
+        if: steps.cfg.outputs.run_recon_c == 'true'
+        run: |
+          if [ -f phase1-out/ca_statcan.annual_pdf_2026.pdf ]; then
+            sudo apt-get install -y poppler-utils >/dev/null
+            pdftotext -layout phase1-out/ca_statcan.annual_pdf_2026.pdf phase1-out/ca_statcan.annual_pdf_2026.txt
+            echo "----- FULL TEXT (line-numbered) -----"
+            cat -n phase1-out/ca_statcan.annual_pdf_2026.txt
+          else
+            echo "annual_pdf_2026.pdf not found, skipping"
+          fi
+      - name: Grep Stats NZ pages for embedded API/JSON hints (diagnostic, task #15)
+        if: steps.cfg.outputs.run_recon_c == 'true'
+        run: |
+          for f in phase1-out/nz_statsnz.*.html; do
+            echo "----- $f -----"
+            grep -oE '(https?://[a-zA-Z0-9./_-]*api[a-zA-Z0-9./_-]*|[a-zA-Z0-9._-]+\.json[a-zA-Z0-9?=&_-]*|"MonthRange"[^}]*}|fetch\([^)]*\)|axios\.[a-zA-Z]+\([^)]*\)|data-releasedate[^ >]*|Next release[^<]{0,80}|will be released on[^<]{0,80})' "$f" | sort -u | head -80 || echo "(no matches)"
+          done
+          echo "----- nz_statsnz.labour_market_2026q2.html: 'next' / 'release' context lines -----"
+          grep -oE '.{80}[Nn]ext [Rr]elease.{80}|.{80}will be released.{80}' phase1-out/nz_statsnz.labour_market_2026q2.html | head -20 || echo "(no matches)"
       - name: FRED API verify
         if: steps.cfg.outputs.verify_fred == 'true'
         env:
