@@ -138,14 +138,19 @@
 - (b) **発表時刻**: 指標別固定時刻を`config/official-sources.json`に保持（米CPI/PPI/雇用統計=08:30 ET、JOLTS=10:00 ET が慣行値。要最終確認）し、`scripts/lib/tz-convert.js`でDST対応のJST換算を行う
 - (c) **ドリフト検知**: 月曜FF事後突合（SPEC §3.3）で(a)(b)の組み合わせ結果とFF実データを突合し、相違があれば`discrepancy-report.json`に記録
 
-**必要なSecrets登録（しょうさんの操作をお願いします）**:
+**Secrets登録: 完了（2026-08-14）。ただしライブ検証で未解決の問題あり**:
 
-1. https://fredaccount.stlouisfed.org/apikeys にアクセスし、St. Louis Fed アカウントを作成（無料・メールアドレスのみ）
-2. ログイン後「Request API Key」からAPIキーを発行（即時発行・審査待ちなし）
-3. 本リポジトリのGitHub画面で: **Settings → Secrets and variables → Actions → New repository secret**
-4. Name欄に `FRED_API_KEY`、Secret欄に発行されたキーを貼り付けて保存
+しょうさんが`FRED_API_KEY`をGitHub Secretsへ登録済み。`scripts/phase1/fred-verify.mjs`で2回ライブ検証したが、いずれも`{"error_code":400,"error_message":"Bad Request. The value for variable api_key is not registered."}`が返る。
 
-登録後、Claude Codeが実際に`fred/release/dates`へライブ呼び出しを行い、未来日程が返るか（上表の未確認事項）を確認したうえで実装に組み込みます。
+**切り分け結果**: 診断ログで確認した限り、Secrets側の値は`key length=32桁 (trim前後で差分: false) 形式=32桁英数字(想定どおり)`——FRED公式ドキュメントが示すキー形式と完全に一致しており、コピペ時の空白混入等スクリプト側で検出できる異常はない。**FRED側のアカウント登録状態（メール確認未完了・キーの有効化待ち等）の可能性が高い**。
+
+**しょうさんへの確認依頼**:
+1. 登録時に確認メールが届いていないか（St. Louis Fedアカウントはメール確認が必要な場合がある）。届いていれば確認リンクをクリック
+2. https://fredaccount.stlouisfed.org/apikeys にログインし、発行したキーが「Active」等の有効状態になっているか確認
+3. 上記ページに表示されているキーの文字列と、GitHub Secretsに登録した値が完全一致しているか再確認（似た文字の誤入力等）
+4. 上記で問題が見当たらない場合、ブラウザで直接 `https://api.stlouisfed.org/fred/release/dates?release_id=50&api_key=（実際のキー）&file_type=json` にアクセスし、GitHub Actionsを介さない状態でも同じエラーが出るか確認（FRED側の問題かGitHub Secrets側の問題かの最終切り分け）
+
+解決次第、再度ライブ検証を実施する。**この間、config/official-sources.jsonの実装は到達確認済みの7元（RBA・Census・ONS・Stats NZ・Statistics Canada・ABS・BOJ）から先行して進める**（BLSエントリは未着手のまま保留）。
 
 #### ISM → 年次スケジュールconfig型に統一（しょうさん承認済み）
 
