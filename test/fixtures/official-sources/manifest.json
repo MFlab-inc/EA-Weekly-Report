@@ -1,17 +1,26 @@
 {
-  "collectedAt": "2026-08-14T15:59:47.156Z",
+  "collectedAt": "2026-08-14T16:04:15.213Z",
   "sources": [
     {
-      "id": "ca_statcan",
+      "id": "nz_statsnz",
       "files": [
         {
-          "label": "annual_release_dates_pdf",
-          "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
+          "label": "latest_labour_market_release",
+          "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
           "saved": true,
-          "path": "test/fixtures/official-sources/ca_statcan/annual_release_dates_pdf.pdf",
+          "path": "test/fixtures/official-sources/nz_statsnz/latest_labour_market_release.html",
           "status": 200,
-          "bytes": 158855,
-          "contentType": "application/pdf"
+          "bytes": 115169,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "label": "TEMP_ground_truth_validation_prior_quarter",
+          "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-march-2026-quarter/",
+          "saved": true,
+          "path": "test/fixtures/official-sources/nz_statsnz/TEMP_ground_truth_validation_prior_quarter.html",
+          "status": 200,
+          "bytes": 106255,
+          "contentType": "text/html; charset=utf-8"
         }
       ]
     }
