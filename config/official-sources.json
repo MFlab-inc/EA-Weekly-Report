@@ -426,6 +426,108 @@
         "pmi_ism": { "local_time": "10:00", "tz": "America/Toronto" }
       },
       "notes": "優先度B6。2026-08-14実測: robots.txt許可・HTTP 200・61KB HTMLで到達確認済み。FAQページ本文に『Index Release Dates in 2026 are: January 7, February 6, ..., December 4』という平文の年間発表日一覧が直接埋め込まれており、静的HTMLから容易に抽出可能と確認（ISMのような自動取得ブロックなし）。ground truth（8/7）と完全一致。『第3または第4営業日、米東部標準時10:00』との記載あり（ISMのような一律ルールではなく年ごとに確定値を都度取得する方式が適切）"
+    },
+    {
+      "id": "us_frb_policy_rate",
+      "name_ja": "FRB（FOMC政策金利カレンダー）",
+      "status": "pending_recon",
+      "country": "US",
+      "kinds": ["policy_rate"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "fomc_calendars", "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。既存us_frb_speeches（理事講演）とは別物。2026-08-15実測: robots.txt許可・HTTP 200・164KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。構造確認・抽出ルール実装は未着手"
+    },
+    {
+      "id": "ecb_policy_rate",
+      "name_ja": "ECB（Governing Council政策金利カレンダー）",
+      "status": "pending_recon",
+      "country": "EU",
+      "kinds": ["policy_rate", "press_conference"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "gc_calendar", "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。countryを'EU'としたが、既存configの国コード体系（ISO国コード）と整合しないため要検討（country-currency-map.json等への影響を含む）。2026-08-15実測: robots.txt許可・HTTP 200・106KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。構造確認・抽出ルール実装は未着手"
+    },
+    {
+      "id": "boe_policy_rate",
+      "name_ja": "BOE（MPC政策金利カレンダー）",
+      "status": "pending_recon",
+      "country": "GB",
+      "kinds": ["policy_rate"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "upcoming_mpc_dates", "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt許可・HTTP 200・78KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。ページタイトルが『Monetary Policy Committee dates for 2026 and 2027』で専用の先行公表ページと確認。構造確認・抽出ルール実装は未着手"
+    },
+    {
+      "id": "boc_policy_rate",
+      "name_ja": "BOC（政策金利発表カレンダー）",
+      "status": "pending_recon",
+      "country": "CA",
+      "kinds": ["policy_rate"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "upcoming_events", "url": "https://www.bankofcanada.ca/press/upcoming-events/" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt許可・HTTP 200・148KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。構造確認・抽出ルール実装は未着手"
+    },
+    {
+      "id": "rbnz_policy_rate",
+      "name_ja": "RBNZ（OCR政策金利カレンダー）",
+      "status": "pending_recon",
+      "country": "NZ",
+      "kinds": ["policy_rate"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "ocr_decision_dates", "url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/monetary-policy-and-ocr-decision-dates-until-february-2027" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt取得自体がHTTP 403でインフラ側ブロックと判明（BLS・S&P Global・aph.gov.auと同種、scripts/phase1/source-recon-d.mjs）。代替経路の調査が必要"
+    },
+    {
+      "id": "snb_policy_rate",
+      "name_ja": "SNB（金融政策評価カレンダー）",
+      "status": "pending_recon",
+      "country": "CH",
+      "kinds": ["policy_rate"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "decisions_page", "url": "https://www.snb.ch/en/the-snb/mandates-goals/monetary-policy/decisions" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt許可・HTTP 200・253KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。WebSearch調査では専用の先行公表ページは未発見（3月・6月・9月・12月の四半期パターンのみ確認）。このdecisionsページ自体が将来分を掲載しているか実データで要確認。掲載が無ければ四半期ルールベース生成（ISM方式）を検討"
     }
   ]
 }
