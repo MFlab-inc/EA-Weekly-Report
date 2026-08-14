@@ -1,6 +1,7 @@
 {
   "run_recon": false,
   "run_recon_b": false,
-  "run_recon_c": true,
-  "only_ids_c": "au_aph_economics"
+  "run_recon_c": false,
+  "run_recon_d": true,
+  "collect_fixtures": false
 }
