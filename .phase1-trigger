@@ -2,6 +2,7 @@
   "run_recon": false,
   "run_recon_b": false,
   "run_recon_c": false,
-  "run_recon_d": true,
-  "collect_fixtures": false
+  "run_recon_d": false,
+  "collect_fixtures": true,
+  "only_ids_fixtures": "us_frb_policy_rate,ecb_policy_rate,boe_policy_rate,boc_policy_rate,snb_policy_rate"
 }
