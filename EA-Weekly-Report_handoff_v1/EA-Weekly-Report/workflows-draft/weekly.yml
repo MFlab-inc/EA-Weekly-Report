@@ -1,0 +1,40 @@
+# 週次レポート自動生成（ドラフト）
+# 実装完了までは workflows-draft/ に置く（この場所ではActionsは起動しない）。
+# Phase 2で .github/workflows/weekly.yml へ移設して有効化する。
+name: weekly-report
+on:
+  schedule:
+    - cron: '6 23 * * 5'    # 土曜 08:06 JST（本番）
+    - cron: '41 23 * * 5'   # 土曜 08:41 JST（保険。冪等ガードで二重生成防止）
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: weekly-report
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      # TODO(Claude Code): 依存導入（Playwright含む）、以下のパイプラインを実装
+      - name: pipeline
+        run: |
+          node scripts/collect.js
+          node scripts/build-ledger.js
+          node scripts/check.js
+          node scripts/render.js
+          python scripts/validate/run_all.py
+          node scripts/gate.js
+      - name: commit outputs
+        if: success()
+        run: |
+          git config user.name "ea-weekly-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add output/ data/ docs/
+          git diff --cached --quiet || git commit -m "weekly report $(date -u +%Y-%m-%d)"
+          git push

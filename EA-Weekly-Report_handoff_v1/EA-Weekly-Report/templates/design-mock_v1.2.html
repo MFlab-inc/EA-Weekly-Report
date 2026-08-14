@@ -1,0 +1,358 @@
+<!-- ============================================================
+  EAユーザー向け週次レポート デザインモック v1.2（2026-08-13）
+  ・v1.1: 土日BTCガイドに確認先サイト（CoinPost / CoinGecko / TradingView）と判断基準を明記
+  ・v1.2: 停止スケジュールの各枠に国名・通貨ピルを追加／BTCガイドの3段階基準を縦積み表示へ変更（スマホ可読性）
+  ・WordPress貼り付け断片（html/head/body/script/style/formタグ不使用・全インラインスタイル）
+  ・サンプルデータ: 2026年8月10日週（calendar_weekly.md 掲載推奨リスト）
+  ・配色: 現行の緑系を踏襲。停止帯のみ機能色（琥珀）を導入
+  ・スマホ最優先: 横スクロール要素ゼロ・単一カラム・自然折返し
+============================================================ -->
+<div data-ea-report-meta="ea-weekly-20260810-mock" data-ea-layout-version="ea-only-v4-draft" data-ea-policy-mode="mock" data-ea-target-start="2026-08-10" data-ea-section-count="4" data-ea-reader-time-term="日本時間" data-ea-halt-guidance="pre4to12h" style="max-width:680px;margin:0 auto;background:#f3f8f6;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP','Yu Gothic UI',Meiryo,sans-serif;color:#1f2d28;line-height:1.65;border-radius:16px;overflow:hidden;box-shadow:0 2px 18px rgba(26,58,46,0.10);">
+
+  <!-- ▼ サイトヘッダー -->
+  <div style="background:linear-gradient(135deg,#1a3a2e 0%,#2d5a45 55%,#3a6e56 100%);padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 auto;">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,#6ee7b7,#34d399);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#1a3a2e;flex-shrink:0;box-shadow:0 2px 8px rgba(52,211,153,0.35);">EA</div>
+      <div style="min-width:0;">
+        <div style="font-size:13.5px;font-weight:700;color:#ffffff;letter-spacing:0.02em;line-height:1.35;overflow-wrap:anywhere;">EAユーザー向け週次レポート</div>
+        <div style="font-size:8.5px;color:#a7f3d0;letter-spacing:0.12em;margin-top:2px;line-height:1.5;overflow-wrap:anywhere;">WEEKLY ECONOMIC CALENDAR<br>EA STOP GUIDE</div>
+      </div>
+    </div>
+    <div style="text-align:right;flex:0 1 auto;">
+      <div style="font-size:9px;color:#a7f3d0;letter-spacing:0.14em;font-weight:600;">WEEKLY REPORT</div>
+      <div style="font-size:11px;color:#ecfdf5;margin-top:2px;">作成日：2026年8月8日（土）</div>
+    </div>
+  </div>
+
+  <!-- ▼ ヒーロー -->
+  <div style="background:linear-gradient(135deg,#047857 0%,#059669 55%,#10b981 100%);color:#ecfdf5;padding:24px 18px 26px;text-align:center;">
+    <div style="font-size:10px;letter-spacing:0.22em;color:#d1fae5;font-weight:700;">対象週（日本時間）</div>
+    <div style="font-size:21px;font-weight:800;color:#ffffff;margin-top:6px;letter-spacing:0.01em;line-height:1.4;">8月10日（月）〜 8月14日（金）</div>
+    <div style="font-size:12.5px;color:#ecfdf5;margin-top:8px;line-height:1.7;">RBA政策判断、米CPI・PPI、英国GDP、米小売売上高を確認する週</div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:12px;">
+      <span style="background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.28);border-radius:999px;padding:3px 12px;font-size:11.5px;font-weight:600;">RBA政策金利 8/11</span>
+      <span style="background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.28);border-radius:999px;padding:3px 12px;font-size:11.5px;font-weight:600;">米CPI 8/12</span>
+      <span style="background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.28);border-radius:999px;padding:3px 12px;font-size:11.5px;font-weight:600;">米小売売上高 8/14</span>
+    </div>
+    <div style="font-size:11px;color:#d1fae5;margin-top:12px;letter-spacing:0.04em;">最重要（★★★）11件 ／ 発表枠 8 ／ 対象 5日</div>
+  </div>
+
+  <!-- ▼ セクション1: EA停止スケジュール -->
+  <div style="padding:4px 14px 6px;">
+    <div class="ea-section-band" style="width:fit-content;margin:26px auto 6px;background:#1a3a2e;color:#ecfdf5;font-size:13px;letter-spacing:0.12em;font-weight:700;padding:7px 20px;border-radius:999px;text-align:center;">EA停止スケジュール</div>
+    <div style="text-align:center;font-size:11.5px;color:#5b6f66;margin-bottom:12px;">新規エントリー停止の開始目安（発表の4〜12時間前・日本時間）</div>
+
+    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:12px;padding:9px 12px;margin-bottom:12px;font-size:11.5px;color:#43564d;line-height:1.7;">
+      バーは各日の<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;">0時〜24時</span>を表します。<span style="display:inline-block;width:26px;height:9px;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:4px;vertical-align:-1px;"></span> ＝停止開始の目安時間帯、<span style="color:#1a3a2e;font-weight:800;">▲</span>＝発表予定時刻。複数枠がある日は帯を連結表示しています。
+    </div>
+
+    <!-- 8/10 月 -->
+    <div class="ea-halt-day" data-ea-date="2026-08-10" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px 11px;margin-bottom:10px;">
+      <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;">
+        <div style="font-size:15px;font-weight:800;color:#1a3a2e;">8/10 <span style="font-size:12px;font-weight:700;color:#5b6f66;">月</span></div>
+        <div style="font-size:11px;color:#047857;font-weight:700;">★★★ 1件</div>
+      </div>
+      <div style="position:relative;height:16px;background:#e8f1ec;border-radius:8px;margin:14px 0 4px;">
+        <div style="position:absolute;top:2px;bottom:2px;left:0%;width:20.1%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:6px;"></div>
+        <div style="position:absolute;top:-8px;left:36.8%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #1a3a2e;transform:translateX(-50%);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#8aa097;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-bottom:8px;"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+      <div style="font-size:12.5px;line-height:1.8;color:#2b3d35;"><span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">日本</span><span style="background:#eaf5ef;color:#065f46;border:1px solid #cfe3d8;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-left:4px;">JPY</span>　▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">08:50</span>　日銀 金融政策決定会合における主な意見<br><span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">00:00–04:50</span></span><span style="font-size:11.5px;color:#5b6f66;">（前日 日曜20:50〜を含むため、週明けの取引開始時点からの停止が目安）</span></div>
+    </div>
+
+    <!-- 8/11 火 -->
+    <div class="ea-halt-day" data-ea-date="2026-08-11" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px 11px;margin-bottom:10px;">
+      <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;">
+        <div style="font-size:15px;font-weight:800;color:#1a3a2e;">8/11 <span style="font-size:12px;font-weight:700;color:#5b6f66;">火</span></div>
+        <div style="font-size:11px;color:#047857;font-weight:700;">★★★ 3件（RBA枠）</div>
+      </div>
+      <div style="position:relative;height:16px;background:#e8f1ec;border-radius:8px;margin:14px 0 4px;">
+        <div style="position:absolute;top:2px;bottom:2px;left:6.3%;width:33.3%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:6px;"></div>
+        <div style="position:absolute;top:-8px;left:56.3%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #1a3a2e;transform:translateX(-50%);"></div>
+        <div style="position:absolute;top:-8px;left:60.4%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #1a3a2e;transform:translateX(-50%);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#8aa097;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-bottom:8px;"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+      <div style="font-size:12.5px;line-height:1.8;color:#2b3d35;"><span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">豪州</span><span style="background:#eaf5ef;color:#065f46;border:1px solid #cfe3d8;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-left:4px;">AUD</span>　▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">13:30</span>　RBA政策金利＆声明・四半期金融政策報告　▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">14:30</span>　総裁記者会見<br><span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">01:30–09:30</span></span><span style="font-size:11.5px;color:#5b6f66;">（再開確認は記者会見の終了後から）</span></div>
+    </div>
+
+    <!-- 8/12 水 -->
+    <div class="ea-halt-day" data-ea-date="2026-08-12" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px 11px;margin-bottom:10px;">
+      <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;">
+        <div style="font-size:15px;font-weight:800;color:#1a3a2e;">8/12 <span style="font-size:12px;font-weight:700;color:#5b6f66;">水</span></div>
+        <div style="font-size:11px;color:#047857;font-weight:700;">★★★ 2件（米CPI枠）</div>
+      </div>
+      <div style="position:relative;height:16px;background:#e8f1ec;border-radius:8px;margin:14px 0 4px;">
+        <div style="position:absolute;top:2px;bottom:2px;left:39.6%;width:33.3%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:6px;"></div>
+        <div style="position:absolute;top:-8px;left:89.6%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #1a3a2e;transform:translateX(-50%);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#8aa097;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-bottom:8px;"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+      <div style="font-size:12.5px;line-height:1.8;color:#2b3d35;"><span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">米国</span><span style="background:#eaf5ef;color:#065f46;border:1px solid #cfe3d8;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-left:4px;">USD</span>　▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">21:30</span>　消費者物価指数（CPI）・同【コア】<br><span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">09:30–17:30</span></span></div>
+    </div>
+
+    <!-- 8/13 木 -->
+    <div class="ea-halt-day" data-ea-date="2026-08-13" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px 11px;margin-bottom:10px;">
+      <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;">
+        <div style="font-size:15px;font-weight:800;color:#1a3a2e;">8/13 <span style="font-size:12px;font-weight:700;color:#5b6f66;">木</span></div>
+        <div style="font-size:11px;color:#047857;font-weight:700;">★★★ 3件（2枠）</div>
+      </div>
+      <div style="position:relative;height:16px;background:#e8f1ec;border-radius:8px;margin:14px 0 4px;">
+        <div style="position:absolute;top:2px;bottom:2px;left:12.5%;width:60.4%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:6px;"></div>
+        <div style="position:absolute;top:-8px;left:62.5%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #1a3a2e;transform:translateX(-50%);"></div>
+        <div style="position:absolute;top:-8px;left:89.6%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #1a3a2e;transform:translateX(-50%);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#8aa097;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-bottom:8px;"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+      <div style="font-size:12.5px;line-height:1.8;color:#2b3d35;"><span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">英国</span><span style="background:#eaf5ef;color:#065f46;border:1px solid #cfe3d8;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-left:4px;">GBP</span>　▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">15:00</span>　第2四半期GDP【速報値】　<span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">03:00–11:00</span></span><br><span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">米国</span><span style="background:#eaf5ef;color:#065f46;border:1px solid #cfe3d8;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-left:4px;">USD</span>　▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">21:30</span>　生産者物価指数（PPI）・同【コア】　<span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">09:30–17:30</span></span></div>
+    </div>
+
+    <!-- 8/14 金 -->
+    <div class="ea-halt-day" data-ea-date="2026-08-14" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px 11px;margin-bottom:10px;">
+      <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;">
+        <div style="font-size:15px;font-weight:800;color:#1a3a2e;">8/14 <span style="font-size:12px;font-weight:700;color:#5b6f66;">金</span></div>
+        <div style="font-size:11px;color:#047857;font-weight:700;">★★★ 2件（2枠）</div>
+      </div>
+      <div style="position:relative;height:16px;background:#e8f1ec;border-radius:8px;margin:14px 0 4px;">
+        <div style="position:absolute;top:2px;bottom:2px;left:0%;width:18.8%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:6px;"></div>
+        <div style="position:absolute;top:2px;bottom:2px;left:39.6%;width:33.3%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:6px;"></div>
+        <div style="position:absolute;top:-8px;left:35.4%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #1a3a2e;transform:translateX(-50%);"></div>
+        <div style="position:absolute;top:-8px;left:89.6%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #1a3a2e;transform:translateX(-50%);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#8aa097;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-bottom:8px;"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+      <div style="font-size:12.5px;line-height:1.8;color:#2b3d35;"><span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">豪州</span><span style="background:#eaf5ef;color:#065f46;border:1px solid #cfe3d8;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-left:4px;">AUD</span>　▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">08:30</span>　ブロックRBA総裁 下院経済委員会　<span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">00:00–04:30</span></span><span style="font-size:11.5px;color:#5b6f66;">（前日 木曜20:30〜を含む）</span><br><span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">米国</span><span style="background:#eaf5ef;color:#065f46;border:1px solid #cfe3d8;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-left:4px;">USD</span>　▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">21:30</span>　小売売上高＆【除自動車】　<span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">09:30–17:30</span></span></div>
+    </div>
+
+    <div style="background:#eaf5ef;border-radius:12px;padding:10px 14px;font-size:11.5px;color:#33473e;line-height:1.75;">
+      発表後は、スプレッドと約定状況が通常水準へ戻ったことを確認してから再開を判断してください。停止・再開の最終判断は、各EAの設定、対象銘柄、ブローカー条件、過去検証結果に従ってください。時刻が公式に未公表のイベントは、時刻連動の停止目安には使用しません。
+    </div>
+  </div>
+
+  <!-- ▼ セクション2: 対象週の注目イベント -->
+  <div style="padding:0 14px 6px;">
+    <div class="ea-section-band" style="width:fit-content;margin:28px auto 6px;background:#1a3a2e;color:#ecfdf5;font-size:13px;letter-spacing:0.12em;font-weight:700;padding:7px 20px;border-radius:999px;text-align:center;">対象週の注目イベント（日本時間）</div>
+    <div style="text-align:center;font-size:11.5px;color:#5b6f66;margin-bottom:12px;">日付別・時刻順。前回値・市場予想は民間カレンダー値</div>
+
+    <!-- 8/10 -->
+    <div class="ea-date-group" data-ea-date="2026-08-10" data-ea-date-event-count="1" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;overflow:hidden;margin-bottom:10px;">
+      <div style="background:#eaf5ef;border-left:4px solid #059669;padding:8px 14px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
+        <span style="font-size:14px;font-weight:800;color:#1a3a2e;">8月10日（月）</span><span style="font-size:11px;color:#047857;font-weight:700;">★★★ 1件</span>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="jp-boj-summary-2026-08-10" data-ea-event-importance="3" style="padding:11px 14px;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">08:50</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">日本</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">日銀 金融政策決定会合における主な意見（7月30・31日開催分）</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12px;color:#6b8177;margin-top:4px;">日銀の政策判断や委員の議論を確認します。</div>
+      </div>
+    </div>
+
+    <!-- 8/11 -->
+    <div class="ea-date-group" data-ea-date="2026-08-11" data-ea-date-event-count="4" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;overflow:hidden;margin-bottom:10px;">
+      <div style="background:#eaf5ef;border-left:4px solid #059669;padding:8px 14px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
+        <span style="font-size:14px;font-weight:800;color:#1a3a2e;">8月11日（火）</span><span style="font-size:11px;color:#047857;font-weight:700;">★★★ 3件・★★ 1件</span>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="au-rba-rate-2026-08-11" data-ea-event-importance="3" style="padding:11px 14px;border-bottom:1px dashed #e2ede7;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">13:30</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">豪州</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">RBA政策金利＆声明発表</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12.5px;color:#43564d;margin-top:4px;">前回 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">4.35%</span> 据え置き　予想 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">4.35%</span> 据え置き</div>
+        <div style="font-size:12px;color:#6b8177;margin-top:3px;">声明の文言変化に注目します。</div>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="au-rba-somp-2026-08-11" data-ea-event-importance="3" style="padding:11px 14px;border-bottom:1px dashed #e2ede7;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">13:30</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">豪州</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">RBA四半期金融政策報告</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12px;color:#6b8177;margin-top:4px;">インフレ・成長見通しの修正内容を確認します。</div>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="au-rba-presser-2026-08-11" data-ea-event-importance="3" style="padding:11px 14px;border-bottom:1px dashed #e2ede7;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">14:30</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">豪州</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">ブロックRBA総裁の記者会見</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12px;color:#6b8177;margin-top:4px;">今後の利下げ・利上げ方針について発言内容を確認します。</div>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="us-ehs-2026-08-11" data-ea-event-importance="2" style="padding:9px 14px;background:#fbfdfc;">
+        <div style="font-size:12.5px;color:#43564d;overflow-wrap:anywhere;"><span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#3a6e56;">23:00</span>　米国・中古住宅販売件数 <span style="color:#8aa097;font-weight:700;">★★</span>　<span style="font-size:12px;color:#6b8177;">前回409万件・予想406万件</span></div>
+      </div>
+    </div>
+
+    <!-- 8/12 -->
+    <div class="ea-date-group" data-ea-date="2026-08-12" data-ea-date-event-count="2" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;overflow:hidden;margin-bottom:10px;">
+      <div style="background:#eaf5ef;border-left:4px solid #059669;padding:8px 14px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
+        <span style="font-size:14px;font-weight:800;color:#1a3a2e;">8月12日（水）</span><span style="font-size:11px;color:#047857;font-weight:700;">★★★ 2件</span>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="us-cpi-2026-08-12" data-ea-event-importance="3" style="padding:11px 14px;border-bottom:1px dashed #e2ede7;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">21:30</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">米国</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">消費者物価指数（CPI）</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12.5px;color:#43564d;margin-top:4px;">前回 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">-0.4% / +3.5%</span>　予想 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">+0.1% / +3.4%</span>（前月比 / 前年比）</div>
+        <div style="font-size:12px;color:#6b8177;margin-top:3px;">金融政策見通しへの影響を確認します。</div>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="us-cpi-core-2026-08-12" data-ea-event-importance="3" style="padding:11px 14px;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">21:30</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">米国</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">消費者物価指数【コア】</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12.5px;color:#43564d;margin-top:4px;">前回 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">±0.0% / +2.6%</span>　予想 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">+0.2% / +2.5%</span>（前月比 / 前年比）</div>
+      </div>
+    </div>
+
+    <!-- 8/13 -->
+    <div class="ea-date-group" data-ea-date="2026-08-13" data-ea-date-event-count="4" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;overflow:hidden;margin-bottom:10px;">
+      <div style="background:#eaf5ef;border-left:4px solid #059669;padding:8px 14px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
+        <span style="font-size:14px;font-weight:800;color:#1a3a2e;">8月13日（木）</span><span style="font-size:11px;color:#047857;font-weight:700;">★★★ 3件・★★ 1件</span>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="gb-gdp-q2-2026-08-13" data-ea-event-importance="3" style="padding:11px 14px;border-bottom:1px dashed #e2ede7;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">15:00</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">英国</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">第2四半期GDP【速報値】</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12.5px;color:#43564d;margin-top:4px;">前回 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">+0.6% / +0.9%</span>　予想 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">+0.4% / +1.1%</span>（前期比 / 前年比）</div>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="gb-manuf-2026-08-13" data-ea-event-importance="2" style="padding:9px 14px;background:#fbfdfc;border-bottom:1px dashed #e2ede7;">
+        <div style="font-size:12.5px;color:#43564d;overflow-wrap:anywhere;"><span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#3a6e56;">15:00</span>　英国・製造業生産高（6月） <span style="color:#8aa097;font-weight:700;">★★</span>　<span style="font-size:12px;color:#6b8177;">前回+0.1% / +2.3%・予想-0.4% / 未掲載</span></div>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="us-ppi-2026-08-13" data-ea-event-importance="3" style="padding:11px 14px;border-bottom:1px dashed #e2ede7;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">21:30</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">米国</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">生産者物価指数（PPI）</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12.5px;color:#43564d;margin-top:4px;">前回 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">-0.3% / +5.5%</span>　予想 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">+0.2% / +4.9%</span>（前月比 / 前年比）</div>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="us-ppi-core-2026-08-13" data-ea-event-importance="3" style="padding:11px 14px;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">21:30</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">米国</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">生産者物価指数【コア】</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12.5px;color:#43564d;margin-top:4px;">前回 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">+0.2% / +4.7%</span>　予想 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">+0.3% / +4.2%</span>（前月比 / 前年比）</div>
+      </div>
+    </div>
+
+    <!-- 8/14 -->
+    <div class="ea-date-group" data-ea-date="2026-08-14" data-ea-date-event-count="3" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;overflow:hidden;margin-bottom:10px;">
+      <div style="background:#eaf5ef;border-left:4px solid #059669;padding:8px 14px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
+        <span style="font-size:14px;font-weight:800;color:#1a3a2e;">8月14日（金）</span><span style="font-size:11px;color:#047857;font-weight:700;">★★★ 2件・★★ 1件</span>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="au-rba-testimony-2026-08-14" data-ea-event-importance="3" style="padding:11px 14px;border-bottom:1px dashed #e2ede7;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">08:30</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">豪州</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">ブロックRBA総裁：下院経済委員会への出席</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12px;color:#6b8177;margin-top:4px;">議会での発言内容と質疑応答を確認します。</div>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="us-retail-2026-08-14" data-ea-event-importance="3" style="padding:11px 14px;border-bottom:1px dashed #e2ede7;">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">21:30</span>
+          <span style="background:#1a3a2e;color:#ecfdf5;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;">米国</span>
+          <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">小売売上高＆【除自動車】</span>
+          <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
+        </div>
+        <div style="font-size:12.5px;color:#43564d;margin-top:4px;">前回 総合<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">+0.2%</span> / 除自動車<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">-0.2%</span>　予想 総合<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">+0.2%</span> / 除自動車<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">+0.2%</span></div>
+        <div style="font-size:12px;color:#6b8177;margin-top:3px;">消費動向を確認します。</div>
+      </div>
+      <div class="ea-event-card" data-ea-event-id="us-umich-2026-08-14" data-ea-event-importance="2" style="padding:9px 14px;background:#fbfdfc;">
+        <div style="font-size:12.5px;color:#43564d;overflow-wrap:anywhere;"><span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#3a6e56;">23:00</span>　米国・ミシガン大学消費者信頼感指数【速報値】 <span style="color:#8aa097;font-weight:700;">★★</span>　<span style="font-size:12px;color:#6b8177;">前回55.2・予想54.1</span></div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:11px;color:#8aa097;margin:4px 0 2px;">★★★＝最重要（中央銀行・主要物価/雇用統計等）　★★＝重要</div>
+  </div>
+
+  <!-- ▼ セクション3: EAリスク管理ポイント -->
+  <div style="padding:0 14px 6px;">
+    <div class="ea-section-band" style="width:fit-content;margin:28px auto 6px;background:#1a3a2e;color:#ecfdf5;font-size:13px;letter-spacing:0.12em;font-weight:700;padding:7px 20px;border-radius:999px;text-align:center;">EAリスク管理ポイント</div>
+    <div style="text-align:center;font-size:11.5px;color:#5b6f66;margin-bottom:12px;">イベント前後の執行管理に限定した確認事項</div>
+
+    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px;margin-bottom:8px;">
+      <div style="font-size:13.5px;font-weight:800;color:#1a3a2e;"><span style="display:inline-block;width:9px;height:9px;background:#f59e0b;border-radius:3px;margin-right:7px;"></span>重要イベントの前</div>
+      <div style="font-size:12.5px;color:#33473e;margin-top:5px;line-height:1.75;">取引ロット、保有ポジション、最大許容スプレッド、ニュースフィルターの作動条件を確認してください。重要イベントは、原則として予定時刻の4〜12時間前から新規エントリーを停止します。</div>
+    </div>
+    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px;margin-bottom:8px;">
+      <div style="font-size:13.5px;font-weight:800;color:#1a3a2e;"><span style="display:inline-block;width:9px;height:9px;background:#b45309;border-radius:3px;margin-right:7px;"></span>発表中・発表直後</div>
+      <div style="font-size:12.5px;color:#33473e;margin-top:5px;line-height:1.75;">急拡大したスプレッド、約定拒否、スリッページ、VPSまたはブローカー接続異常を確認してください。異常時は自動再開させず、手動確認を優先します。</div>
+    </div>
+    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px;margin-bottom:8px;">
+      <div style="font-size:13.5px;font-weight:800;color:#1a3a2e;"><span style="display:inline-block;width:9px;height:9px;background:#059669;border-radius:3px;margin-right:7px;"></span>再開の判断</div>
+      <div style="font-size:12.5px;color:#33473e;margin-top:5px;line-height:1.75;">公表後の初動だけで再開を決めず、スプレッドと約定状況が通常水準に戻ったことを確認してください。時刻が未公表のイベントは、公式発表を確認するまで停止を継続します。</div>
+    </div>
+  </div>
+
+  <!-- ▼ セクション4: 土日のBTC/USDガイド -->
+  <div style="padding:0 14px 10px;">
+    <div class="ea-section-band" style="width:fit-content;margin:28px auto 6px;background:#1a3a2e;color:#ecfdf5;font-size:13px;letter-spacing:0.12em;font-weight:700;padding:7px 20px;border-radius:999px;text-align:center;">土日のBTC/USD EA運用ガイド</div>
+    <div style="text-align:center;font-size:11.5px;color:#5b6f66;margin-bottom:12px;">週末も24時間取引が続くBTC/USDの停止・Lot抑制・再開判断</div>
+
+    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px;margin-bottom:8px;">
+      <div style="font-size:13.5px;font-weight:800;color:#1a3a2e;">① 週末も価格変動に備える</div>
+      <div style="font-size:12.5px;color:#33473e;margin-top:5px;line-height:1.75;">土日は定例の主要経済指標が比較的少ない一方、BTC/USDは24時間取引が続きます。流動性や取引環境の異常があれば、経済指標がなくてもEAの停止またはLot制限を行ってください。</div>
+    </div>
+    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px;margin-bottom:8px;">
+      <div style="font-size:13.5px;font-weight:800;color:#1a3a2e;">② 確認する場所と3段階の判断基準</div>
+      <div style="font-size:12px;color:#33473e;margin-top:7px;line-height:1.8;">
+        <span style="font-weight:700;color:#1a3a2e;">1. ニュース・公式発表</span><br>
+        <span style="font-size:11.5px;color:#5b6f66;">確認先：<a href="https://coinpost.jp/" target="_blank" rel="noopener" style="color:#047857;font-weight:700;">CoinPost（速報）</a>　＋　利用ブローカーの公式お知らせ（代替：<a href="https://www.coindesk.com/ja" target="_blank" rel="noopener" style="color:#047857;font-weight:700;">CoinDesk日本語版</a>）</span>
+        <div style="margin-top:7px;">
+          <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><span style="background:#fde8c8;color:#92400e;border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">稼働停止</span><span style="font-size:12px;color:#33473e;line-height:1.65;">取引所・ステーブルコイン・規制に関わる重大速報（ハッキング、大手破綻、ペッグ割れ等）</span></div>
+          <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><span style="background:#fef3c7;color:#a16207;border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">Lot 50%</span><span style="font-size:12px;color:#33473e;line-height:1.65;">リスク警戒の報道が継続している</span></div>
+          <div style="display:flex;gap:8px;align-items:flex-start;"><span style="background:#d1fae5;color:#047857;border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">通常稼働</span><span style="font-size:12px;color:#33473e;line-height:1.65;">特段の報道がない</span></div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#33473e;margin-top:9px;line-height:1.8;">
+        <span style="font-weight:700;color:#1a3a2e;">2. ステーブルコイン価格（USDC / USDT）</span><br>
+        <span style="font-size:11.5px;color:#5b6f66;">確認先：<a href="https://www.coingecko.com/ja" target="_blank" rel="noopener" style="color:#047857;font-weight:700;">CoinGecko（日本語）</a>でUSDC・USDTの対ドル価格を確認（代替：<a href="https://coinmarketcap.com/ja/" target="_blank" rel="noopener" style="color:#047857;font-weight:700;">CoinMarketCap</a>）</span>
+        <div style="margin-top:7px;">
+          <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><span style="background:#fde8c8;color:#92400e;border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">稼働停止</span><span style="font-size:12px;color:#33473e;line-height:1.65;">$0.99を明確に割り込む</span></div>
+          <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><span style="background:#fef3c7;color:#a16207;border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">Lot 50%</span><span style="font-size:12px;color:#33473e;line-height:1.65;">$0.99台前半で不安定</span></div>
+          <div style="display:flex;gap:8px;align-items:flex-start;"><span style="background:#d1fae5;color:#047857;border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">通常稼働</span><span style="font-size:12px;color:#33473e;line-height:1.65;">$1.00付近で安定</span></div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#33473e;margin-top:9px;line-height:1.8;">
+        <span style="font-weight:700;color:#1a3a2e;">3. 取引環境とテクニカル</span><br>
+        <span style="font-size:11.5px;color:#5b6f66;">確認先：利用ブローカーのMT4/MT5（BTCUSDの気配値・スプレッド）と公式お知らせ　＋　<a href="https://jp.tradingview.com/" target="_blank" rel="noopener" style="color:#047857;font-weight:700;">TradingView</a>のBTC/USDチャート</span>
+        <div style="margin-top:7px;">
+          <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><span style="background:#fde8c8;color:#92400e;border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">稼働停止</span><span style="font-size:12px;color:#33473e;line-height:1.65;">重大障害・注文拒否・一方向ブレイク＋スプレッド拡大の継続</span></div>
+          <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><span style="background:#fef3c7;color:#a16207;border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">Lot 50%</span><span style="font-size:12px;color:#33473e;line-height:1.65;">軽微な障害表示・スプレッドが通常より拡大</span></div>
+          <div style="display:flex;gap:8px;align-items:flex-start;"><span style="background:#d1fae5;color:#047857;border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">通常稼働</span><span style="font-size:12px;color:#33473e;line-height:1.65;">気配値・スプレッドとも正常、配信も通常どおり</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px;margin-bottom:8px;">
+      <div style="font-size:13.5px;font-weight:800;color:#1a3a2e;">③ Lotを抑える場合の設定例</div>
+      <div style="font-size:12.5px;color:#33473e;margin-top:5px;line-height:1.75;">「Lot 50%へ抑制」に該当する場合は、各EAの設定、BTC/USDの取引条件、ブローカーの最小Lot単位に従い、通常時の半分以下に設定してください（例：通常0.10 Lotなら0.05 Lot以下へ変更し、端数は切り下げる）。</div>
+    </div>
+    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px;">
+      <div style="font-size:13.5px;font-weight:800;color:#1a3a2e;">④ 再開・通常Lotへ戻す前の確認</div>
+      <div style="font-size:12.5px;color:#33473e;margin-top:5px;line-height:1.75;">停止・Lot抑制の原因が解消し、MT4/MT5の価格配信、スプレッド、約定状況が通常へ戻ったことを確認してから再開してください。通常Lotへ戻す判断は、「Lot 50%」の条件がすべて解消したことを確認してから行います。</div>
+    </div>
+  </div>
+
+  <!-- ▼ フッター -->
+  <div style="background:#1a3a2e;color:#cfe8db;padding:20px 16px 22px;text-align:center;">
+    <div style="font-size:12px;font-weight:800;color:#ecfdf5;letter-spacing:0.04em;">EAユーザー向け週次レポート</div>
+    <div style="font-size:10.5px;color:#a9c9bb;margin-top:5px;">作成日：2026年8月8日（土）｜対象期間：2026年8月10日（月）〜 8月14日（金）</div>
+    <div style="font-size:10.5px;color:#a9c9bb;margin-top:12px;line-height:1.8;text-align:left;max-width:560px;margin-left:auto;margin-right:auto;">
+      本レポートは情報提供を目的としており、特定の取引、売買、EA設定を推奨するものではありません。掲載情報は公開情報をもとに作成していますが、その正確性・完全性を保証するものではありません。投資判断はご自身の責任において行ってください。当社はライセンスを持った金融アドバイザーではありません。<br><br>
+      発表予定・前回値・市場予想は民間カレンダーの公開情報に基づき、機械検査（対象週との日付整合・重要イベントの欠落検知・表示整合）を行っています。公式発表による日程・時刻の変更が反映されない場合があります。重要な判断の前には、発表主体の公式情報をご確認ください。
+    </div>
+  </div>
+</div>

@@ -1,0 +1,35 @@
+{
+  "_comment": "土日BTC/USDガイドの全文とリンク。表示はtemplates/design-mock_v1.2.htmlのカード④構造・バッジ縦積みに従う",
+  "cards": [
+    { "no": 1, "title": "① 週末も価格変動に備える",
+      "body": "土日は定例の主要経済指標が比較的少ない一方、BTC/USDは24時間取引が続きます。流動性や取引環境の異常があれば、経済指標がなくてもEAの停止またはLot制限を行ってください。" },
+    { "no": 2, "title": "② 確認する場所と3段階の判断基準",
+      "items": [
+        { "label": "1. ニュース・公式発表",
+          "check_at": [
+            { "name": "CoinPost（速報）", "url": "https://coinpost.jp/" },
+            { "name": "利用ブローカーの公式お知らせ", "url": null },
+            { "name": "CoinDesk日本語版（代替）", "url": "https://www.coindesk.com/ja" }
+          ],
+          "tiers": { "stop": "取引所・ステーブルコイン・規制に関わる重大速報（ハッキング、大手破綻、ペッグ割れ等）", "half": "リスク警戒の報道が継続している", "normal": "特段の報道がない" } },
+        { "label": "2. ステーブルコイン価格（USDC / USDT）",
+          "check_at": [
+            { "name": "CoinGecko（日本語）", "url": "https://www.coingecko.com/ja" },
+            { "name": "CoinMarketCap（代替）", "url": "https://coinmarketcap.com/ja/" }
+          ],
+          "tiers": { "stop": "$0.99を明確に割り込む", "half": "$0.99台前半で不安定", "normal": "$1.00付近で安定" } },
+        { "label": "3. 取引環境とテクニカル",
+          "check_at": [
+            { "name": "利用ブローカーのMT4/MT5（BTCUSDの気配値・スプレッド）と公式お知らせ", "url": null },
+            { "name": "TradingView", "url": "https://jp.tradingview.com/" }
+          ],
+          "tiers": { "stop": "重大障害・注文拒否・一方向ブレイク＋スプレッド拡大の継続", "half": "軽微な障害表示・スプレッドが通常より拡大", "normal": "気配値・スプレッドとも正常、配信も通常どおり" } }
+      ] },
+    { "no": 3, "title": "③ Lotを抑える場合の設定例",
+      "body": "「Lot 50%へ抑制」に該当する場合は、各EAの設定、BTC/USDの取引条件、ブローカーの最小Lot単位に従い、通常時の半分以下に設定してください（例：通常0.10 Lotなら0.05 Lot以下へ変更し、端数は切り下げる）。" },
+    { "no": 4, "title": "④ 再開・通常Lotへ戻す前の確認",
+      "body": "停止・Lot抑制の原因が解消し、MT4/MT5の価格配信、スプレッド、約定状況が通常へ戻ったことを確認してから再開してください。通常Lotへ戻す判断は、「Lot 50%」の条件がすべて解消したことを確認してから行います。" }
+  ],
+  "allowed_domains": ["coinpost.jp", "www.coindesk.com", "www.coingecko.com", "coinmarketcap.com", "jp.tradingview.com", "fxshihyo.com", "fx.minkabu.jp"],
+  "candidate_pool_note": "差し替え候補・注意情報は docs/rebuild-plan_v0.3.md §13.4 を参照（NADA NEWSリブランド・coindeskjapan.co.jp類似ドメイン注意・Alternative.me除外）"
+}

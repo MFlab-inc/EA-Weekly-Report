@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "report": {
+    "report_type": "ea_weekly",
+    "target_start": "2026-07-20",
+    "target_end": "2026-07-24",
+    "target_dates_jst": [
+      {"date": "2026-07-20", "weekday_jst": "月"},
+      {"date": "2026-07-21", "weekday_jst": "火"},
+      {"date": "2026-07-22", "weekday_jst": "水"},
+      {"date": "2026-07-23", "weekday_jst": "木"},
+      {"date": "2026-07-24", "weekday_jst": "金"}
+    ],
+    "display_timezone": "Asia/Tokyo",
+    "research_started_at": "2026-07-18T11:00:00+09:00",
+    "generated_at": null,
+    "approved_template_path": "/home/ubuntu/skills/ea-weekly-report/templates/ea_weekly_report_design_master.html"
+  },
+  "events": [
+    {
+      "id": "uk-cpi-2026-07-22",
+      "event_name": "英国 消費者物価指数（CPI、6月）",
+      "country_or_region": "UK",
+      "event_type": "economic_indicator",
+      "official_local_datetime": "2026-07-22T07:00:00+01:00",
+      "official_timezone": "Europe/London",
+      "jst_datetime": "2026-07-22T15:00:00+09:00",
+      "time_status": "verified",
+      "event_date": "2026-07-22",
+      "weekday_jst": "水",
+      "importance": 3,
+      "importance_source": "https://fxshihyo.com/ar/day20260722.php",
+      "previous": {"value": "3.4", "unit": "%", "definition": "前年比・総合", "value_status": "verified"},
+      "revised": {"value": null, "unit": "%", "definition": "改定なし", "value_status": "not_applicable"},
+      "forecast": {"value": "3.5", "unit": "%", "definition": "市場予想・前年比・総合", "value_status": "verified"},
+      "result": {"value": null, "unit": "%", "definition": "発表前", "value_status": "not_published"},
+      "source": {
+        "publisher": "Office for National Statistics",
+        "url": "https://www.ons.gov.uk/releases/consumerpriceinflationukjune2026",
+        "checked_at": "2026-07-18T11:10:00+09:00"
+      },
+      "status": "verified",
+      "notes": "夏時間中の英国時刻をJSTへ変換済み。"
+    },
+    {
+      "id": "ecb-rate-2026-07-23",
+      "event_name": "ECB政策金利発表",
+      "country_or_region": "EU",
+      "event_type": "central_bank_decision",
+      "official_local_datetime": "2026-07-23T14:15:00+02:00",
+      "official_timezone": "Europe/Brussels",
+      "jst_datetime": "2026-07-23T21:15:00+09:00",
+      "time_status": "verified",
+      "event_date": "2026-07-23",
+      "weekday_jst": "木",
+      "importance": 3,
+      "importance_source": "https://fxshihyo.com/ar/day20260723.php",
+      "previous": {"value": null, "unit": "該当なし", "definition": "政策判断イベント", "value_status": "not_applicable"},
+      "revised": {"value": null, "unit": "該当なし", "definition": "政策判断イベント", "value_status": "not_applicable"},
+      "forecast": {"value": null, "unit": "該当なし", "definition": "予想値は使用しない", "value_status": "not_applicable"},
+      "result": {"value": null, "unit": "該当なし", "definition": "発表前", "value_status": "not_published"},
+      "source": {
+        "publisher": "European Central Bank",
+        "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
+        "checked_at": "2026-07-18T11:12:00+09:00"
+      },
+      "status": "verified",
+      "notes": "声明と会見は別イベントとして扱う。"
+    }
+  ],
+  "market_prices": [
+    {
+      "id": "usd-jpy-ny-close-2026-07-17",
+      "instrument": "USD/JPY",
+      "value": "162.39",
+      "currency_or_unit": "JPY per USD",
+      "price_definition": "NY close",
+      "as_of": "2026-07-17T17:00:00-04:00",
+      "as_of_timezone": "America/New_York",
+      "delayed": false,
+      "source": {
+        "publisher": "Reuters",
+        "url": "https://www.reuters.com/markets/currencies/",
+        "checked_at": "2026-07-18T11:15:00+09:00"
+      },
+      "status": "verified",
+      "notes": "終盤値ではなくNY終値として定義。"
+    }
+  ],
+  "market_holidays": [],
+  "report_event_ids": ["uk-cpi-2026-07-22", "ecb-rate-2026-07-23"],
+  "source_checks": [],
+  "open_issues": [],
+  "instructions": {
+    "do_not_infer_missing_values": true,
+    "required_statuses_before_publish": ["verified", "not_applicable"],
+    "note": "テスト用の台帳です。"
+  }
+}

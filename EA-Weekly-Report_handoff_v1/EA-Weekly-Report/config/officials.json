@@ -1,0 +1,14 @@
+{
+  "_comment": "役職→現職者。verified:false の役職は人名を出さず役職のみで命名する（SPEC §4.2）。Phase 0で全件を公式サイト照合し verified:true に更新すること。任期・交代情報も必ず現時点で再確認する",
+  "officials": [
+    { "role_ja": "日銀総裁",   "name_ja": "植田",       "verified": false, "note": "植田和男。要照合" },
+    { "role_ja": "FRB議長",   "name_ja": null,          "verified": false, "note": "2026年5月に前議長任期満了。現職を必ず公式で確認（未確認のため人名なし運用）" },
+    { "role_ja": "RBA総裁",   "name_ja": "ブロック",    "verified": false, "note": "ミシェル・ブロック。既刊レポートで使用実績あり。要照合" },
+    { "role_ja": "ECB総裁",   "name_ja": "ラガルド",    "verified": false, "note": "要照合" },
+    { "role_ja": "BOE総裁",   "name_ja": "ベイリー",    "verified": false, "note": "要照合" },
+    { "role_ja": "BOC総裁",   "name_ja": "マックレム",  "verified": false, "note": "要照合" },
+    { "role_ja": "RBNZ総裁",  "name_ja": null,          "verified": false, "note": "2025年に総裁交代あり。現職を必ず公式で確認" },
+    { "role_ja": "SNB総裁",   "name_ja": "シュレーゲル", "verified": false, "note": "要照合" },
+    { "role_ja": "米財務長官", "name_ja": "ベッセント",  "verified": false, "note": "既刊レポートで使用実績あり。要照合" }
+  ]
+}

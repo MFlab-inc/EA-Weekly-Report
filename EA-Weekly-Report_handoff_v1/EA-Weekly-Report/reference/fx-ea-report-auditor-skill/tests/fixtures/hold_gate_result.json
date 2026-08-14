@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "decision": "HOLD",
+  "checked_at_jst": "2026-07-18T19:02:05.220288+09:00",
+  "ledger": {
+    "command": [
+      "/usr/bin/python3",
+      "/home/ubuntu/skills/fx-ea-report-auditor/scripts/validate_ledger.py",
+      "pass_ledger.json",
+      "--strict",
+      "--require-template"
+    ],
+    "exit_code": 0,
+    "stdout": "判定: 配信可\nERROR: 0 / WARNING: 0\n",
+    "stderr": ""
+  },
+  "report": {
+    "command": [
+      "/usr/bin/python3",
+      "/home/ubuntu/skills/fx-ea-report-auditor/scripts/validate_report.py",
+      "hold_report.html",
+      "--ledger",
+      "pass_ledger.json",
+      "--year",
+      "2026",
+      "--require-sources",
+      "--strict"
+    ],
+    "exit_code": 2,
+    "stdout": "ERROR [FORBIDDEN_HTML_TAG] WordPress断片に<script>は使用できません\nERROR [FORBIDDEN_HTML_TAG] WordPress断片に<script>は使用できません\nERROR [FORBIDDEN_HTML_TAG] WordPress断片に<script>は使用できません\nERROR [FORBIDDEN_HTML_TAG] WordPress断片に<script>は使用できません\nERROR [FORBIDDEN_HTML_TAG] WordPress断片に<script>は使用できません\nERROR [EVENT_TIME_MISMATCH] uk-cpi-2026-07-22 のJST時刻が台帳と一致しません\n判定: 配信保留\nERROR: 6 / WARNING: 0\n",
+    "stderr": ""
+  },
+  "rule": "ERRORが1件でもあればHOLD。HOLD時は完成版として配信・投稿しない。"
+}
