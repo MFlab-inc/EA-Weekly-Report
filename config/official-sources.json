@@ -288,19 +288,17 @@
       "status": "pending_recon",
       "country": "JP",
       "kinds": ["bond_auction"],
-      "type": "annual_schedule_config",
+      "type": "weekly_scrape",
       "recurring_check_refs": [],
-      "residual_monitor_weeks": 4,
-      "schedule_status": "pending_extraction",
-      "schedule": [],
       "access": {
         "robots_check": true,
         "targets": [
-          { "label": "auction_calendar_index", "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm" }
+          { "label": "auction_calendar_index", "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm" },
+          { "label": "auction_calendar_2608", "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/2608e.htm" }
         ]
       },
       "announce_time_by_kind": {},
-      "notes": "優先度B1b。2026-08-14実測: 上記URLはrobots.txt許可・HTTP 200・23.7KB HTMLで到達確認済み（`<meta name=\"date\" content=\"2026-07-10\">`）。ただしpreview先頭2000字の時点では`<noscript>This page uses JavaScript...</noscript>`という注記のみが見え、実際の日程テーブルが静的HTMLに含まれるか（RBA/BOJのような年次一括公表パターンの可能性）は未確認のため、statusはpending_reconのまま。全文取得しての構造確認がtask #11の次ステップ"
+      "notes": "優先度B1b。2026-08-14実測: auction_calendar_indexは月別インデックスページと判明（2026年1〜10月分は月別ページへのリンク済み、11・12月はまだリンクなし＝BOJ/RBAのような年次一括公表ではなく月次ローリング公表と判明。typeをannual_schedule_configからweekly_scrapeへ訂正）。実際の入札日程は月別ページ（例: 2608e.htm=2026年8月分）にあると推定されるため、次ラウンドでauction_calendar_2608を実測し構造を確認する"
     },
     {
       "id": "us_frb_speeches",
@@ -313,12 +311,11 @@
       "access": {
         "robots_check": true,
         "targets": [
-          { "label": "speeches_index", "url": "https://www.federalreserve.gov/newsevents/speeches-testimony.htm" },
-          { "label": "feeds_hub", "url": "https://www.federalreserve.gov/feeds/feeds.htm" }
+          { "label": "speeches_rss", "url": "https://www.federalreserve.gov/feeds/speeches.xml" }
         ]
       },
       "announce_time_by_kind": {},
-      "notes": "優先度B2。2026-08-14実測: 両URLともrobots.txt許可・HTTP 200で到達確認済み（speeches_indexはspeeches.htmからspeeches-testimony.htmへリダイレクト）。feeds_hubにRSS配信一覧があることは確認したが、個別フィード（講演専用）の実URLは全文未確認のため次ステップで特定する。講演は個別告知型のため年次一括公表ではない見込み（残量監視の対象外候補）"
+      "notes": "優先度B2。2026-08-14実測: feeds_hub（feeds.htm）の全文から実際のRSS URL一覧を確認。`/feeds/speeches.xml`（全理事講演）・`/feeds/testimony.xml`（証言）に加え、理事別個別フィード（`/feeds/s_t_waller.xml`・`/feeds/s_t_cook.xml`・`/feeds/s_t_powell.xml`・`/feeds/s_t_jefferson.xml`・`/feeds/s_t_barr.xml`・`/feeds/m_w_Bowman.xml`）も存在すると判明。まずは全講演フィード（speeches.xml）を対象に次ラウンドで実データ構造を確認する。講演は個別告知型のため年次一括公表ではない見込み（残量監視の対象外候補）"
     },
     {
       "id": "cn_pmi",
@@ -330,7 +327,7 @@
       "recurring_check_refs": [],
       "access": { "robots_check": true, "targets": [] },
       "announce_time_by_kind": {},
-      "notes": "優先度B3。2026-08-14実測: 公表元S&P Globalのpmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（BLSと同様のインフラ側ブロックの疑い。UA偽装による回避は行わない方針）。冠スポンサーのRatingDog自身のサイト（ratingdog.cn）を代替候補として次ラウンドで実測予定"
+      "notes": "優先度B3。2026-08-14実測: 公表元S&P Globalのpmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（BLSと同様のインフラ側ブロックの疑い。UA偽装による回避は行わない方針）。冠スポンサーのRatingDog自身のサイト（ratingdog.cn）も試したが、Monaco Editor/Viteバンドルを含む本格的なSPA構造で日程データは静的HTMLに含まれないと判明（us_adp・Stats NZと同種の構造的ブロッカー）。follow-up調査対象（task #15と合わせて管理）"
     },
     {
       "id": "gb_construction_pmi",
@@ -342,7 +339,7 @@
       "recurring_check_refs": [],
       "access": { "robots_check": true, "targets": [] },
       "announce_time_by_kind": {},
-      "notes": "優先度B4。2026-08-14実測: pmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（cn_pmiと同じ理由）。共同発表元CIPS.orgを代替候補として次ラウンドで実測予定"
+      "notes": "優先度B4。2026-08-14実測: pmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（cn_pmiと同じ理由）。代替候補として試したcips.org/en/supply-management/news/pmi/はHTTP 404（URLが誤りの可能性。CIPS.orgの正しいPMI公表ページURLは未特定）。follow-up調査対象"
     },
     {
       "id": "us_adp",
@@ -359,19 +356,37 @@
     {
       "id": "ca_ivey",
       "name_ja": "Ivey Business School（Western大学）",
-      "status": "pending_recon",
+      "status": "active",
       "country": "CA",
       "kinds": ["pmi_ism"],
-      "type": "weekly_scrape",
+      "type": "annual_schedule_config",
       "recurring_check_refs": [],
+      "residual_monitor_weeks": 4,
+      "schedule_status": "confirmed",
+      "schedule": [
+        { "date": "2026-01-07", "kind": "pmi_ism" },
+        { "date": "2026-02-06", "kind": "pmi_ism" },
+        { "date": "2026-03-06", "kind": "pmi_ism" },
+        { "date": "2026-04-07", "kind": "pmi_ism" },
+        { "date": "2026-05-06", "kind": "pmi_ism" },
+        { "date": "2026-06-05", "kind": "pmi_ism" },
+        { "date": "2026-07-07", "kind": "pmi_ism" },
+        { "date": "2026-08-07", "kind": "pmi_ism", "note": "ground truth ca_ivey_pmi_20260807と一致確認済み" },
+        { "date": "2026-09-04", "kind": "pmi_ism" },
+        { "date": "2026-10-06", "kind": "pmi_ism" },
+        { "date": "2026-11-06", "kind": "pmi_ism" },
+        { "date": "2026-12-04", "kind": "pmi_ism" }
+      ],
       "access": {
         "robots_check": true,
         "targets": [
           { "label": "faq", "url": "https://iveypmi.uwo.ca/faq/" }
         ]
       },
-      "announce_time_by_kind": {},
-      "notes": "優先度B6。2026-08-14実測: robots.txt許可・HTTP 200・61KB HTMLで到達確認済み。WebSearch調査で当該FAQページに2026年通年（1月〜12月）の発表日一覧が掲載されている可能性を確認済みだが、全文での構造確認・抽出はまだ（次ステップ）"
+      "announce_time_by_kind": {
+        "pmi_ism": { "local_time": "10:00", "tz": "America/Toronto" }
+      },
+      "notes": "優先度B6。2026-08-14実測: robots.txt許可・HTTP 200・61KB HTMLで到達確認済み。FAQページ本文に『Index Release Dates in 2026 are: January 7, February 6, ..., December 4』という平文の年間発表日一覧が直接埋め込まれており、静的HTMLから容易に抽出可能と確認（ISMのような自動取得ブロックなし）。ground truth（8/7）と完全一致。『第3または第4営業日、米東部標準時10:00』との記載あり（ISMのような一律ルールではなく年ごとに確定値を都度取得する方式が適切）"
     }
   ]
 }

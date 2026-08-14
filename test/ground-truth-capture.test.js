@@ -181,6 +181,30 @@ test('ISM(us_ism, annual_schedule_config): 製造業(8/3)・非製造業(8/5)が
   assert.equal(svcCandidate.displayName, 'ISM非製造業景況指数');
 });
 
+test('Ivey PMI(ca_ivey, annual_schedule_config): 8/7が既刊と日時・重要度・名称とも完全一致', async () => {
+  const { checkAnnualScheduleSource } = await import('../scripts/checkers/harness.mjs');
+  const { resolveCandidateEvent } = require('../scripts/lib/resolve-candidate');
+  const source = sourcesConfig.sources.find((s) => s.id === 'ca_ivey');
+
+  const r = await checkAnnualScheduleSource(source, WEEK_20260803);
+  assert.equal(r.ok, true);
+  assert.equal(r.matchedEntries.length, 1);
+
+  const tz = source.announce_time_by_kind.pmi_ism.tz;
+  const localTime = source.announce_time_by_kind.pmi_ism.local_time;
+  const candidate = resolveCandidateEvent(
+    { title: 'Ivey PMI', date: r.matchedEntries[0].date, localTime },
+    { country: 'CA', kind: 'pmi_ism', tz, eventNames, importanceRules }
+  );
+
+  const gtIvey = gt('ca_ivey_pmi_20260807');
+  assert.equal(candidate.ok, true);
+  assert.equal(candidate.date, gtIvey.date);
+  assert.equal(candidate.time, gtIvey.time);
+  assert.equal(candidate.importance, gtIvey.stars);
+  assert.equal(candidate.displayName, 'Ivey購買部協会景況指数');
+});
+
 test('RBA(au_rba, annual_schedule_config): 政策金利・記者会見・四半期報告(8/11)が既刊と日時・重要度・kind分類とも一致（名称テンプレート組立はtask #12スコープ）', async () => {
   const { checkAnnualScheduleSource } = await import('../scripts/checkers/harness.mjs');
   const { resolveImportance } = require('../scripts/lib/importance');
