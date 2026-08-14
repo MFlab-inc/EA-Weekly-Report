@@ -12,6 +12,15 @@ function matchesRecurringRule(rule, targetWeekDates) {
   if (monthMatches.length > 0) {
     return dates.some((d) => monthMatches.includes(d.getUTCMonth() + 1));
   }
+  // "10日〜16日"のような日範囲ルール（"中旬"より精密な指定。しょうさん指摘2026-08-15:
+  // 「中旬」の10〜19日は実際の発表日（例: 米CPIは概ね10〜15日、既刊実績は8/12）より広すぎ、
+  // 対象外の週（例: 8/17〜21）で誤検知するため、日範囲を明示できるこの記法を優先する）
+  const dayRangeMatch = text.match(/(\d{1,2})日[〜~](\d{1,2})日/);
+  if (dayRangeMatch) {
+    const startDay = Number(dayRangeMatch[1]);
+    const endDay = Number(dayRangeMatch[2]);
+    return dates.some((d) => d.getUTCDate() >= startDay && d.getUTCDate() <= endDay);
+  }
   if (text.includes('第1金曜')) {
     return dates.some((d) => d.getUTCDay() === 5 && d.getUTCDate() <= 7);
   }

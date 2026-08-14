@@ -38,3 +38,11 @@ test('matchesRecurringRule: 「2月・8月」ルールは対象外の月ではfa
   const rule = { rule: '毎年2月・8月（開催日は豪州議会日程による）' };
   assert.equal(matchesRecurringRule(rule, ['2026-05-04', '2026-05-05', '2026-05-06', '2026-05-07', '2026-05-08']), false);
 });
+
+// しょうさん指摘（2026-08-15）: 「中旬」(10〜19日)は米CPIの実際の発表日（既刊実績8/12）より
+// 広すぎ、8/17週（対象外のはず）で誤って定例欠落WARNが発火した。日範囲を明示できる記法を追加
+test('matchesRecurringRule: 「10日〜16日」ルールは範囲内の週でtrue、範囲外（8/17週）ではfalse', () => {
+  const rule = { rule: '毎月10日〜16日ごろ（祝日ずれあり。既刊実績: 8/12）' };
+  assert.equal(matchesRecurringRule(rule, ['2026-08-10', '2026-08-11', '2026-08-12', '2026-08-13', '2026-08-14']), true);
+  assert.equal(matchesRecurringRule(rule, ['2026-08-17', '2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21']), false);
+});

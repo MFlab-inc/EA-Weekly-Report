@@ -36,10 +36,28 @@ jobs:
         with: { node-version: '20' }
       - name: npm ci (pdf-parse等の依存関係)
         run: npm ci
+      - name: Resolve config from .observation-trigger
+        id: cfg
+        run: |
+          node -e '
+            const fs = require("fs");
+            let cfg = {};
+            try { cfg = JSON.parse(fs.readFileSync(".observation-trigger", "utf8")); } catch (e) {}
+            const out = [
+              "run_observation=" + (cfg.run_observation === false ? "false" : "true"),
+              "run_coverage_gap_check=" + (cfg.run_coverage_gap_check === true ? "true" : "false"),
+            ].join("\n") + "\n";
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, out);
+          '
       - name: Observation run (real target week, real access)
+        if: steps.cfg.outputs.run_observation == 'true'
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: node scripts/phase1/observation-run.mjs
+        continue-on-error: true
+      - name: Coverage gap check (FF feed vs registry, task follow-up 2026-08-15)
+        if: steps.cfg.outputs.run_coverage_gap_check == 'true'
+        run: node scripts/phase1/coverage-gap-check.mjs
         continue-on-error: true
       - name: Upload observation output
         if: always()
