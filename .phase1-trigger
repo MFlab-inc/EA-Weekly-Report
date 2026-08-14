@@ -1,1 +1,1 @@
-{"run_recon": false, "verify_fred": true, "note": "fred-key-corrected-reverify-20260814"}
+{"run_recon": false, "verify_fred": false, "collect_fixtures": true, "note": "task9-fixture-collection-20260814"}

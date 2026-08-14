@@ -13,7 +13,7 @@ on:
     branches: [claude/ea-weekly-report-automation-lw6cio]
     paths: ['.phase1-trigger']
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: phase1-recon
   cancel-in-progress: false
@@ -36,6 +36,7 @@ jobs:
               "only_ids=" + (cfg.only_ids || ""),
               "run_recon=" + (cfg.run_recon === false ? "false" : "true"),
               "verify_fred=" + (cfg.verify_fred === true ? "true" : "false"),
+              "collect_fixtures=" + (cfg.collect_fixtures === true ? "true" : "false"),
             ].join("\n") + "\n";
             fs.appendFileSync(process.env.GITHUB_OUTPUT, out);
           '
@@ -55,3 +56,18 @@ jobs:
           path: phase1-out
           retention-days: 3
           if-no-files-found: warn
+      - name: Collect fixtures
+        if: steps.cfg.outputs.collect_fixtures == 'true'
+        run: node scripts/phase1/collect-fixtures.mjs
+      - name: Commit fixtures
+        if: steps.cfg.outputs.collect_fixtures == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add test/fixtures/official-sources
+          if git diff --cached --quiet; then
+            echo "no fixture changes"
+          else
+            git commit -m "chore: collect official-sources fixtures for task #9 (offline capture test)"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
