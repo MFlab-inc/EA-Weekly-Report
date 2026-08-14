@@ -1,1 +1,1 @@
-{"only_ids": "census,statsnz,statcan", "note": "name-verify-terms-for-event-names-json-20260814"}
+{"run_recon": false, "verify_fred": true, "note": "fred-api-live-verify-20260814"}

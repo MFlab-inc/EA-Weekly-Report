@@ -25,17 +25,28 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
-      - name: Resolve only-ids from .phase1-trigger
+      - name: Resolve config from .phase1-trigger
         id: cfg
         run: |
           node -e '
             const fs = require("fs");
             let cfg = {};
             try { cfg = JSON.parse(fs.readFileSync(".phase1-trigger", "utf8")); } catch (e) {}
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, "only_ids=" + (cfg.only_ids || "") + "\n");
+            const out = [
+              "only_ids=" + (cfg.only_ids || ""),
+              "run_recon=" + (cfg.run_recon === false ? "false" : "true"),
+              "verify_fred=" + (cfg.verify_fred === true ? "true" : "false"),
+            ].join("\n") + "\n";
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, out);
           '
       - name: Source recon
+        if: steps.cfg.outputs.run_recon == 'true'
         run: node scripts/phase1/source-recon.mjs '${{ steps.cfg.outputs.only_ids }}'
+      - name: FRED API verify
+        if: steps.cfg.outputs.verify_fred == 'true'
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: node scripts/phase1/fred-verify.mjs
       - name: Upload raw data
         if: always()
         uses: actions/upload-artifact@v4
