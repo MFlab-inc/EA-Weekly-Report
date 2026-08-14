@@ -37,6 +37,8 @@ jobs:
               "run_recon=" + (cfg.run_recon === false ? "false" : "true"),
               "run_recon_b=" + (cfg.run_recon_b === true ? "true" : "false"),
               "only_ids_b=" + (cfg.only_ids_b || ""),
+              "run_recon_c=" + (cfg.run_recon_c === true ? "true" : "false"),
+              "only_ids_c=" + (cfg.only_ids_c || ""),
               "verify_fred=" + (cfg.verify_fred === true ? "true" : "false"),
               "collect_fixtures=" + (cfg.collect_fixtures === true ? "true" : "false"),
               "only_ids_fixtures=" + (cfg.only_ids_fixtures || ""),
@@ -49,6 +51,9 @@ jobs:
       - name: Source recon (priority B)
         if: steps.cfg.outputs.run_recon_b == 'true'
         run: node scripts/phase1/source-recon-b.mjs '${{ steps.cfg.outputs.only_ids_b }}'
+      - name: Source recon (Stats NZ / Statistics Canada, task #15)
+        if: steps.cfg.outputs.run_recon_c == 'true'
+        run: node scripts/phase1/source-recon-c.mjs '${{ steps.cfg.outputs.only_ids_c }}'
       - name: FRED API verify
         if: steps.cfg.outputs.verify_fred == 'true'
         env:
