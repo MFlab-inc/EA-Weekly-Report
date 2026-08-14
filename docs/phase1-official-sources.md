@@ -63,7 +63,7 @@
 3. **優先度A（A2・A3・A4・A5・A6・A7・A9の7元）の実装＋既刊2週での照合テスト**: 到達確認済みの7元を先行実装し、★★★のうちBLS担当分を除く大半の捕捉を確認
 4. **BLS・ISMの代替手段確立**: BLSはUser-Agent変更等の追加調査またはiCalフィード（bls.ics）の別経路確認、ISMは年次固定日程（1st/3rd business day rule）方式で回避。この2元が埋まった時点で★★★13件・100%捕捉が完成
 5. **優先度B（B1a・B1b〜B6）のサイト実測→実装**: 残り8件（★★）＋将来運用のB1aを回収し検収基準1（29/29件）を満たす
-6. **`config/event-names.json`の実データ照合の残り**: US employment_indicator(JOLTS)・US pmi_ism(ISM Services)・AU trade_balance・NZ employment_situationの4件が未照合（§5-5参照）。B系実装時・BLS/ISM代替確立時に併せて確認
+6. **`config/event-names.json`の実データ照合の残り**: AU trade_balance・NZ employment_situationは実データ照合済み（§5-3）。残るUS employment_indicator(JOLTS)・US pmi_ism(ISM Services)・優先度B系5件（CN PMI×2・GB建設業PMI・CA Ivey・US ADP）は優先度B実装時・ISM年次確認プロセス確立時に確認
 7. **将来拡張分（officials.json記載だがこの2週には未出現の中銀: ECB・BOE・BOC・SNB）は、共通フレームワークへのconfig追加のみで対応**（優先度A/B完了後、並行運用開始までの間に着手）
 
 ## 4. 未解決の実装上の注意点（設計時に解決）
@@ -83,7 +83,7 @@
 | ONS | 404→許可扱い | ✅ **構造化JSON API** 8,113B | **JSON（api.beta.ons.gov.uk/v1/search/releases）** | 統計実施規範で12ヶ月ローリング事前公表＋4週間前確定 | 9元中最良の形式。release_date・date_changes（訂正履歴）まで含む本格API。実データでGDP関連リリース（Blue Book等）を確認 |
 | Stats NZ | 200・許可（Crawl-delay:10） | ✅ 53,580B HTML | HTML | 長期リリース計画ページの存在確認済み・horizon未確定 | `release-calendar/`。雇用統計の英語表記は今回の検索語では本文中に未検出（要再調査） |
 | Statistics Canada | 200・許可（Crawl-delay:2） | ✅ release_schedule_html(20.7KB) ／ annual_schedule_pdf相当URLは**HTML着地ページに転送**(17.7KB) | HTML＋**PDFは中間ページ経由**（直リンク不可） | 「2026-2027 release dates」PDFで15ヶ月超先まで公表 | `n1/release-diffusion/2026-eng.pdf`への直接GETは実PDFではなく「Alternative format」という中間HTMLページを返す。実PDFへは追加のリンク解決が必要（実装時対応）。実データで「Canadian international merchandise trade」「Labour Force Survey」を確認 |
-| ABS | 200・許可 | ✅ 142,310B HTML | HTML | 向こう6ヶ月分のみ公表との調査結果（年次config化には不十分な可能性） | `release-calendar/future-releases-calendar`。到達は確認したが今回の名称検索語ではAU trade_balanceの実表記は未特定 |
+| ABS | 200・許可 | ✅ 142,310B HTML | HTML | 向こう6ヶ月分のみ公表との調査結果（年次config化には不十分な可能性） | `release-calendar/future-releases-calendar`。正式リリース名は「International Trade in Goods」と確認済み（§5-3） |
 | ISM | 200・許可（robots.txt上は問題なし） | ⚠️ **実ページはCAPTCHA付きログインへリダイレクト** | ― | 製造業=毎月第1営業日、非製造業=第3営業日・米東部10:00が既定則 | `rob-report-calendar/`が`ecommerce.ismworld.org/SSO/Login.aspx`（reCAPTCHA）へ転送される。単純HTTPフェッチでは取得不可。年次固定日程（1st/3rd business day rule）で計算し、祝日ずれのみ別途確認する方式を推奨 |
 | BOJ | 404→許可扱い | ✅ mpm_2026_schedule_pdf(284.6KB)・mpm_index(42KB) | PDF＋HTML | 毎年7月31日に翌年8回の会合日程を公表 | `mopo/mpmsche_minu/`配下。両ターゲットとも正常取得 |
 
@@ -101,56 +101,45 @@
 - 1ソースあたり最大3リクエスト（robots.txt＋対象1〜3ページ）、間隔1500ms
 - 3回のrun（全9元→バグ修正後再実測→名称照合のためCensus/StatsNZ/StatCanのみ再実測）を通じて、同一パスへの重複アクセスはrobots.txtキャッシュにより抑制。総アクセス回数は9元合計で約35リクエスト程度（3回のrunの合算）
 
-### 5-3. config/event-names.json 実データ照合結果（確認事項5への回答）
+### 5-3. config/event-names.json 実データ照合結果（確認事項5・2への回答）
 
 | 項目 | 結果 |
 |---|---|
 | US trade_balance | ✅ 確認・true化。Census実データ「U.S. International Trade in Goods and Services」「Advance U.S. International Trade in Goods」 |
 | CA trade_balance | ✅ 確認・true化。Statistics Canada実データ「Canadian international merchandise trade」 |
 | CA employment_situation | ✅ 確認・true化。Statistics Canada実データ「Labour Force Survey」 |
-| US employment_indicator (JOLTS) | ❌ 未確認（BLSブロックのため）。代替経路確立後に確認 |
-| US pmi_ism (ISM Services) | ❌ 未確認（ISMブロックのため）。代替経路確立後に確認 |
-| AU trade_balance | ❌ 未確認。ABSは到達確認済みだが今回の検索語では本文中に実表記が見つからず。ABS個別の名称検索が必要 |
-| NZ employment_situation | ❌ 未確認。Stats NZは到達確認済みだが今回の検索語では本文中に実表記が見つからず。ページ構造の精査が必要 |
+| **AU trade_balance** | ✅ **確認・true化（2026-08-14追加）**。ABS公式ページ確認の結果、正式名称は**「International Trade in Goods」**（月次・サービス収支は非含有）。2023年9月分以前の旧称「International Trade in Goods and Services, Australia」もmatchの部分文字列として引き続き一致する。四半期の「Balance of Payments and International Investment Position, Australia」は国際収支の包括統計で別リリースのため対象外と確認。既刊の日本語表記「貿易収支」はこの月次リリースに対応 |
+| **NZ employment_situation** | ✅ **確認・true化（2026-08-14追加）**。Stats NZ公式ページ確認の結果、正式名称は**「Labour market statistics: {月} {年} quarter」**（例: 'Labour market statistics: June 2026 quarter'）。旧称「Household Labour Force Survey」は現在は調査手法名・別の狭いリリース（人口ベンチマーク値のみ）の名称であり、本体リリースのタイトルとしては使われていないためmatchから除外。四半期末から約5週間後に公表。既刊の日本語表記「雇用統計」はこのリリースに対応 |
+| US employment_indicator (JOLTS) | ❌ 未確認（BLSブロックのため）。優先度Bソース確立後に確認 |
+| US pmi_ism (ISM Services) | ❌ 未確認（ISMブロックのため）。ISM年次確認プロセス確立後に確認 |
+| CN pmi_ism ×2・GB建設業PMI・CA Ivey・US ADP | ❌ 未確認（いずれも優先度Bソース未実装のため） |
 
-残り4件はPhase 1実装（優先度B・BLS/ISM代替手段確立）と合わせて確認する（§3手順6）。
+AU・NZの2件は今回、実際の公式ページ見出し・リリース名を確認したうえで登録した（推測での登録は行っていない）。残り7件は優先度B実装時・ISM年次確認プロセス確立後に順次確認する。
 
 ### 5-4. BLS・ISMの代替手段（2026-08-14確定・しょうさん承認済み）
 
-#### BLS → FRED（セントルイス連銀）採用
+#### BLS → FRED採用を試行 → **FAIL・第二候補Census PFEIへ切替（2026-08-14確定）**
 
-**方針**: UAを偽装してrobots.txt/WAFのブロックを回避することはしない（サイト側の拒否を偽装で回避しない、という本プロジェクトの一貫方針）。代わりに**FRED（Federal Reserve Bank of St. Louis）の公式APIを日付ソースとして採用**する。
+**方針**: UAを偽装してrobots.txt/WAFのブロックを回避することはしない（サイト側の拒否を偽装で回避しない、という本プロジェクトの一貫方針）。第一候補としてFRED（Federal Reserve Bank of St. Louis）の公式APIを検討した。
 
-**調査結果（WebSearch、2026-08-14。egressブロックのためドキュメント調査のみ・実APIコールは未実施）**:
+**事前に固定した合否基準（しょうさん指示）**: CPI(10)・PPI(46)・雇用統計(50)の3リリースすべてで、(a) 実行日から2ヶ月先までの未来日程を含む、(b) 既刊2週の実際の発表日（精度検証アンカー: CPI=2026-08-12・PPI=2026-08-13・雇用統計=2026-08-07）を含む、の両方を満たすことを合格条件とした。
 
-| 項目 | 結果 |
-|---|---|
-| エンドポイント | `GET https://api.stlouisfed.org/fred/releases/dates`（全リリース一括）または `fred/release/dates`（release_id指定） |
-| 対象release_id | CPI=10、PPI=46、雇用統計（Employment Situation）=50、JOLTS=192（fred.stlouisfed.org/release?rid=Nで確認） |
-| APIキー | 無料・即時発行のセルフサービス登録（fred.stlouisfed.org/docs/api/api_key.html）。パラメータ名は`api_key` |
-| レート制限 | 120リクエスト/分（週次runには十分すぎる余裕） |
-| 利用規約 | BLSデータは米連邦政府作成物のためpublic domain。FREDでも「Public Domain: Citation Requested」タグ（Copyrighted区分ではない）。出典（BLS）とFRED経由取得である旨の明記が求められる程度 |
-| 時刻データ | **APIレスポンスには含まれない**（日付のみ）。Webサイトのカレンダー表示には時刻注記があるようだがAPI経由では未確認 |
-| **未確認事項（重要）** | `releases/dates`が**未来（未発表）の日付を返すか**は、ドキュメント上は強く示唆される（BLSは年次で先の日程を公表しており、その日程がFREDに反映される設計と読める）が、実APIコールでの確認はAPIキーがないため未実施 |
+**ライブ検証結果**: しょうさんが`FRED_API_KEY`をGitHub Secretsへ登録（再登録含め計3回のActions run — うち診断ログ追加後の2回はキーが32桁英数字・空白混入なしの正しい形式であることを確認済み）。しかし**3回とも同一エラー**`{"error_code":400,"error_message":"Bad Request. The value for variable api_key is not registered."}`が返り、日付データを一切取得できなかった。スクリプト側の不備（コピペ時の空白混入等）は診断ログで排除済みのため、FRED側のアカウント登録状態に起因する問題と考えられるが、これ以上の深掘りはしない（合否基準どおり不合格と判定し、次善策へ切替）。
 
-**採用設計**（しょうさん指示どおり）:
-- (a) **日付**: FRED `releases/dates`（対象release_id: 10・46・50・192）
-- (b) **発表時刻**: 指標別固定時刻を`config/official-sources.json`に保持（米CPI/PPI/雇用統計=08:30 ET、JOLTS=10:00 ET が慣行値。要最終確認）し、`scripts/lib/tz-convert.js`でDST対応のJST換算を行う
+**→ 判定: FAIL。第二候補のCensus PFEI（政府横断リリーススケジュール）へ切替を確定する。**
+
+**PFEI採用設計**:
+- Phase 1実測（§5）でPFEI（`census.gov/economic-indicators/econcards/assets/pdf/censusreleaseglance_{年}.pdf`）の到達性・年次公表パターン（毎年9月頃に翌年分公表）を確認済み
+- PFEIはCPI・PPI・雇用統計（Employment Situation）を含む政府横断の主要指標一覧のため、この3系列はPFEIでカバーできる見込み
+- **JOLTSはPFEI対象外の可能性が高い**（JOLTSは「主要指標」約20系列の伝統的な対象に含まれないとの調査結果）。JOLTSの日付ソースは優先度B実装時に別途検討する（例: Census本体の別スケジュールページ、または月曜FF突合のみに依拠し掲載除外＋WARN運用とする案）
+- PFEIはPDF形式のため、実装時にPDFテーブルからの日付抽出（パーサー導入）が必要。BLS/FREDのような直接JSON/API取得より実装コストは高いが、到達性は確認済み
+- (a) **日付**: Census PFEI（PDF）
+- (b) **発表時刻**: 指標別固定時刻を`config/official-sources.json`に保持（米CPI/PPI/雇用統計=08:30 ET が慣行値。要最終確認）し、`scripts/lib/tz-convert.js`でDST対応のJST換算を行う
 - (c) **ドリフト検知**: 月曜FF事後突合（SPEC §3.3）で(a)(b)の組み合わせ結果とFF実データを突合し、相違があれば`discrepancy-report.json`に記録
 
-**Secrets登録: 完了（2026-08-14）。ただしライブ検証で未解決の問題あり**:
+**限界事項（SPEC/docsに明記が必要。しょうさん指示）**: PFEI・FRED問わず、公的機関の日付ソースは「日付のみ」を提供し、**発表時刻はconfig固定値に依存する**。この固定時刻が実際の発表時刻とズレた場合（稀だが発表元が慣行時刻を変更する可能性はゼロではない）、**日付ソース自体はエラーを検知できず、唯一の検知手段は月曜FF事後突合**（SPEC §3.3）である。月曜突合は「対象週が実際の当該週になった後」の事後検証のため、当該週の配信物には誤った停止目安が反映されたまま出てしまう可能性がある。この限界は許容している（HANDOFF §1検収基準・SPEC §3のフェールクローズ設計の範囲内）が、明示しておく。
 
-しょうさんが`FRED_API_KEY`をGitHub Secretsへ登録済み。`scripts/phase1/fred-verify.mjs`で2回ライブ検証したが、いずれも`{"error_code":400,"error_message":"Bad Request. The value for variable api_key is not registered."}`が返る。
-
-**切り分け結果**: 診断ログで確認した限り、Secrets側の値は`key length=32桁 (trim前後で差分: false) 形式=32桁英数字(想定どおり)`——FRED公式ドキュメントが示すキー形式と完全に一致しており、コピペ時の空白混入等スクリプト側で検出できる異常はない。**FRED側のアカウント登録状態（メール確認未完了・キーの有効化待ち等）の可能性が高い**。
-
-**しょうさんへの確認依頼**:
-1. 登録時に確認メールが届いていないか（St. Louis Fedアカウントはメール確認が必要な場合がある）。届いていれば確認リンクをクリック
-2. https://fredaccount.stlouisfed.org/apikeys にログインし、発行したキーが「Active」等の有効状態になっているか確認
-3. 上記ページに表示されているキーの文字列と、GitHub Secretsに登録した値が完全一致しているか再確認（似た文字の誤入力等）
-4. 上記で問題が見当たらない場合、ブラウザで直接 `https://api.stlouisfed.org/fred/release/dates?release_id=50&api_key=（実際のキー）&file_type=json` にアクセスし、GitHub Actionsを介さない状態でも同じエラーが出るか確認（FRED側の問題かGitHub Secrets側の問題かの最終切り分け）
-
-解決次第、再度ライブ検証を実施する。**この間、config/official-sources.jsonの実装は到達確認済みの7元（RBA・Census・ONS・Stats NZ・Statistics Canada・ABS・BOJ）から先行して進める**（BLSエントリは未着手のまま保留）。
+**FREDキー問題の切り分けは保留**: しょうさんが希望される場合、後日FRED側のアカウント状態を確認いただければ再検証は可能だが、現時点ではPFEI切替を正式ルートとして実装を進める。
 
 #### ISM → 年次スケジュールconfig型に統一（しょうさん承認済み）
 
