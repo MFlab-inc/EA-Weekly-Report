@@ -125,13 +125,15 @@
       "access": {
         "robots_check": true,
         "targets": [
-          { "label": "release_calendar", "url": "https://www.stats.govt.nz/release-calendar/", "crawl_delay_seconds": 10 }
+          { "label": "latest_labour_market_release", "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/", "crawl_delay_seconds": 10 },
+          { "label": "TEMP_ground_truth_validation_prior_quarter", "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-march-2026-quarter/", "crawl_delay_seconds": 10 }
         ]
       },
       "announce_time_by_kind": {
         "employment_situation": { "local_time": "10:45", "tz": "Pacific/Auckland" }
       },
-      "notes": "四半期リリース『Labour market statistics: {月} {年} quarter』（config/event-names.json照合済み）。四半期末から約5週間後に公表。【2026-08-14実測で判明した構造上の問題】release-calendar/の静的HTMLにはナビゲーションメニューと『Other publications』等の副次表のみが含まれ、実際のリリース一覧（Labour market statistics等）はページ読み込み後にJavaScript/APIで動的に描画される（SPA構造）ため、単純HTTPフェッチでは抽出不可と判明。埋め込みデータに`MonthRange`ヒントがあり裏側にAPIが存在する可能性は高いが、エンドポイントは未特定。抽出は現時点で構造的に失敗する設計とし（フェールクローズ規則に接続）、実際のAPIエンドポイント調査を別タスクとする"
+      "next_release_maintenance": "このtargets URLは『直近に公表されたLabour market statistics四半期リリースページ』を指す。各ページは本文内に次回リリース予定日（『Labour market statistics: {次の月} {年} quarter will be released on {date}.』）を埋め込んでおり、抽出はこの1文をパースする方式（open data API [api.stats.govt.nz] は2024-08-30に閉鎖済みのため利用不可、年次PDFカレンダーも未発見）。四半期ごとの新リリース公表後、このURLを次の四半期のページ（例: labour-market-statistics-september-2026-quarter）へ更新する必要がある（jp_mofのmonth_url_patternと同種の手動メンテナンス）。更新を怠ると『次回発表日が過去日付＝現在の対象週の情報が得られない』状態を抽出側が検知しok:falseを返す設計とし、フェールクローズ規則へ接続する。詳細はdocs/annual-schedule-maintenance.md参照",
+      "notes": "四半期リリース『Labour market statistics: {月} {年} quarter』（config/event-names.json照合済み）。四半期末から約5週間後に公表。【2026-08-14実測で判明】release-calendar/はSPA構造で静的取得不可（旧記録のとおり）。open data API（api.stats.govt.nz）は2024-08-30に閉鎖済みと判明し(a)API系統は不可。年次PDFカレンダーも(b)で探索したが発見できなかった。一方、各四半期の情報公開ページ自体（例: labour-market-statistics-june-2026-quarter）が本文に次回リリース予定日を埋め込み公表している（Stats NZ自身の公式コンテンツ）ことを発見し、これを抽出対象とする方式へ変更した。extractors/nz-statsnz.jsで抽出し、次回リリース予定日（2026-09-04＝ground truthのnz_labour_q2に相当する次サイクル分ではなく、9月分＝別四半期の値）が正しく取得できることを確認。ページURLの四半期ごとの手動更新が必要（next_release_maintenance参照）"
     },
     {
       "id": "ca_statcan",
