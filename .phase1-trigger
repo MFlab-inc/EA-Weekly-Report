@@ -2,6 +2,5 @@
   "run_recon": false,
   "run_recon_b": false,
   "run_recon_c": false,
-  "collect_fixtures": true,
-  "only_ids_fixtures": "nz_statsnz"
+  "collect_fixtures": false
 }

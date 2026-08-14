@@ -289,16 +289,62 @@ test('FRB(us_frb_speeches): クック理事講演(8/6 05:05 JST)が既刊と日�
   assert.equal(jst.time, gtCook.time);
 });
 
-test('nz_statsnz・ca_statcanは抽出ルール未登録のため既刊週でも明示的にok:falseを返す（構造的ブロッカーの記録。fixtureはSPA描画/検索フォームで日程を含まないため意図的に空スタブを使う）', async () => {
+test('Stats NZ(nz_statsnz, weekly_scrape): 次回リリース予定日の埋め込みテキストが見つからない場合は明示的にok:falseを返す（構造変化・URL更新漏れの検知）', async () => {
   const { checkWeeklyScrapeSource } = await import('../scripts/checkers/harness.mjs');
   const nzSource = sourcesConfig.sources.find((s) => s.id === 'nz_statsnz');
-  const caSource = sourcesConfig.sources.find((s) => s.id === 'ca_statcan');
   const fetchImpl = async () => ({ ok: true, status: 200, text: async () => '<html>stub</html>' });
 
   const rNz = await checkWeeklyScrapeSource(nzSource, WEEK_20260803, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
-  const rCa = await checkWeeklyScrapeSource(caSource, WEEK_20260803, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
   assert.equal(rNz.ok, false);
-  assert.match(rNz.reason, /抽出ルール未実装/);
-  assert.equal(rCa.ok, false);
-  assert.match(rCa.reason, /抽出ルール未実装/);
+  assert.match(rNz.reason, /抽出失敗/);
+});
+
+test('Stats NZ(nz_statsnz, weekly_scrape): 前四半期ページの実fixtureからground truth（nz_labour_q2、2026-08-05）を日時・重要度・名称とも完全一致で捕捉できる', async () => {
+  const { checkWeeklyScrapeSource } = await import('../scripts/checkers/harness.mjs');
+  const nzSource = sourcesConfig.sources.find((s) => s.id === 'nz_statsnz');
+  // 本番targetsは直近ページ（2026年6月期）だが、ground truth（2026年6月期の発表日）を
+  // 予告するのは前四半期（2026年3月期）ページのため、テストではfixtureをそちらへ差し替える
+  const priorQuarterHtml = readFixture('nz_statsnz', 'TEMP_ground_truth_validation_prior_quarter.html');
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => priorQuarterHtml });
+
+  const r = await checkWeeklyScrapeSource(nzSource, WEEK_20260803, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
+  assert.equal(r.ok, true);
+  assert.equal(r.thisWeek.length, 1);
+
+  const gtNz = gt('nz_labour_q2_20260805');
+  const candidate = r.thisWeek[0];
+  assert.equal(candidate.date, gtNz.date);
+  assert.equal(candidate.time, gtNz.time);
+  assert.equal(candidate.importance, gtNz.stars);
+  assert.equal(candidate.displayName, '雇用統計');
+});
+
+test('Statistics Canada(ca_statcan, annual_schedule_config): 国際商品貿易(8/4)・雇用統計(8/7)が既刊と日時・重要度・名称とも完全一致', async () => {
+  const { checkAnnualScheduleSource } = await import('../scripts/checkers/harness.mjs');
+  const { resolveCandidateEvent } = require('../scripts/lib/resolve-candidate');
+  const source = sourcesConfig.sources.find((s) => s.id === 'ca_statcan');
+
+  const r = await checkAnnualScheduleSource(source, WEEK_20260803);
+  assert.equal(r.ok, true);
+  assert.equal(r.matchedEntries.length, 2);
+
+  for (const [id, kind, expectedName] of [
+    ['ca_goods_trade_20260804', 'trade_balance', '国際商品貿易'],
+    ['ca_labour_20260807', 'employment_situation', '雇用統計'],
+  ]) {
+    const entry = r.matchedEntries.find((e) => e.kind === kind);
+    assert.ok(entry, `${kind}のmatchedEntryが見つからない`);
+    const tz = source.announce_time_by_kind[kind].tz;
+    const localTime = source.announce_time_by_kind[kind].local_time;
+    const candidate = resolveCandidateEvent(
+      { title: kind === 'trade_balance' ? 'Canadian international merchandise trade' : 'Labour Force Survey', date: entry.date, localTime },
+      { country: 'CA', kind, tz, eventNames, importanceRules }
+    );
+    const gtEntry = gt(id);
+    assert.equal(candidate.ok, true);
+    assert.equal(candidate.date, gtEntry.date);
+    assert.equal(candidate.time, gtEntry.time);
+    assert.equal(candidate.importance, gtEntry.stars);
+    assert.equal(candidate.displayName, expectedName);
+  }
 });

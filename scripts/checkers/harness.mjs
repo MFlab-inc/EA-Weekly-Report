@@ -25,6 +25,7 @@ import { resolveCandidateEvent, resolveKindCandidates } from '../lib/resolve-can
 import { extractCensusCalendar } from './extractors/census.js';
 import { extractAbsCalendar } from './extractors/abs.js';
 import { extractOnsReleases } from './extractors/ons.js';
+import { extractNzNextRelease } from './extractors/nz-statsnz.js';
 
 export const USER_AGENT = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; checker-harness)';
 
@@ -54,6 +55,14 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     primaryLabel: 'releases_api_upcoming_gdp',
     parseFn: extractOnsReleases,
     toRow: (r) => ({ title: r.title, utcInstant: r.utcInstant }),
+  },
+  // titleは固定文字列（このソースはLabour market statistics専用の抽出のため、汎用カレンダーの
+  // ような複数系列スクレイプではない）。localTimeはconfig/official-sources.jsonの
+  // nz_statsnz.announce_time_by_kind.employment_situation.local_timeと同じ値を保つこと
+  nz_statsnz: {
+    primaryLabel: 'latest_labour_market_release',
+    parseFn: extractNzNextRelease,
+    toRow: (r) => ({ title: 'Labour market statistics', date: r.releaseDate, localTime: '10:45' }),
   },
 };
 
@@ -147,9 +156,12 @@ function classifyRowKind(row, source, eventNames) {
 }
 
 // weekly_scrape型: robots.txt確認→フェッチ→（登録済みなら）発表元別の抽出処理。
-// 抽出ルール未登録のソース（nz_statsnz。実測の結果JS描画で静的取得不可と判明。ca_statcanは
-// 2026-08-14の再実測で年次PDFが直接取得可能と判明しannual_schedule_config型へ再分類済み）は
-// 明示的に「抽出ルール未実装」の失敗を返す（フェールクローズ設計。誤って「イベントなし」を返さない）
+// 抽出ルール未登録のソースは明示的に「抽出ルール未実装」の失敗を返す
+// （フェールクローズ設計。誤って「イベントなし」を返さない）。
+// nz_statsnzは2026-08-14にextractors/nz-statsnz.jsで登録済み（次回リリース予定日の
+// 埋め込みテキストを抽出。access.targetsは直近公表ページを指す必要があり四半期ごとの
+// 手動更新が必要 — next_release_maintenance参照）。ca_statcanは同日の再実測で年次PDFが
+// 直接取得可能と判明しannual_schedule_config型へ再分類済み（本関数の対象外）
 export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = fetch, robotsChecker, eventNames = [], importanceRules } = {}) {
   const targets = source.access?.targets || [];
   if (targets.length === 0) {
@@ -220,7 +232,7 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
     };
   }
 
-  const rawRows = (parsed.rows || parsed.meetings || parsed.entries || []).map(extractor.toRow);
+  const rawRows = (parsed.rows || parsed.meetings || parsed.entries || parsed.releases || []).map(extractor.toRow);
   const candidates = [];
   const unregistered = [];
   for (const row of rawRows) {

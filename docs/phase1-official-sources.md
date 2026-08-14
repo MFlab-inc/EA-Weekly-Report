@@ -271,3 +271,35 @@ BOJ・Census(PFEI)・Statistics Canadaと同じ「年次スケジュールconfig
 ### 8-3. テスト
 
 `test/extractors-ivey.test.js`・`test/extractors-mof-frb.test.js`・`test/extractors-us-treasury.test.js`を追加し、`test/ground-truth-capture.test.js`にIvey/MOF/FRBの既刊照合テストを追加。`npm test`で126件全PASS。
+
+## 9. task #15: Stats NZ・Statistics Canadaの追加調査・解決（2026-08-14実施）
+
+しょうさん指示（2026-08-14、task #12完了後）により、§7-5で構造的ブロッカーとして記録した2元を再調査した。優先順は(a)API/RSS/ICS→(b)年次・四半期のリリースカレンダーPDF→(c)Playwrightの順（前回同様）。
+
+### 9-1. Statistics Canada（`ca_statcan`）: (b)年次PDFで解決
+
+§7-5の記録「年次PDF（`n1/release-diffusion/{年}-eng.pdf`）は直リンクせず中間HTML着地ページに転送される」は**誤りだった**と判明した。2026-08-14の再実測で`https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf`へ直接フェッチしたところ、HTTP 200・content-type `application/pdf`・リダイレクト無しで『2026-2027 release dates Major economic releases』というPDF本体（約159KB）が取得できた。`cal1-eng.htm`自身がこのPDFへのリンクを含んでいることも確認した（前回の判断はcal1-eng.htm自体の到達性テストと混同していた可能性が高い）。
+
+PDFにはLabour Force Survey（雇用統計）・Canadian international merchandise trade（国際商品貿易）を含む主要経済指標の発表日・対象期間が2026年1月〜2027年3月分まで掲載されている。`pdf-parse`（テキスト抽出のみの軽量な1系。プロジェクト初のnpm依存）でテキスト化し、`scripts/checkers/extractors/statcan.js`で科目ごとの「発表日{対象期間}」連結行を正規表現で抽出する方式を実装した。既刊ground truth（CA国際商品貿易2026-08-04＝2026年6月分・CA雇用統計2026-08-07＝2026年7月分）と完全一致を確認し、`ca_statcan`のtypeを`weekly_scrape`から`annual_schedule_config`へ再分類、抽出結果（trade_balance15件・employment_situation15件）をconfigのscheduleへ投入した。
+
+これにより週次本番パイプラインでのPDF再取得は不要になった（annual_schedule_config型は残量監視WARNのみでチェックする）。
+
+### 9-2. Stats NZ（`nz_statsnz`）: (a)(b)は不可、Stats NZ自身の公式ページ埋め込みテキストで解決
+
+open data API（`api.stats.govt.nz`）は2024-08-30に閉鎖済みと判明し(a)は不可。年次PDFカレンダーもWebSearch・実測で発見できず(b)も不可（§7-5記載のSPA構造の問題自体は変わらず）。
+
+一方、各四半期の情報公開ページ（例: `labour-market-statistics-june-2026-quarter`）が本文に次回リリース予定日を埋め込み公表している（Stats NZ自身の公式コンテンツ、SilverStripe CMSのブロックデータとしてHTMLエンティティ＋JSON文字列の二重エスケープで属性値に格納）ことを発見し、これを抽出対象とする方式へ変更した。`scripts/checkers/extractors/nz-statsnz.js`で「Labour market statistics: {月} {年} quarter will be released on {date}.」というパターンを抽出する（「(income)」派生系列は「statistics: 」直後に「(」が来ないことで自然に除外される）。
+
+ground truth検証: 現在の対象四半期（2026年6月期、`labour-market-statistics-june-2026-quarter`）のページは既に発表済みのため、自身の発表日は予告しない（次サイクルの2026年9月期分のみを予告）。そのため前四半期（2026年3月期）ページを別途取得して検証したところ、「Labour market statistics: June 2026 quarter will be released on 5 August 2026」という埋め込みテキストがあり、ground truth（`nz_labour_q2_20260805`）と完全一致した。
+
+この方式は`config/official-sources.json`の`nz_statsnz.type`を`weekly_scrape`のまま維持し、`access.targets`が常に「直近に公表された四半期ページ」を指すよう**四半期ごとの手動URL更新**が必要（`docs/annual-schedule-maintenance.md`のStats NZ固有の手順を参照）。annual_schedule_config型のような残量監視の仕組みはまだ無いため、当面は定期確認が必要（follow-up）。
+
+### 9-3. これで未解決5元のうち2元（Stats NZ・Statistics Canada）を解決
+
+task #11終盤時点の未解決5元（Stats NZ・Statistics Canada・中国PMI・英建設業PMI・ADP）のうち、Stats NZ・Statistics Canadaの2元を解決した。残る3元（中国PMI・英建設業PMI・ADP、いずれも★★のみ）はtask #16のfollow-upとする。
+
+`nz_statsnz`・`ca_statcan`がともに構造的失敗を返し続けていた状態（毎週2件同時失敗＝SPEC §3.4の無条件HOLDが必ず発動し、実装が完了するまで一度もOK配信できなかった問題）はこれで解消された。
+
+### 9-4. テスト
+
+`test/extractors-statcan.test.js`（実fixture=年次PDFからの抽出単体テスト）・`test/extractors-nz-statsnz.test.js`（実fixture=情報公開ページ2種からの抽出単体テスト）を追加。`test/ground-truth-capture.test.js`の該当テストを更新（旧: 両ソースとも抽出ルール未登録でok:false → 新: 実際の抽出結果を既刊ground truthと照合）。`npm test`で162件全PASS。
