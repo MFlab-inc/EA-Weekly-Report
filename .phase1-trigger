@@ -1,5 +1,6 @@
 {
   "run_recon": false,
   "run_recon_b": false,
-  "run_recon_c": true
+  "run_recon_c": true,
+  "note": "retrigger-with-pdf-and-api-diagnostics"
 }
