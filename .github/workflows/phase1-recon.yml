@@ -1,0 +1,37 @@
+# Phase 1 公式ソース実測（優先度A・9元）用の一時ワークフロー
+# 目的: docs/phase1-official-sources.md の優先度A発表元について、Actionsランナー上で
+# robots.txt確認→許可パスのみ最小限フェッチし、取得方式（構造化フィードかHTML/PDFか）
+# を判定する。生データはartifact（保持3日）にのみ保存し、リポジトリにはコミットしない。
+#
+# 起動方式: 開発ブランチへの `.phase1-trigger` 変更pushで起動する
+#   （workflow_dispatchはデフォルトブランチ登録が必要なため、Phase 0と同じ方式を踏襲）
+#
+# 本ワークフローは実測完了後（config/official-sources.json構築完了後）に削除する。
+name: phase1-recon
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths: ['.phase1-trigger']
+permissions:
+  contents: read
+concurrency:
+  group: phase1-recon
+  cancel-in-progress: false
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Source recon
+        run: node scripts/phase1/source-recon.mjs
+      - name: Upload raw data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-recon-raw
+          path: phase1-out
+          retention-days: 3
+          if-no-files-found: warn
