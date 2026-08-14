@@ -12,15 +12,15 @@
     { "country": "CN", "kind": "pmi_ism", "match": ["manufacturing pmi"], "display_name": "RatingDog(旧財新)製造業PMI", "period_unit": "month", "source_verified": false },
     { "country": "CN", "kind": "pmi_ism", "match": ["services pmi", "non-manufacturing pmi"], "display_name": "RatingDog(旧財新)非製造業PMI", "period_unit": "month", "source_verified": false },
     { "country": "US", "kind": "pmi_ism", "match": ["ism manufacturing pmi"], "display_name": "ISM製造業景況指数", "period_unit": "month", "source_verified": true },
-    { "country": "US", "kind": "pmi_ism", "match": ["ism services pmi", "ism non-manufacturing"], "display_name": "ISM非製造業景況指数", "period_unit": "month", "source_verified": false },
+    { "country": "US", "kind": "pmi_ism", "match": ["ism services pmi", "ism non-manufacturing"], "display_name": "ISM非製造業景況指数", "period_unit": "month", "source_verified": false, "note": "ISMサイトはrobots.txt許可だが実ページがCAPTCHA付きログインへリダイレクト（Phase 1実測）。年次固定日程（毎月第3営業日10:00 ET）方式へ切替を検討" },
     { "country": "GB", "kind": "pmi_ism", "match": ["construction pmi"], "display_name": "建設業PMI", "period_unit": "month", "source_verified": false },
     { "country": "CA", "kind": "pmi_ism", "match": ["ivey pmi", "ivey"], "display_name": "Ivey購買部協会景況指数", "period_unit": "month", "source_verified": false },
-    { "country": "CA", "kind": "trade_balance", "match": ["trade balance"], "display_name": "国際商品貿易", "period_unit": "month", "source_verified": false },
-    { "country": "US", "kind": "trade_balance", "match": ["trade balance"], "display_name": "貿易収支", "period_unit": "month", "source_verified": false },
-    { "country": "AU", "kind": "trade_balance", "match": ["trade balance"], "display_name": "貿易収支", "period_unit": "month", "source_verified": false },
-    { "country": "US", "kind": "employment_indicator", "match": ["jolts job openings", "jolts"], "display_name": "JOLTS求人・離職動向調査", "period_unit": "month", "source_verified": false },
-    { "country": "US", "kind": "employment_indicator", "match": ["adp non-farm employment change", "adp employment change", "adp"], "display_name": "ADP雇用統計", "period_unit": "month", "source_verified": false },
-    { "country": "NZ", "kind": "employment_situation", "match": ["employment change", "unemployment rate"], "display_name": "雇用統計", "period_unit": "quarter", "source_verified": false },
-    { "country": "CA", "kind": "employment_situation", "match": ["employment change", "unemployment rate"], "display_name": "雇用統計", "period_unit": "month", "source_verified": false }
+    { "country": "CA", "kind": "trade_balance", "match": ["merchandise trade", "trade balance"], "display_name": "国際商品貿易", "period_unit": "month", "source_verified": true, "note": "Phase 1実測（2026-08-14）でStatistics Canada release_schedule_htmlの実データ『Canadian international merchandise trade』を確認" },
+    { "country": "US", "kind": "trade_balance", "match": ["international trade in goods and services", "advance u.s. international trade in goods", "trade balance"], "display_name": "貿易収支", "period_unit": "month", "source_verified": true, "note": "Phase 1実測（2026-08-14）でCensus calendar_listview/RSSの実データ『U.S. International Trade in Goods and Services』『Advance U.S. International Trade in Goods』を確認" },
+    { "country": "AU", "kind": "trade_balance", "match": ["trade balance", "international trade in goods"], "display_name": "貿易収支", "period_unit": "month", "source_verified": false, "note": "ABS future_releases_calendarは到達性のみ確認済み（Phase 1 run1/2）。実表記の照合はABS個別実測が必要（Phase 1 task#9で実施）" },
+    { "country": "US", "kind": "employment_indicator", "match": ["jolts job openings", "job openings and labor turnover", "jolts"], "display_name": "JOLTS求人・離職動向調査", "period_unit": "month", "source_verified": false, "note": "BLSがrobots.txt 403で到達不可（Phase 1実測）。代替経路確立後に照合" },
+    { "country": "US", "kind": "employment_indicator", "match": ["adp non-farm employment change", "adp employment change", "adp"], "display_name": "ADP雇用統計", "period_unit": "month", "source_verified": false, "note": "優先度Bソース（ADP Research Institute）未実測" },
+    { "country": "NZ", "kind": "employment_situation", "match": ["labour market statistics", "household labour force", "employment change", "unemployment rate"], "display_name": "雇用統計", "period_unit": "quarter", "source_verified": false, "note": "Phase 1実測（2026-08-14）でStats NZ release_calendarを検索したが該当語が本文中に見当たらず未確認。ページ構造の精査が必要（task#9）" },
+    { "country": "CA", "kind": "employment_situation", "match": ["labour force survey", "employment change", "unemployment rate"], "display_name": "雇用統計", "period_unit": "month", "source_verified": true, "note": "Phase 1実測（2026-08-14）でStatistics Canada release_schedule_htmlの実データ『Labour Force Survey』を確認" }
   ]
 }

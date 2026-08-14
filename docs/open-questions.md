@@ -4,6 +4,16 @@
 
 ---
 
+## 【2026-08-14 追記】Phase 1優先度A実測完了・5点確認事項への回答反映
+
+- **Q1（既刊イベントの国債入札）**: 既刊29イベントはすべて日本JGB入札。米国債入札は既刊には無いが実運用では発生するカテゴリのため、優先度Bに米財務省（TreasuryDirect）を追加した。詳細は `docs/phase1-official-sources.md` §0
+- **Q2（年次スケジュールconfigの残量監視）**: SPEC §3.5に反映済み（対象週+4週先までの日程がconfigに無ければWARN）。運用手順は `docs/annual-schedule-maintenance.md`
+- **Q3（フェールクローズの精緻化）**: SPEC §3.4に反映済み（発生見込みの有無で分岐、複数ソース同時失敗は無条件HOLD）
+- **Q4（実測時のマナー）**: robots.txt確認を先取得・解析するActionsスクリプトで実施。9元中2元（BLS・ISM）がrobots.txt自体のブロックまたは実ページのCAPTCHAで到達不可と判明。代替経路は `docs/phase1-official-sources.md` §5-4に記載
+- **Q5（event-names.jsonの照合）**: 実データ照合を実施。US trade_balance・CA trade_balance・CA employment_situationの3件をtrue化。残り4件（JOLTS・ISM Services・AU trade_balance・NZ employment_situation）はBLS/ISMブロックとABS/StatsNZ個別調査待ちのため未確認（`docs/phase1-official-sources.md` §5-3）
+
+---
+
 ## 【2026-08-14 上位決定】みんかぶFXを収集ソースとして恒久不使用
 
 しょうさん決定: みんかぶへの許諾問い合わせは行わない。みんかぶは収集ソースとして恒久不使用とする。
