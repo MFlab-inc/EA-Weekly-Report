@@ -89,6 +89,73 @@ function excerptAround(html, index, before, after) {
   return html.slice(s, Math.min(html.length, index + after)).replace(/\n+/g, ' ').replace(/\s{2,}/g, ' ');
 }
 
+// ---------- みんかぶ行パース（run 2以降・artifact再解析用） ----------
+const COUNTRY_JA_TO_CODE = {
+  '日本': 'JP', '米国': 'US', '英国': 'GB', '豪州': 'AU', '中国': 'CN',
+  'ニュージーランド': 'NZ', 'カナダ': 'CA', 'ユーロ圏': 'EU', 'ドイツ': 'DE', 'フランス': 'FR', 'スイス': 'CH',
+};
+
+function parseMinkabuTables(html) {
+  const rows = [];
+  const tables = html.split(/<table\b/).slice(1);
+  for (const t of tables) {
+    const cap = t.match(/<caption[^>]*>([^<]*)<\/caption>/);
+    const dm = cap && cap[1].match(/(\d{4})年(\d{2})月(\d{2})日/);
+    if (!dm) continue;
+    const date = `${dm[1]}-${dm[2]}-${dm[3]}`;
+    for (const tr of t.split(/<tr\b/).slice(1)) {
+      const imp = tr.match(/data_importance="(\d)"/);
+      if (!imp) continue;
+      const country = (tr.match(/data_country="([A-Z]+)"/) || [])[1] || '';
+      const time = ((tr.match(/<span>([^<]{1,12})<\/span>/) || [])[1] || '').trim();
+      const nameM = tr.match(/<p class="flexbox__grow fbd">([^<]+)<\/p>/);
+      const code = (tr.match(/href="\/indicators\/([A-Za-z0-9-]+)"/) || [])[1] || '';
+      rows.push({ date, time, imp: Number(imp[1]), country, name: nameM ? nameM[1].trim() : '', code });
+    }
+  }
+  return rows;
+}
+
+function analyzeMinkabuRows(name, html, expected) {
+  const rows = parseMinkabuTables(html);
+  log(`--- row-level parse: ${rows.length} rows ---`);
+  if (!rows.length) return;
+  const byDay = {}, byImp = {};
+  let noTime = 0;
+  for (const r of rows) {
+    byDay[r.date] = (byDay[r.date] || 0) + 1;
+    byImp[r.imp] = (byImp[r.imp] || 0) + 1;
+    if (!/^\d{1,2}:\d{2}$/.test(r.time)) noTime++;
+  }
+  log(`rows_by_day=${JSON.stringify(byDay)}`);
+  log(`rows_by_importance=${JSON.stringify(byImp)} rows_without_HH:MM_time=${noTime}`);
+
+  // 重要度上位（★4以上）の全行: 逆方向の閾値校正用（掲載されなかった★4/★5がないか）
+  log(`--- rows with data_importance >= 4 ---`);
+  for (const r of rows.filter(r => r.imp >= 4)) {
+    log(`  ${r.date} ${r.time.padEnd(5)} [imp${r.imp}] ${r.country} ${r.name} (${r.code})`);
+  }
+
+  // 既刊イベントとの行単位マッチ（★5段階→★3段階マッピング校正用）
+  const wk = name.includes('2026-08-03') ? '2026-08-03' : name.includes('2026-08-10') ? '2026-08-10' : null;
+  if (wk && expected) {
+    log(`--- expected-event row match (week ${wk}) ---`);
+    for (const ev of expected.events.filter(e => e.week === wk)) {
+      const code = COUNTRY_JA_TO_CODE[ev.country_ja] || '';
+      const cands = rows.filter(r =>
+        r.date === ev.date && (!code || r.country === code) &&
+        ev.minkabu_keys.some(k => normalize(r.name).includes(normalize(k)))
+      );
+      if (cands.length) {
+        log(`  HIT  [報★${ev.stars}] ${ev.name_ja}`);
+        for (const c of cands) log(`       -> ${c.time} [imp${c.imp}] ${c.name} (${c.code})`);
+      } else {
+        log(`  MISS [報★${ev.stars}] ${ev.name_ja}`);
+      }
+    }
+  }
+}
+
 // ---------- みんかぶ分析 ----------
 function analyzeMinkabu(name, path, expected) {
   section(`ANALYSIS minkabu: ${name}`);
@@ -166,6 +233,7 @@ function analyzeMinkabu(name, path, expected) {
         log(`  [${ev.stars === 3 ? '★★★' : '★★'}] ${ev.name_ja} => ${hits.join(' ')}`);
       }
     }
+    analyzeMinkabuRows(name, html, expected);
   } catch (e) {
     log(`[ANALYZE-ERR] ${name}: ${e.stack}`);
   }
