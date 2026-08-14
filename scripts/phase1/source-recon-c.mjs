@@ -31,6 +31,16 @@ const SOURCES = [
     annualHint: 'open data API（api.stats.govt.nz）は2024-08-30に閉鎖済み（WebSearch調査で確認、(a)API系統は不可）。release-calendar/は前回実測でSPA構造（埋め込みJSONに"MonthRange"ヒントあり、裏側APIのエンドポイント未特定）。individual情報公開ページに次回発表日の予告テキストがあるパターンの有無を確認する',
   },
   {
+    id: 'au_aph_economics', name: '豪州議会 下院経済委員会（Parliament of Australia, House Economics Committee）',
+    targets: [
+      { label: 'house_upcoming_hearings', url: 'https://www.aph.gov.au/Parliamentary_Business/Committees/House/Upcoming_Public_Hearings' },
+      { label: 'house_economics_committee', url: 'https://www.aph.gov.au/Parliamentary_Business/Committees/House/Economics' },
+      { label: 'rss_reps_upcoming_hearings', url: 'https://www.aph.gov.au/rss/reps/upcoming_hearings' },
+      { label: 'rss_house_upcoming_hearings', url: 'https://www.aph.gov.au/rss/house/upcoming_hearings' },
+    ],
+    annualHint: 'RBA総裁の下院経済委員会証言（au-rba-bullock-2026-08-14、★★★）の担当ソース未定義。2026-08-14 WebSearch調査でHouse Committees: Upcoming Public Hearingsページと、Senate側で確認されたRSSパターン（/senate/rss/upcoming_hearings）のHouse版候補を発見。委員会は年2回（2月・8月頃）RBA総裁を招致する慣行があるとみられる（biannual hearings）が確定はしていない',
+  },
+  {
     id: 'ca_statcan', name: 'カナダ統計局（Statistics Canada）',
     targets: [
       { label: 'annual_pdf_2026', url: 'https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf' },
