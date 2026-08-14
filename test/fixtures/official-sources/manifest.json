@@ -1,119 +1,68 @@
 {
-  "collectedAt": "2026-08-14T13:38:41.487Z",
+  "collectedAt": "2026-08-14T14:26:47.033Z",
   "sources": [
     {
-      "id": "au_rba",
+      "id": "us_treasury",
       "files": [
         {
-          "label": "board_meeting_schedule",
-          "url": "https://www.rba.gov.au/schedules-events/board-meeting-schedules.html",
+          "label": "fiscaldata_upcoming_auctions",
+          "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions",
           "saved": true,
-          "path": "test/fixtures/official-sources/au_rba/board_meeting_schedule.html",
+          "path": "test/fixtures/official-sources/us_treasury/fiscaldata_upcoming_auctions.json",
           "status": 200,
-          "bytes": 23737,
-          "contentType": "text/html; charset=UTF-8"
+          "bytes": 21646,
+          "contentType": "application/json"
         }
       ]
     },
     {
-      "id": "us_census",
+      "id": "jp_mof",
       "files": [
         {
-          "label": "calendar_listview",
-          "url": "https://www.census.gov/economic-indicators/calendar-listview.html",
+          "label": "auction_calendar_index",
+          "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm",
           "saved": true,
-          "path": "test/fixtures/official-sources/us_census/calendar_listview.html",
+          "path": "test/fixtures/official-sources/jp_mof/auction_calendar_index.html",
           "status": 200,
-          "bytes": 91396,
-          "contentType": "text/html;charset=UTF-8"
+          "bytes": 23700,
+          "contentType": "text/html"
+        }
+      ]
+    },
+    {
+      "id": "us_frb_speeches",
+      "files": [
+        {
+          "label": "speeches_index",
+          "url": "https://www.federalreserve.gov/newsevents/speeches-testimony.htm",
+          "saved": true,
+          "path": "test/fixtures/official-sources/us_frb_speeches/speeches_index.html",
+          "status": 200,
+          "bytes": 87534,
+          "contentType": "text/html"
         },
         {
-          "label": "indicators_rss",
-          "url": "https://www.census.gov/economic-indicators/econcards/assets/xml/indicator.xml",
+          "label": "feeds_hub",
+          "url": "https://www.federalreserve.gov/feeds/feeds.htm",
           "saved": true,
-          "path": "test/fixtures/official-sources/us_census/indicators_rss.xml",
+          "path": "test/fixtures/official-sources/us_frb_speeches/feeds_hub.html",
           "status": 200,
-          "bytes": 10262,
-          "contentType": "text/xml"
+          "bytes": 90029,
+          "contentType": "text/html"
         }
       ]
     },
     {
-      "id": "gb_ons",
+      "id": "ca_ivey",
       "files": [
         {
-          "label": "releases_api_upcoming_gdp",
-          "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP",
+          "label": "faq",
+          "url": "https://iveypmi.uwo.ca/faq/",
           "saved": true,
-          "path": "test/fixtures/official-sources/gb_ons/releases_api_upcoming_gdp.json",
+          "path": "test/fixtures/official-sources/ca_ivey/faq.html",
           "status": 200,
-          "bytes": 8112,
-          "contentType": "application/json;charset=utf-8"
-        }
-      ]
-    },
-    {
-      "id": "nz_statsnz",
-      "files": [
-        {
-          "label": "release_calendar",
-          "url": "https://www.stats.govt.nz/release-calendar/",
-          "saved": true,
-          "path": "test/fixtures/official-sources/nz_statsnz/release_calendar.html",
-          "status": 200,
-          "bytes": 53580,
+          "bytes": 61440,
           "contentType": "text/html; charset=utf-8"
-        }
-      ]
-    },
-    {
-      "id": "ca_statcan",
-      "files": [
-        {
-          "label": "release_schedule_html",
-          "url": "https://www150.statcan.gc.ca/n1/dai-quo/cal1-eng.htm",
-          "saved": true,
-          "path": "test/fixtures/official-sources/ca_statcan/release_schedule_html.html",
-          "status": 200,
-          "bytes": 20693,
-          "contentType": "text/html; charset=UTF-8"
-        }
-      ]
-    },
-    {
-      "id": "au_abs",
-      "files": [
-        {
-          "label": "future_releases_calendar",
-          "url": "https://www.abs.gov.au/release-calendar/future-releases-calendar",
-          "saved": true,
-          "path": "test/fixtures/official-sources/au_abs/future_releases_calendar.html",
-          "status": 200,
-          "bytes": 142310,
-          "contentType": "text/html; charset=UTF-8"
-        }
-      ]
-    },
-    {
-      "id": "jp_boj",
-      "files": [
-        {
-          "label": "mpm_2026_schedule_pdf",
-          "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/m_ref/mref250731a.pdf",
-          "saved": true,
-          "path": "test/fixtures/official-sources/jp_boj/mpm_2026_schedule_pdf.pdf",
-          "status": 200,
-          "bytes": 284569,
-          "contentType": "application/pdf"
-        },
-        {
-          "label": "mpm_index",
-          "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm",
-          "saved": true,
-          "path": "test/fixtures/official-sources/jp_boj/mpm_index.html",
-          "status": 200,
-          "bytes": 41969,
-          "contentType": "text/html;charset=UTF-8"
         }
       ]
     }
