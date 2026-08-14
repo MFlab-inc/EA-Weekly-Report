@@ -2,3 +2,5 @@ node_modules/
 __pycache__/
 *.pyc
 phase0-out/
+phase1-out/
+data/cache/

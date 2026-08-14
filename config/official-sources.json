@@ -1,0 +1,291 @@
+{
+  "_comment": "公式ソースチェッカーのレジストリ（SPEC §3.5）。type別に取得方式が異なる: date_api_fred=FRED API日付検索／weekly_scrape=対象ページを毎週フェッチしパース／annual_schedule_config=年次公表済み確定日程をscheduleに保持し照合のみ。announce_time_by_kindは指標別の現地固定発表時刻（発表元の現地タイムゾーン表記。JST換算はscripts/lib/tz-convert.jsがIANAデータで実行時に行うためconfigにJST値は持たない）。時刻の根拠はreference/sample-report_20260808.html（既刊29イベント）のJST実績時刻から現地TZへ逆算し、各発表元の公知の発表慣行と突合したもの。実データ照合（実際にページを取得して確認）はtask #9で実施する",
+  "schema_version": "1.0",
+  "created": "2026-08-14",
+  "residual_monitor_default_weeks": 4,
+  "sources": [
+    {
+      "id": "us_bls_fred",
+      "name_ja": "米労働統計局（BLS）※FRED API経由",
+      "status": "active",
+      "country": "US",
+      "kinds": ["cpi", "ppi", "employment_situation", "employment_indicator"],
+      "type": "date_api_fred",
+      "recurring_check_refs": ["米雇用統計", "米CPI"],
+      "fred": {
+        "api_base": "https://api.stlouisfed.org/fred/release/dates",
+        "api_key_env": "FRED_API_KEY",
+        "releases": [
+          { "release_id": 10, "kind": "cpi", "note": "2026-08-14ライブ検証PASS。既刊実績2026-08-12を含む返却を確認" },
+          { "release_id": 46, "kind": "ppi", "note": "2026-08-14ライブ検証PASS。既刊実績2026-08-13を含む返却を確認" },
+          { "release_id": 50, "kind": "employment_situation", "note": "2026-08-14ライブ検証PASS。既刊実績2026-08-07を含む返却を確認" },
+          { "release_id": 192, "kind": "employment_indicator", "match_hint": "jolts", "note": "合否対象外（参考検証のみ）。2026-08-14検証で日程取得を確認済み" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "cpi": { "local_time": "08:30", "tz": "America/New_York" },
+        "ppi": { "local_time": "08:30", "tz": "America/New_York" },
+        "employment_situation": { "local_time": "08:30", "tz": "America/New_York" },
+        "employment_indicator": { "local_time": "10:00", "tz": "America/New_York", "note": "JOLTS。CPI/PPI/雇用統計本体（08:30 ET）とは異なる時刻（既刊実績23:00 JST=10:00 ETから逆算）" }
+      },
+      "notes": "docs/phase1-official-sources.md §5-4参照。BLS直接アクセスはrobots.txt 403のためFRED経由に統一"
+    },
+    {
+      "id": "au_rba",
+      "name_ja": "豪州準備銀行（RBA）",
+      "status": "active",
+      "country": "AU",
+      "kinds": ["policy_rate", "quarterly_report", "press_conference"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "board_meeting_schedule", "url": "https://www.rba.gov.au/schedules-events/board-meeting-schedules.html" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "policy_rate": { "local_time": "14:30", "tz": "Australia/Sydney" },
+        "quarterly_report": { "local_time": "14:30", "tz": "Australia/Sydney", "note": "政策金利発表と同時刻（同一発表枠としてbundling_ruleで束ねる。4会合のみ四半期報告を伴う）" },
+        "press_conference": { "local_time": "15:30", "tz": "Australia/Sydney" }
+      },
+      "notes": "下院経済委員会証言（testimony）はRBAではなく豪州議会（aph.gov.au）側の告知が必要。本ソースの担当外（未実装・将来対応）。2026-08-14実測ではページ到達性のみ確認、実データからの日程抽出は未実施（task #9）"
+    },
+    {
+      "id": "us_census",
+      "name_ja": "米国勢調査局（Census Bureau）",
+      "status": "active",
+      "country": "US",
+      "kinds": ["retail_sales", "trade_balance"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "calendar_listview", "url": "https://www.census.gov/economic-indicators/calendar-listview.html" },
+          { "label": "indicators_rss", "url": "https://www.census.gov/economic-indicators/econcards/assets/xml/indicator.xml" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "retail_sales": { "local_time": "08:30", "tz": "America/New_York" },
+        "trade_balance": { "local_time": "08:30", "tz": "America/New_York" }
+      },
+      "notes": "2026-08-14実測でRSS(indicator.xml)を発見済み。実データで『U.S. International Trade in Goods and Services』『Advance U.S. International Trade in Goods』表記を確認（config/event-names.json照合済み）。CPI/PPI/雇用統計はus_bls_fred（FRED）に統一したためCensus PFEIは本ソースでは不使用（docs/phase1-official-sources.md §5-4）"
+    },
+    {
+      "id": "gb_ons",
+      "name_ja": "英国家統計局（ONS）",
+      "status": "active",
+      "country": "GB",
+      "kinds": ["gdp"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "releases_api_upcoming_gdp", "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "gdp": { "local_time": "07:00", "tz": "Europe/London" }
+      },
+      "notes": "9元中最良の構造化JSON API（release_date・date_changes訂正履歴を含む）。統計実施規範により12ヶ月ローリング事前公表＋4週間前確定"
+    },
+    {
+      "id": "nz_statsnz",
+      "name_ja": "ニュージーランド統計局（Stats NZ）",
+      "status": "active",
+      "country": "NZ",
+      "kinds": ["employment_situation"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "release_calendar", "url": "https://www.stats.govt.nz/release-calendar/", "crawl_delay_seconds": 10 }
+        ]
+      },
+      "announce_time_by_kind": {
+        "employment_situation": { "local_time": "10:45", "tz": "Pacific/Auckland" }
+      },
+      "notes": "四半期リリース『Labour market statistics: {月} {年} quarter』（config/event-names.json照合済み）。四半期末から約5週間後に公表"
+    },
+    {
+      "id": "ca_statcan",
+      "name_ja": "カナダ統計局（Statistics Canada）",
+      "status": "active",
+      "country": "CA",
+      "kinds": ["employment_situation", "trade_balance"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "release_schedule_html", "url": "https://www150.statcan.gc.ca/n1/dai-quo/cal1-eng.htm", "crawl_delay_seconds": 2 }
+        ]
+      },
+      "announce_time_by_kind": {
+        "employment_situation": { "local_time": "08:30", "tz": "America/Toronto" },
+        "trade_balance": { "local_time": "08:30", "tz": "America/Toronto" }
+      },
+      "notes": "実データで『Labour Force Survey』『Canadian international merchandise trade』表記を確認済み（config/event-names.json照合済み）。年次PDF（n1/release-diffusion/{年}-eng.pdf）は直リンクせず中間HTML着地ページに転送されるため直接取得は不可（実装時に別途リンク解決が必要。当面はrelease_schedule_htmlのみ利用）"
+    },
+    {
+      "id": "au_abs",
+      "name_ja": "豪州統計局（ABS）",
+      "status": "active",
+      "country": "AU",
+      "kinds": ["trade_balance"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "future_releases_calendar", "url": "https://www.abs.gov.au/release-calendar/future-releases-calendar" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "trade_balance": { "local_time": "11:30", "tz": "Australia/Sydney" }
+      },
+      "notes": "正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする"
+    },
+    {
+      "id": "us_ism",
+      "name_ja": "ISM",
+      "status": "draft_schedule",
+      "country": "US",
+      "kinds": ["pmi_ism"],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "residual_monitor_weeks": 4,
+      "schedule_status": "pending_manual_verification",
+      "schedule": [],
+      "draft_rule": {
+        "description": "製造業PMI=毎月第1営業日、非製造業(Services)PMI=毎月第3営業日、いずれも米東部時間10:00。米連邦祝日を考慮して機械計算したドラフトを人間が年1回、公式カレンダーページと突合・確定する",
+        "business_day_rule": "1st_and_3rd_business_day_of_month",
+        "us_federal_holidays_considered": true
+      },
+      "access": {
+        "robots_check": true,
+        "automated_fetch": false,
+        "manual_verify_url": "https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/",
+        "note": "robots.txtは許可だが実ページがreCAPTCHA付きログイン(ecommerce.ismworld.org/SSO/Login.aspx)へリダイレクトされ単純HTTPフェッチ不可（2026-08-14実測）。UA偽装によるブロック回避は行わない方針のため自動取得は放棄し、年次スケジュールconfig型に統一"
+      },
+      "announce_time_by_kind": {
+        "pmi_ism": { "local_time": "10:00", "tz": "America/New_York" }
+      },
+      "notes": "しょうさんによる初回手動確認待ち（ドラフト生成コード実装後、公式URLと直近2ヶ月分ドラフトを提示予定。docs/annual-schedule-maintenance.md参照）"
+    },
+    {
+      "id": "jp_boj",
+      "name_ja": "日本銀行（BOJ）",
+      "status": "draft_schedule",
+      "country": "JP",
+      "kinds": ["opinions_summary", "minutes_summary"],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "residual_monitor_weeks": 4,
+      "schedule_status": "pending_extraction",
+      "schedule": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "mpm_2026_schedule_pdf", "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/m_ref/mref250731a.pdf" },
+          { "label": "mpm_index", "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "opinions_summary": { "local_time": "08:50", "tz": "Asia/Tokyo" },
+        "minutes_summary": { "local_time": "08:50", "tz": "Asia/Tokyo" }
+      },
+      "notes": "毎年7月31日に翌年8回の会合日程をPDF公表（2026-08-14実測で到達性確認済み）。主な意見=会合後6営業日目、議事要旨=次回会合後3営業日目。PDFからの実日程抽出はtask #9で実施（現時点はscheduleが空のためresidual monitoringは必ずWARNになる想定）"
+    },
+    {
+      "id": "us_treasury",
+      "name_ja": "米財務省（TreasuryDirect）",
+      "status": "pending_recon",
+      "country": "US",
+      "kinds": ["bond_auction"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": { "robots_check": true, "targets": [] },
+      "announce_time_by_kind": {},
+      "notes": "優先度B1a。公開APIを持つため実装難度は低い見込み（未実測）。docs/phase1-official-sources.md §0・§1参照"
+    },
+    {
+      "id": "jp_mof",
+      "name_ja": "日本財務省（MOF・JGB）",
+      "status": "pending_recon",
+      "country": "JP",
+      "kinds": ["bond_auction"],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "residual_monitor_weeks": 4,
+      "schedule_status": "pending_extraction",
+      "schedule": [],
+      "access": { "robots_check": true, "targets": [] },
+      "announce_time_by_kind": {},
+      "notes": "優先度B1b。毎年12月頃に翌年度分の国債発行計画を公表（未実測）"
+    },
+    {
+      "id": "us_frb_speeches",
+      "name_ja": "FRB（理事講演カレンダー）",
+      "status": "pending_recon",
+      "country": "US",
+      "kinds": ["official_speech"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": { "robots_check": true, "targets": [] },
+      "announce_time_by_kind": {},
+      "notes": "優先度B2（未実測）"
+    },
+    {
+      "id": "cn_pmi",
+      "name_ja": "S&P Global（Caixin/RatingDog中国PMI）",
+      "status": "pending_recon",
+      "country": "CN",
+      "kinds": ["pmi_ism"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": { "robots_check": true, "targets": [] },
+      "announce_time_by_kind": {},
+      "notes": "優先度B3。発表元サイトURL未確認（未実測）"
+    },
+    {
+      "id": "gb_construction_pmi",
+      "name_ja": "S&P Global／CIPS（英建設業PMI）",
+      "status": "pending_recon",
+      "country": "GB",
+      "kinds": ["pmi_ism"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": { "robots_check": true, "targets": [] },
+      "announce_time_by_kind": {},
+      "notes": "優先度B4。発表元サイトURL未確認（未実測）"
+    },
+    {
+      "id": "us_adp",
+      "name_ja": "ADP Research Institute",
+      "status": "pending_recon",
+      "country": "US",
+      "kinds": ["employment_indicator"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": { "robots_check": true, "targets": [{ "label": "top", "url": "https://adpemploymentreport.com/" }] },
+      "announce_time_by_kind": {},
+      "notes": "優先度B5（未実測）"
+    },
+    {
+      "id": "ca_ivey",
+      "name_ja": "Ivey Business School（Western大学）",
+      "status": "pending_recon",
+      "country": "CA",
+      "kinds": ["pmi_ism"],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": { "robots_check": true, "targets": [] },
+      "announce_time_by_kind": {},
+      "notes": "優先度B6。発表元サイトURL未確認（未実測）"
+    }
+  ]
+}

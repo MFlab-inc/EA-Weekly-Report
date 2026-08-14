@@ -59,8 +59,8 @@
 ## 3. 実装順
 
 1. ~~サイト実測~~ **完了（2026-08-14）**: A1〜A9の9元の到達性・取得方式を実測（§5）
-2. **`config/official-sources.json` 設計＋共通ハーネス実装**（次のタスク）: 実測結果をもとにURL・抽出ルール・kindマッピングのスキーマを確定し、`scripts/checkers/`の共通取得・パース基盤を実装。BLS・ISMは代替手段（§5-4）を組み込む
-3. **優先度A（A2・A3・A4・A5・A6・A7・A9の7元）の実装＋既刊2週での照合テスト**: 到達確認済みの7元を先行実装し、★★★のうちBLS担当分を除く大半の捕捉を確認
+2. ~~`config/official-sources.json` 設計＋共通ハーネス実装~~ **完了（2026-08-14）**: §6参照
+3. **優先度A（A2・A3・A4・A5・A6・A7・A9の7元）の実装＋既刊2週での照合テスト**（次のタスク）: 到達確認済みの7元について`scripts/checkers/harness.mjs`のweekly_scrapeソース用に発表元別の抽出ルールを実装し、★★★のうちBLS担当分を除く大半の捕捉を確認
 4. **BLS・ISMの代替手段確立**: BLSはUser-Agent変更等の追加調査またはiCalフィード（bls.ics）の別経路確認、ISMは年次固定日程（1st/3rd business day rule）方式で回避。この2元が埋まった時点で★★★13件・100%捕捉が完成
 5. **優先度B（B1a・B1b〜B6）のサイト実測→実装**: 残り8件（★★）＋将来運用のB1aを回収し検収基準1（29/29件）を満たす
 6. **`config/event-names.json`の実データ照合の残り**: AU trade_balance・NZ employment_situationは実データ照合済み（§5-3）。残るUS employment_indicator(JOLTS)・US pmi_ism(ISM Services)・優先度B系5件（CN PMI×2・GB建設業PMI・CA Ivey・US ADP）は優先度B実装時・ISM年次確認プロセス確立時に確認
@@ -156,5 +156,26 @@ BOJ・Census(PFEI)・Statistics Canadaと同じ「年次スケジュールconfig
 2. **人間による年1回の照合・確定**: ドラフト生成後、**しょうさんまたはClaude Codeが年1回、ISM公式の年間カレンダーページ（`ismworld.org/.../rob-report-calendar/`）を手動で閲覧し、ドラフトと突合・確定**する（自動スクレイピングはCAPTCHAのため不可なので、この工程のみ人手を挟む）。確定後の値を`config/official-sources.json`にコミットする
 3. **残量監視**: 他の年次スケジュールconfig型と同じ仕組み（対象週+4週先までの日程が無ければWARN。SPEC §3.5・`docs/annual-schedule-maintenance.md`）で、次年分の手動確定を促す
 4. **ドリフト検知**: 月曜FF事後突合で実際の発表日と確定済みドラフトを突合し、祝日ずれ等の見落としを検知する
+
+## 6. `config/official-sources.json` 設計＋共通ハーネス実装（2026-08-14完了）
+
+実測結果（§5）とFRED採用確定（§5-4）を反映し、以下を実装した。
+
+**`config/official-sources.json`**: 発表元ごとのレジストリ。優先度A・9元（`us_bls_fred`=FRED経由・`au_rba`・`us_census`・`gb_ons`・`nz_statsnz`・`ca_statcan`・`au_abs`・`us_ism`・`jp_boj`）に加え、優先度B・6元＋米財務省を`status:"pending_recon"`のプレースホルダとして登録済み（未実測。task #11で実装）。type別のスキーマ:
+- `date_api_fred`: FRED release_id・kind対応表
+- `weekly_scrape`: robots.txt確認対象URL一覧
+- `annual_schedule_config`: 確定済み年次日程（`schedule`配列。ISM・BOJは実データ未抽出のため現状は空配列＝`schedule_status:"pending_extraction"`/`"pending_manual_verification"`）
+
+指標別の現地固定発表時刻（`announce_time_by_kind`）は、既刊29イベントのJST実績時刻を各発表元の現地タイムゾーンへ逆算し、公知の発表慣行と突合して設定した（実データでの最終照合はtask #9）。
+
+**共通ハーネス**: `scripts/checkers/harness.mjs`（type別のチェック関数＋`runChecks()`オーケストレーション）と、純粋関数として分離した以下のライブラリ:
+- `scripts/lib/fail-closed.js`: SPEC §3.4のOK/WARN/HOLD判定・§3.5の残量監視・定例欠落検知
+- `scripts/lib/recurring-rules.js`: `recurring_checks`ルール文字列と対象週の突合
+- `scripts/lib/robots.js`: robots.txt取得・パース・許可判定（`scripts/phase1/source-recon.mjs`から抽出・共通化）
+- `scripts/lib/validate-official-sources.js`: config形状検証
+
+単体テスト30件追加（fail-closed 12・robots 10・recurring-rules 5・harness 12・official-sources-config 4件、一部重複カウント含む。`npm test`で全70件PASS）。フェッチ・robots判定は`fetchImpl`/`robotsChecker`を引数注入する設計とし、実ネットワークなしでテスト可能にした。
+
+**現状の既知の制約**: `weekly_scrape`型ソース（RBA・Census・ONS・Stats NZ・Statistics Canada・ABS）は、robots.txt確認とフェッチまでは実装済みだが、発表元別の実データ抽出ルール（HTML/JSON→候補イベント変換）は未実装。現状は取得成功時でも「抽出未実装」として明示的に失敗を返す設計とした（誤って「イベントなし」と判定するより安全なため）。この抽出ルール実装が次タスク（§3の3番目）。`workflows-draft/weekly.yml`は引き続き`.github/workflows/`へ移設していないため、この状態のハーネスが実運用に影響することはない。
 
 `docs/annual-schedule-maintenance.md` の年次公表時期一覧にISMの手動確定プロセスを追加する。
