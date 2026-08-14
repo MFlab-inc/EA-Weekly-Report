@@ -1,0 +1,56 @@
+# Phase 0 実測用の一時ワークフロー（workflow_dispatch専用・スケジュール実行なし）
+# 目的: HANDOFF.md §3 の要実測項目1〜3を本番と同じActionsランナー上で計測する。
+# - 生データはリポジトリにコミットせず、artifact（保持3日）にのみ保存する
+#   （みんかぶ許諾が確定するまで、取得HTMLの リポジトリ内保存は行わない）
+# - ログには構造分析・件数・最小限の抜粋のみを出力する
+# - reuse_run_id を指定すると過去runのartifactを再利用し、外部再取得を行わない（再解析用）
+# Phase 0 完了後にこのファイルは削除する。
+name: phase0-measure
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: '取得対象 (all=みんかぶ+FF / ff-only=FFのみ)'
+        type: choice
+        options: [all, ff-only]
+        default: all
+      note:
+        description: '計測メモ（例: saturday-0806jst）'
+        type: string
+        default: ''
+      reuse_run_id:
+        description: '過去runのartifactを再利用する場合そのrun ID（外部取得なしで再解析）'
+        type: string
+        default: ''
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: phase0-measure
+  cancel-in-progress: false
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Reuse artifact from previous run
+        if: ${{ inputs.reuse_run_id != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: phase0-raw
+          path: phase0-out
+          run-id: ${{ inputs.reuse_run_id }}
+          github-token: ${{ github.token }}
+      - name: Measure
+        run: node scripts/phase0/phase0.mjs --targets='${{ inputs.targets }}' --note='${{ inputs.note }}'
+      - name: Upload raw data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase0-raw
+          path: phase0-out
+          retention-days: 3
+          if-no-files-found: warn
