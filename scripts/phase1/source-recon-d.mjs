@@ -60,8 +60,9 @@ const SOURCES = [
     id: 'snb_policy_rate', name: 'SNB（金融政策評価カレンダー）',
     targets: [
       { label: 'decisions_page', url: 'https://www.snb.ch/en/the-snb/mandates-goals/monetary-policy/decisions' },
+      { label: 'data_portal_calendar', url: 'https://data.snb.ch/en/calendar' },
     ],
-    annualHint: 'WebSearch確認: 3月・6月・9月・12月の四半期パターンは確認できたが、専用の先行公表ページ（RBA/BOE型）は未発見。decisionsページに将来分の掲載があるか要確認。無ければ四半期ルールベース生成（ISM方式）を検討',
+    annualHint: '2026-08-15追加実測: decisionsページは過去実績のみと判明（2000年まで遡るアーカイブ、将来日程なし）。WebSearchでdata.snb.ch/en/calendar（データポータル）とiCalendar配信の存在を新たに発見したため追加確認する',
   },
 ];
 
