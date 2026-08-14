@@ -16,11 +16,13 @@ const UA = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report;
 const WAIT_MS = 1500;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// config/official-sources.jsonから対象を読み込む（weekly_scrapeかつactive、およびjp_boj）
-function loadTargets() {
+// config/official-sources.jsonから対象を読み込む。access.targetsが設定済みの全ソースを対象とする
+// （status不問。全文確認のみでstatusをまだactiveにしていないソース（例: jp_mof）も含むため）。
+// only_ids（process.argv[2]、カンマ区切り）を指定すると対象を絞り込める
+function loadTargets(onlyIds) {
   const config = JSON.parse(readFileSync('config/official-sources.json', 'utf8'));
   return config.sources
-    .filter((s) => (s.type === 'weekly_scrape' && s.status === 'active') || s.id === 'jp_boj')
+    .filter((s) => !onlyIds || onlyIds.length === 0 || onlyIds.includes(s.id))
     .map((s) => ({ id: s.id, targets: s.access?.targets || [] }))
     .filter((s) => s.targets.length > 0);
 }
@@ -46,8 +48,10 @@ async function fetchOne(url) {
 }
 
 (async () => {
+  const onlyIds = (process.argv[2] || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (onlyIds.length) console.log(`(絞り込み実行: ${onlyIds.join(', ')})`);
   const robotsChecker = createRobotsChecker({ userAgent: UA, waitMs: WAIT_MS });
-  const sources = loadTargets();
+  const sources = loadTargets(onlyIds);
   const manifest = { collectedAt: new Date().toISOString(), sources: [] };
 
   for (const src of sources) {

@@ -2,6 +2,9 @@
 // config/official-sources.json の形状検証（純粋関数）。CIでの設定ミス検知用。
 const VALID_TYPES = ['date_api_fred', 'weekly_scrape', 'annual_schedule_config'];
 const VALID_STATUS = ['active', 'draft_schedule', 'pending_recon'];
+// bond_auctionは既刊ground truthで一貫して時刻未公表（time:null）のkindのため、
+// announce_time_by_kindの必須要件から除外する（SPEC report-policy.jsonのno_time_note参照）
+const TIME_EXEMPT_KINDS = new Set(['bond_auction']);
 
 function validateOfficialSources(config) {
   const errors = [];
@@ -32,7 +35,7 @@ function validateOfficialSources(config) {
     }
     for (const kind of s.kinds || []) {
       const hasTime = s.announce_time_by_kind && s.announce_time_by_kind[kind];
-      const isAnnualOrPending = s.type === 'annual_schedule_config' || s.status === 'pending_recon';
+      const isAnnualOrPending = s.type === 'annual_schedule_config' || s.status === 'pending_recon' || TIME_EXEMPT_KINDS.has(kind);
       if (!hasTime && !isAnnualOrPending) {
         errors.push(`${tag} kind="${kind}" のannounce_time_by_kindが未設定`);
       }

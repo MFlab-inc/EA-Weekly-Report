@@ -1,1 +1,1 @@
-{"run_recon": false, "verify_fred": false, "collect_fixtures": false, "run_recon_b": true, "note": "task11-priority-b-recon-20260814"}
+{"run_recon": false, "verify_fred": false, "run_recon_b": true, "only_ids_b": "cn_pmi,gb_construction_pmi", "collect_fixtures": true, "only_ids_fixtures": "us_treasury,jp_mof,us_frb_speeches,ca_ivey", "note": "task11-round2-20260814"}

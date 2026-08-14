@@ -47,17 +47,16 @@ const SOURCES = [
   {
     id: 'cn_pmi', name: 'S&P Global（RatingDog中国PMI）',
     targets: [
-      { label: 'pmi_hub', url: 'https://www.pmi.spglobal.com/Public/Home/PressReleases' },
-      { label: 'rel_dates_cn', url: 'https://www.pmi.spglobal.com/Public/Home/PDF/CN_Rel_Dates' },
+      { label: 'ratingdog_cn', url: 'https://www.ratingdog.cn/' },
     ],
-    annualHint: '製造業=毎月第1営業日・非製造業(Services)=第3営業日（ISM同様の規則性の可能性）。公表元はS&P Global（RatingDogは冠スポンサー）',
+    annualHint: '製造業=毎月第1営業日・非製造業(Services)=第3営業日（ISM同様の規則性の可能性。既刊ground truthで確認済み）。公表元はS&P Global（RatingDogは冠スポンサー）。run1実測でpmi.spglobal.comはrobots.txt自体がHTTP 403でブロックされたため、run2ではRatingDog自身のサイトを候補として試す',
   },
   {
     id: 'gb_construction_pmi', name: 'S&P Global／CIPS（英建設業PMI）',
     targets: [
-      { label: 'rel_dates_uk', url: 'https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates' },
+      { label: 'cips_org', url: 'https://www.cips.org/en/supply-management/news/pmi/' },
     ],
-    annualHint: 'WebSearchでURL候補を確認済み（未実測）。複数国のPMI発表日を横断カバーする一覧PDFの可能性',
+    annualHint: 'run1実測でpmi.spglobal.comはrobots.txt自体がHTTP 403でブロックされたため、run2では共同発表元のCIPS.orgを候補として試す',
   },
   {
     id: 'us_adp', name: 'ADP Research Institute',

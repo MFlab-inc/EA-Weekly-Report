@@ -39,6 +39,7 @@ jobs:
               "only_ids_b=" + (cfg.only_ids_b || ""),
               "verify_fred=" + (cfg.verify_fred === true ? "true" : "false"),
               "collect_fixtures=" + (cfg.collect_fixtures === true ? "true" : "false"),
+              "only_ids_fixtures=" + (cfg.only_ids_fixtures || ""),
             ].join("\n") + "\n";
             fs.appendFileSync(process.env.GITHUB_OUTPUT, out);
           '
@@ -63,7 +64,7 @@ jobs:
           if-no-files-found: warn
       - name: Collect fixtures
         if: steps.cfg.outputs.collect_fixtures == 'true'
-        run: node scripts/phase1/collect-fixtures.mjs
+        run: node scripts/phase1/collect-fixtures.mjs '${{ steps.cfg.outputs.only_ids_fixtures }}'
       - name: Commit fixtures
         if: steps.cfg.outputs.collect_fixtures == 'true'
         run: |
@@ -73,6 +74,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "no fixture changes"
           else
-            git commit -m "chore: collect official-sources fixtures for task #9 (offline capture test)"
+            git commit -m "chore: collect official-sources fixtures (offline capture test)"
             git push origin HEAD:${{ github.ref_name }}
           fi

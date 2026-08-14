@@ -267,15 +267,20 @@
     },
     {
       "id": "us_treasury",
-      "name_ja": "米財務省（TreasuryDirect）",
-      "status": "pending_recon",
+      "name_ja": "米財務省（TreasuryDirect／Fiscal Data）",
+      "status": "active",
       "country": "US",
       "kinds": ["bond_auction"],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
-      "access": { "robots_check": true, "targets": [] },
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "fiscaldata_upcoming_auctions", "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions" }
+        ]
+      },
       "announce_time_by_kind": {},
-      "notes": "優先度B1a。公開APIを持つため実装難度は低い見込み（未実測）。docs/phase1-official-sources.md §0・§1参照"
+      "notes": "優先度B1a。2026-08-14実測: treasurydirect.gov（TA_WS API含む）はrobots.txtで`Disallow: /`のため全面ブロック。代わりにapi.fiscaldata.treasury.gov（米財務省Fiscal Data、別ドメイン）の`upcoming_auctions`データセットが200・構造化JSON（record_date/security_type/security_term/cusip/announcemt_date/auction_date/issue_date）で到達可能と確認。ただし応答は日付昇順で古いデータから返る挙動を確認したため、抽出実装時にsort/filterクエリパラメータ（例: `sort=-auction_date`または`filter=auction_date:gte:{today}`）で対象週分を絞り込む必要がある（未実装）。命名はSPEC §4.2の米国債テンプレート（国別分岐）を使用"
     },
     {
       "id": "jp_mof",
@@ -288,9 +293,14 @@
       "residual_monitor_weeks": 4,
       "schedule_status": "pending_extraction",
       "schedule": [],
-      "access": { "robots_check": true, "targets": [] },
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "auction_calendar_index", "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm" }
+        ]
+      },
       "announce_time_by_kind": {},
-      "notes": "優先度B1b。毎年12月頃に翌年度分の国債発行計画を公表（未実測）"
+      "notes": "優先度B1b。2026-08-14実測: 上記URLはrobots.txt許可・HTTP 200・23.7KB HTMLで到達確認済み（`<meta name=\"date\" content=\"2026-07-10\">`）。ただしpreview先頭2000字の時点では`<noscript>This page uses JavaScript...</noscript>`という注記のみが見え、実際の日程テーブルが静的HTMLに含まれるか（RBA/BOJのような年次一括公表パターンの可能性）は未確認のため、statusはpending_reconのまま。全文取得しての構造確認がtask #11の次ステップ"
     },
     {
       "id": "us_frb_speeches",
@@ -300,9 +310,15 @@
       "kinds": ["official_speech"],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
-      "access": { "robots_check": true, "targets": [] },
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "speeches_index", "url": "https://www.federalreserve.gov/newsevents/speeches-testimony.htm" },
+          { "label": "feeds_hub", "url": "https://www.federalreserve.gov/feeds/feeds.htm" }
+        ]
+      },
       "announce_time_by_kind": {},
-      "notes": "優先度B2（未実測）"
+      "notes": "優先度B2。2026-08-14実測: 両URLともrobots.txt許可・HTTP 200で到達確認済み（speeches_indexはspeeches.htmからspeeches-testimony.htmへリダイレクト）。feeds_hubにRSS配信一覧があることは確認したが、個別フィード（講演専用）の実URLは全文未確認のため次ステップで特定する。講演は個別告知型のため年次一括公表ではない見込み（残量監視の対象外候補）"
     },
     {
       "id": "cn_pmi",
@@ -314,7 +330,7 @@
       "recurring_check_refs": [],
       "access": { "robots_check": true, "targets": [] },
       "announce_time_by_kind": {},
-      "notes": "優先度B3。発表元サイトURL未確認（未実測）"
+      "notes": "優先度B3。2026-08-14実測: 公表元S&P Globalのpmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（BLSと同様のインフラ側ブロックの疑い。UA偽装による回避は行わない方針）。冠スポンサーのRatingDog自身のサイト（ratingdog.cn）を代替候補として次ラウンドで実測予定"
     },
     {
       "id": "gb_construction_pmi",
@@ -326,7 +342,7 @@
       "recurring_check_refs": [],
       "access": { "robots_check": true, "targets": [] },
       "announce_time_by_kind": {},
-      "notes": "優先度B4。発表元サイトURL未確認（未実測）"
+      "notes": "優先度B4。2026-08-14実測: pmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（cn_pmiと同じ理由）。共同発表元CIPS.orgを代替候補として次ラウンドで実測予定"
     },
     {
       "id": "us_adp",
@@ -338,7 +354,7 @@
       "recurring_check_refs": [],
       "access": { "robots_check": true, "targets": [{ "label": "top", "url": "https://adpemploymentreport.com/" }] },
       "announce_time_by_kind": {},
-      "notes": "優先度B5（未実測）"
+      "notes": "優先度B5。2026-08-14実測: robots.txt許可・HTTP 200で到達可能だが、実体はReact/ViteのSPA（`<div id=\"root\"></div>`＋JSバンドルのみ）で日程データは静的HTMLに含まれないと判明（Stats NZと同種の構造的ブロッカー）。API/RSSの追加調査、またはPlaywrightレンダリング取得が必要"
     },
     {
       "id": "ca_ivey",
@@ -348,9 +364,14 @@
       "kinds": ["pmi_ism"],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
-      "access": { "robots_check": true, "targets": [] },
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "faq", "url": "https://iveypmi.uwo.ca/faq/" }
+        ]
+      },
       "announce_time_by_kind": {},
-      "notes": "優先度B6。発表元サイトURL未確認（未実測）"
+      "notes": "優先度B6。2026-08-14実測: robots.txt許可・HTTP 200・61KB HTMLで到達確認済み。WebSearch調査で当該FAQページに2026年通年（1月〜12月）の発表日一覧が掲載されている可能性を確認済みだが、全文での構造確認・抽出はまだ（次ステップ）"
     }
   ]
 }
