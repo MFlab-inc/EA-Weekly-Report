@@ -252,6 +252,10 @@ function analyzeFF(name, path, expected) {
   section(`ANALYSIS forexfactory: ${name}`);
   const raw = readFileSync(path, 'utf8');
   log(`bytes=${raw.length}`);
+  if (/Request Denied|exceeded the limit/i.test(raw)) {
+    log(`[RATE-LIMITED] FF calendar export rate limit hit (2req/5min/network). head=${raw.slice(0, 300)}`);
+    return;
+  }
   let events;
   try {
     events = JSON.parse(raw);
@@ -309,7 +313,11 @@ function analyzeFF(name, path, expected) {
   const meta = existsSync(metaPath) ? JSON.parse(readFileSync(metaPath, 'utf8')) : { runs: [] };
   const runMeta = { startedAt: nowIso(), targets, note, fetches: {} };
 
-  const list = Object.entries(TARGETS).filter(([, t]) => targets === 'all' || t.group === 'ff');
+  // ff-only: FFのレート制限（ネットワーク単位で5分に2リクエスト・Actions共有IP）に配慮し
+  // thisweek/nextweek の2リクエストのみに絞る（robots・lastweekは取得済み知見で不要）
+  const FF_ONLY = ['ff_thisweek', 'ff_nextweek'];
+  const list = Object.entries(TARGETS).filter(([name, t]) =>
+    targets === 'all' ? true : FF_ONLY.includes(name));
   for (const [name, t] of list) {
     await fetchOne(name, t, runMeta.fetches);
     if (!runMeta.fetches[name]?.reused) await sleep(WAIT_MS);

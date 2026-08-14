@@ -1,17 +1,33 @@
 {
-  "_comment": "重要度の付与規則。すべて仮置き。Phase 0で既刊2週（reference/sample-report_20260808.html）と突合して校正し、運用実測で調整する",
-  "minkabu_star_map": { "5": 3, "4": 2, "3": 0, "2": 0, "1": 0,
-    "_note": "値: 3=★★★掲載, 2=★★掲載, 0=非掲載。★4→★★は仮置き（既刊の掲載実績で校正）" },
+  "_comment": "重要度の付与規則。Phase 0実測（2026-08-14、既刊2週・統計26イベントをみんかぶ実データと行単位突合）で校正済み。詳細は docs/phase0-findings.md 項目1。運用実測で継続調整する",
+  "minkabu_star_map": {
+    "5": 3, "4": 2, "3": 2, "2": 0, "1": 0,
+    "_note": "値: 3=★★★掲載, 2=★★掲載, 0=非掲載。実測結論: みんかぶ★と既刊★は単純写像で再現できない（★4→既刊★★★と★★の両方、★3→同様、★2→★★★の例=豪州・貿易収支）。この基礎写像＋minkabu_code_overridesで補正する（既刊2週の統計イベントを100%再現できる組み合わせ）"
+  },
+  "minkabu_bundle_rule": "同一指標コード（/indicators/<CODE>）・同時刻の系列行（前月比/前年比/コア等）は1つの発表枠に束ね、枠の重要度は構成行のdata_importanceの最大値を採る（例: US-NFPは雇用者数imp5＋平均時給imp3→imp5）",
+  "minkabu_code_overrides": {
+    "_note": "みんかぶ指標コード単位の重要度上書き（既刊実績からの逆算）。基礎写像より優先。tentativeはしょうさん確認待ち（docs/open-questions.md）",
+    "CA-UER": { "importance": 3, "reason": "カナダ・雇用統計。既刊8/3週で★★★（みんかぶ★3）" },
+    "NZ-UER": { "importance": 3, "reason": "NZ・雇用統計。既刊8/3週で★★★（みんかぶ★3）" },
+    "US-CPI": { "importance": 3, "reason": "米CPI。既刊8/10週で★★★（みんかぶ★4）" },
+    "US-PPI": { "importance": 3, "reason": "米PPI。既刊8/10週で★★★（みんかぶ★3）" },
+    "GB-GDPA": { "importance": 3, "reason": "英・実質GDP速報値。既刊8/10週で★★★（みんかぶ★4）" },
+    "AU-RBA": { "importance": 3, "reason": "豪中銀政策金利。既刊8/10週で★★★（みんかぶ★4）" },
+    "AU-TB": { "importance": 3, "tentative": true, "reason": "豪・貿易収支。既刊8/3週で★★★（みんかぶ★2・米貿易収支は★★）。豪州通貨の編集上の重み付けとみられるが恒常ルールか要確認" },
+    "US-MIN": { "importance": 3, "tentative": true, "reason": "FOMC議事録。日銀『主な意見』★★★との整合から仮置き（既刊2週に実例なし）" }
+  },
   "ff_rules": [
     { "match": "central_bank_rate_decision", "importance": 3 },
     { "match": "central_bank_press_conference", "importance": 3 },
     { "match": "central_bank_governor_testimony_or_speech", "importance": 3 },
-    { "match": "boj_summary_of_opinions_or_minutes", "importance": 3 },
+    { "match": "boj_summary_of_opinions_or_minutes", "importance": 3, "_note": "既刊: 主な意見=★★★・議事要旨=★★。種別を分けて実装（summary=3, minutes=2）" },
     { "match": "fed_chair_speech", "importance": 3 },
-    { "match": "regional_fed_speech", "importance": 2, "_note": "地区連銀総裁。掲載可否は既刊実績で校正" },
+    { "match": "regional_fed_speech", "importance": 2, "_note": "地区連銀総裁。掲載可否は既刊実績で校正（既刊8/3週: クック理事講演=★★）" },
     { "match": "us_treasury_auction_3y_10y_30y", "importance": 2 },
-    { "match": "holiday", "importance": 0, "_note": "祝日は注記扱い（イベントカードにしない）" }
+    { "match": "jp_jgb_auction_10y_30y", "importance": 2, "_note": "既刊8/3週: 日本10年債・30年債入札=★★（時刻未公表扱い）" },
+    { "match": "holiday", "importance": 0, "_note": "祝日は注記扱い（イベントカードにしない）。FF実データでimpact:Holidayを確認済み" }
   ],
+  "ff_impact_note": "FFのimpact値は本レポートの重要度に使用しない（実測: BOJ Summary of Opinions=Low、米小売売上高=Medium など既刊の重要度と大きく乖離）。発言・入札系はff_rulesの自前規則、統計はみんかぶ★＋overridesで付与する",
   "recurring_checks": [
     { "name": "米雇用統計", "rule": "毎月第1金曜（祝日ずれあり）", "action": "対象週に該当し得るのに不在ならWARN" },
     { "name": "米CPI", "rule": "毎月中旬", "action": "同上" }
