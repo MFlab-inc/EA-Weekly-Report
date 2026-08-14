@@ -242,3 +242,32 @@ BOJ・Census(PFEI)・Statistics Canadaと同じ「年次スケジュールconfig
 ### 7-6. テスト
 
 `test/extractors.test.js`（実fixtureからの抽出単体テスト）・`test/resolve-candidate.test.js`（名称・重要度・JST変換の合成テスト）・`test/ground-truth-capture.test.js`（既刊2週の統合捕捉テスト・オフライン）・`test/extractor-fail-closed.test.js`（条件2: 構造変化時のフェールクローズ接続）・`test/us-federal-holidays.test.js`・`test/ism-schedule.test.js` を追加。`npm test`で112件全PASS。
+
+## 8. task #11: 優先度B・7元の実測・実装（2026-08-14実施）
+
+しょうさん指示（2026-08-14）により、Stats NZ・Statistics Canadaの追加調査（task #15）より優先度Bを先行。対処順は(a)API/RSS/ICS→(b)年次PDFカレンダー→(c)Playwrightレンダリングの順で検討した。
+
+### 8-1. 実測結果一覧
+
+| ID | 発表元 | 到達性 | 実装状況 | 既刊ground truth照合 |
+|---|---|---|---|---|
+| `us_treasury` | 米財務省（Fiscal Data API） | ✅ treasurydirect.gov本体はrobots.txt`Disallow:/`で全面ブロック。別ドメインのapi.fiscaldata.treasury.gov（upcoming_auctions）が到達可能 | ✅ 実装済み（`extractors/us-treasury.js`。対象週フィルタ方式） | 既刊に米国債入札の実例なし。実データ形式のみ確認 |
+| `jp_mof` | 日本財務省（JGB入札） | ✅ 月別カレンダーページ到達可能（年次一括ではなく月次ローリング公表と判明） | ✅ 実装済み（`extractors/mof.js`） | ✅ 10年債(8/4)・30年債(8/6)とも日付完全一致（時刻は既刊どおり未公表） |
+| `us_frb_speeches` | FRB理事講演 | ✅ RSS `/feeds/speeches.xml` 到達可能・標準RSS 2.0 | ✅ 日時抽出は実装済み（`extractors/frb-speeches.js`）。**人名・役職解決は未実装**（§8-2参照） | ✅ クック理事講演の日時（8/6 05:05 JST）が完全一致 |
+| `ca_ivey` | Ivey PMI | ✅ FAQページに平文で年間発表日一覧が直接埋め込み | ✅ 実装済み（`extractors/ivey.js`）。annual_schedule_config型へ変更・確定 | ✅ 8/7の日時・重要度・名称すべて完全一致 |
+| `cn_pmi` | S&P Global（RatingDog中国PMI） | ❌ pmi.spglobal.comはrobots.txt自体403でブロック。代替候補ratingdog.cnもSPA構造で静的取得不可 | 未実装 | — |
+| `gb_construction_pmi` | S&P Global／CIPS（英建設業PMI） | ❌ pmi.spglobal.comは同上ブロック。代替候補cips.orgの候補URLは404 | 未実装 | — |
+| `us_adp` | ADP Research Institute | ❌ React/ViteのSPAで静的HTMLに日程データを含まない | 未実装 | — |
+
+4/7元（米財務省・日本財務省・FRB・Ivey）で実データ取得〜抽出まで到達し、既刊ground truthとの照合が可能な3元（MOF・FRB・Ivey）すべてで完全一致を確認した。残り3元（中国PMI・英建設業PMI・ADP）はStats NZ・Statistics Canada（task #15）と同種の構造的ブロッカーのため、task #16としてfollow-up登録した。
+
+### 8-2. 未解決の課題（合わせ込みせず記録）
+
+- **`config/officials.json`にFRB理事（議長以外）が未登録**（task #17）: RSSから講演者の姓（Cook等）は取得できるが、SPEC §4.2の「{人名}{役職}の発言」テンプレートを適用するには正式な人名・役職の解決が必要。Phase 0のofficials.json調査と同じ厳密な方式（公式サイト＋日本語金融メディア2ソース以上のクロスチェック）で追加調査する
+- **JGB／米国債の命名テンプレート組立**: 抽出は`{date, tenorJa/securityTerm, kind:'bond_auction'}`までを返す設計とした。SPEC §4.2の国別分岐テンプレート（日本=「{年限}利付国債（{発行年月}債）の入札」・米国=「米{年限}債入札」）の適用はレンダラー実装（task #12）側で行う
+- **MOF月別ページの動的URL生成**: `checkWeeklyScrapeSource`は現状static targetsのみ対応のため、対象週の月に応じてURL（例: `2608e.htm`→`2609e.htm`）を動的生成する配線が未実装（`access.month_url_pattern`にパターンのみ記録済み）
+- **中国PMI・英建設業PMI・ADP**（task #16）: 3元ともAPI/RSSでは解決できず、(c)Playwrightレンダリング取得の検討が必要な可能性が高い
+
+### 8-3. テスト
+
+`test/extractors-ivey.test.js`・`test/extractors-mof-frb.test.js`・`test/extractors-us-treasury.test.js`を追加し、`test/ground-truth-capture.test.js`にIvey/MOF/FRBの既刊照合テストを追加。`npm test`で126件全PASS。

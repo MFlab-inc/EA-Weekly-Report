@@ -256,6 +256,39 @@ test('BOJ(jp_boj, annual_schedule_config): 主な意見(8/10)・議事要旨(8/5
   assert.equal(resolveImportance('opinions_summary', 'JP', importanceRules), gtOpinions.stars);
 });
 
+test('MOF(jp_mof): 10年債(8/4)・30年債(8/6)が既刊と日付・重要度とも一致（時刻は既刊どおり未公表、名称組立はtask #12スコープ）', () => {
+  const { extractMofAuctions } = require('../scripts/checkers/extractors/mof');
+  const { resolveImportance } = require('../scripts/lib/importance');
+  const r = extractMofAuctions(readFixture('jp_mof', 'auction_calendar_2608.html'));
+  assert.equal(r.ok, true);
+
+  const gt10y = gt('jp_jgb_10y_auction_20260804');
+  const row10y = r.rows.find((x) => x.date === '2026-08-04' && x.tenorJa === '10年');
+  assert.ok(row10y, '10年債(8/4)が見つからない');
+  assert.equal(gt10y.time, null); // ground truthも時刻未公表
+  assert.equal(resolveImportance('bond_auction', 'JP', importanceRules), gt10y.stars);
+
+  const gt30y = gt('jp_jgb_30y_auction_20260806');
+  const row30y = r.rows.find((x) => x.date === '2026-08-06' && x.tenorJa === '30年');
+  assert.ok(row30y, '30年債(8/6)が見つからない');
+  assert.equal(gt30y.time, null);
+  assert.equal(resolveImportance('bond_auction', 'JP', importanceRules), gt30y.stars);
+});
+
+test('FRB(us_frb_speeches): クック理事講演(8/6 05:05 JST)が既刊と日時とも完全一致（人名・役職解決はofficials.json拡充待ちのためtask #12スコープ外の別課題）', () => {
+  const { extractFrbSpeeches } = require('../scripts/checkers/extractors/frb-speeches');
+  const { utcToJstParts } = require('../scripts/lib/tz-convert');
+  const r = extractFrbSpeeches(readFixture('us_frb_speeches', 'speeches_rss.xml'));
+  assert.equal(r.ok, true);
+
+  const cook = r.items.find((i) => i.speakerLastName === 'Cook' && i.pubDateRaw.includes('5 Aug 2026'));
+  assert.ok(cook, 'クック理事講演(8/5 UTC)が見つからない');
+  const jst = utcToJstParts(new Date(cook.pubDateRaw));
+  const gtCook = gt('us_cook_speech_20260805');
+  assert.equal(jst.date, gtCook.date);
+  assert.equal(jst.time, gtCook.time);
+});
+
 test('nz_statsnz・ca_statcanは抽出ルール未登録のため既刊週でも明示的にok:falseを返す（構造的ブロッカーの記録。fixtureはSPA描画/検索フォームで日程を含まないため意図的に空スタブを使う）', async () => {
   const { checkWeeklyScrapeSource } = await import('../scripts/checkers/harness.mjs');
   const nzSource = sourcesConfig.sources.find((s) => s.id === 'nz_statsnz');

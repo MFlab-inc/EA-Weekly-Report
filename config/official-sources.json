@@ -280,12 +280,12 @@
         ]
       },
       "announce_time_by_kind": {},
-      "notes": "優先度B1a。2026-08-14実測: treasurydirect.gov（TA_WS API含む）はrobots.txtで`Disallow: /`のため全面ブロック。代わりにapi.fiscaldata.treasury.gov（米財務省Fiscal Data、別ドメイン）の`upcoming_auctions`データセットが200・構造化JSON（record_date/security_type/security_term/cusip/announcemt_date/auction_date/issue_date）で到達可能と確認。ただし応答は日付昇順で古いデータから返る挙動を確認したため、抽出実装時にsort/filterクエリパラメータ（例: `sort=-auction_date`または`filter=auction_date:gte:{today}`）で対象週分を絞り込む必要がある（未実装）。命名はSPEC §4.2の米国債テンプレート（国別分岐）を使用"
+      "notes": "優先度B1a。2026-08-14実測: treasurydirect.gov（TA_WS API含む）はrobots.txtで`Disallow: /`のため全面ブロック。代わりにapi.fiscaldata.treasury.gov（米財務省Fiscal Data、別ドメイン）の`upcoming_auctions`データセットが200・構造化JSON（record_date/security_type/security_term/cusip/announcemt_date/auction_date/issue_date）で到達可能と確認。クエリパラメータ無しの応答は2024年3月〜直近まで約90件を含む未整理な一括データのため、scripts/checkers/extractors/us-treasury.jsで対象週内のauction_dateのみを自前フィルタする方式で実装済み（実fixtureで2026-08-19の20年債を正しく抽出確認）。既刊ground truthに米国債入札の実例が無いため既刊一致検証はできないが、実データの形式・フィルタ動作は確認済み。命名はSPEC §4.2の米国債テンプレート（国別分岐）をレンダラー実装（task #12）側で使用"
     },
     {
       "id": "jp_mof",
       "name_ja": "日本財務省（MOF・JGB）",
-      "status": "pending_recon",
+      "status": "active",
       "country": "JP",
       "kinds": ["bond_auction"],
       "type": "weekly_scrape",
@@ -295,27 +295,30 @@
         "targets": [
           { "label": "auction_calendar_index", "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm" },
           { "label": "auction_calendar_2608", "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/2608e.htm" }
-        ]
+        ],
+        "month_url_pattern": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/{YY}{MM}e.htm",
+        "note": "対象週の月に応じてmonth_url_patternのYY(西暦下2桁)/MM(月2桁)を差し替えてフェッチする必要がある（例: 2026年9月分=2609e.htm）。現状のauction_calendar_2608は2026年8月固定のfixture確認用。checkWeeklyScrapeSourceは現状static targetsのみ対応のため、動的URL生成の配線はextractor実装時に追加する"
       },
       "announce_time_by_kind": {},
-      "notes": "優先度B1b。2026-08-14実測: auction_calendar_indexは月別インデックスページと判明（2026年1〜10月分は月別ページへのリンク済み、11・12月はまだリンクなし＝BOJ/RBAのような年次一括公表ではなく月次ローリング公表と判明。typeをannual_schedule_configからweekly_scrapeへ訂正）。実際の入札日程は月別ページ（例: 2608e.htm=2026年8月分）にあると推定されるため、次ラウンドでauction_calendar_2608を実測し構造を確認する"
+      "notes": "優先度B1b。2026-08-14実測: auction_calendar_indexは月別インデックスページと判明（2026年1〜10月分は月別ページへのリンク済み、11・12月はまだリンクなし＝BOJ/RBAのような年次一括公表ではなく月次ローリング公表と判明。typeをannual_schedule_configからweekly_scrapeへ訂正）。月別ページ（2608e.htm=2026年8月分）の`<table class=\"table2a\">`からground truth 2件（10年債8/4・30年債8/6）を完全一致で抽出確認済み（scripts/checkers/extractors/mof.js）。命名（SPEC §4.2の国別分岐テンプレート）はレンダラー実装（task #12）側で適用する"
     },
     {
       "id": "us_frb_speeches",
       "name_ja": "FRB（理事講演カレンダー）",
-      "status": "pending_recon",
+      "status": "active",
       "country": "US",
       "kinds": ["official_speech"],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
       "access": {
         "robots_check": true,
+        "provides_exact_time": true,
         "targets": [
           { "label": "speeches_rss", "url": "https://www.federalreserve.gov/feeds/speeches.xml" }
         ]
       },
       "announce_time_by_kind": {},
-      "notes": "優先度B2。2026-08-14実測: feeds_hub（feeds.htm）の全文から実際のRSS URL一覧を確認。`/feeds/speeches.xml`（全理事講演）・`/feeds/testimony.xml`（証言）に加え、理事別個別フィード（`/feeds/s_t_waller.xml`・`/feeds/s_t_cook.xml`・`/feeds/s_t_powell.xml`・`/feeds/s_t_jefferson.xml`・`/feeds/s_t_barr.xml`・`/feeds/m_w_Bowman.xml`）も存在すると判明。まずは全講演フィード（speeches.xml）を対象に次ラウンドで実データ構造を確認する。講演は個別告知型のため年次一括公表ではない見込み（残量監視の対象外候補）"
+      "notes": "優先度B2。2026-08-14実測: 標準的なRSS 2.0フィード（/feeds/speeches.xml）から、ground truth（Cook理事講演、UTC 2026-08-05T20:05:00Z=JST 2026-08-06 05:05）と完全一致するpubDateを抽出確認済み（scripts/checkers/extractors/frb-speeches.js）。pubDateは絶対UTC値のためconfig固定時刻は不要（access.provides_exact_time:true）。**未解決**: config/officials.jsonにFRB理事個人（Cook・Waller・Jefferson・Barr・Bowman等、議長ではなく理事）が未登録のため、姓（例:\"Cook\"）から正式な人名・役職を解決してSPEC §4.2命名テンプレート「{人名}{役職}の発言」を適用する処理は未実装。Phase 0のofficials.json調査と同じ方式（公式サイト＋日本語金融メディア2ソース以上のクロスチェック）での追加調査が必要（推測での登録は不可）。証言（testimony.xml）・理事別個別フィードも同様に未実装"
     },
     {
       "id": "cn_pmi",
