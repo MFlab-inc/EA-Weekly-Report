@@ -77,11 +77,12 @@ test('checkWeeklyScrapeSource: robots.txtで許可されなければok:false', a
   assert.match(r.reason, /robots disallow/);
 });
 
-test('checkWeeklyScrapeSource: フェッチ成功でも抽出未実装のためok:false', async () => {
+test('checkWeeklyScrapeSource: フェッチ成功でも抽出未実装（未登録ソース）のためok:false', async () => {
   const { checkWeeklyScrapeSource } = await loadHarness();
-  const source = { access: { robots_check: true, targets: [{ label: 'x', url: 'https://example.com/x' }] } };
+  const source = { id: 'unregistered_source', access: { robots_check: true, targets: [{ label: 'x', url: 'https://example.com/x' }] } };
   const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
-  const r = await checkWeeklyScrapeSource(source, TARGET_WEEK, { fetchImpl: async () => ({ ok: true, status: 200 }), robotsChecker });
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => '<html></html>' });
+  const r = await checkWeeklyScrapeSource(source, TARGET_WEEK, { fetchImpl, robotsChecker });
   assert.equal(r.ok, false);
   assert.match(r.reason, /抽出ルール未実装/);
 });

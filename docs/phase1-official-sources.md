@@ -179,3 +179,66 @@ BOJ・Census(PFEI)・Statistics Canadaと同じ「年次スケジュールconfig
 **現状の既知の制約**: `weekly_scrape`型ソース（RBA・Census・ONS・Stats NZ・Statistics Canada・ABS）は、robots.txt確認とフェッチまでは実装済みだが、発表元別の実データ抽出ルール（HTML/JSON→候補イベント変換）は未実装。現状は取得成功時でも「抽出未実装」として明示的に失敗を返す設計とした（誤って「イベントなし」と判定するより安全なため）。この抽出ルール実装が次タスク（§3の3番目）。`workflows-draft/weekly.yml`は引き続き`.github/workflows/`へ移設していないため、この状態のハーネスが実運用に影響することはない。
 
 `docs/annual-schedule-maintenance.md` の年次公表時期一覧にISMの手動確定プロセスを追加する。
+
+## 7. task #9: 発表元別抽出ルール実装＋既刊2週捕捉テスト（2026-08-14実施）
+
+### 7-1. fixture収集
+
+開発サンドボックスはegressブロックのため直接フェッチできないため、`.phase1-trigger`の`collect_fixtures:true`でActions上に`scripts/phase1/collect-fixtures.mjs`を実行させ、weekly_scrape対象元7ページ＋BOJ 2ページを1回だけ取得し`test/fixtures/official-sources/`へコミットさせた（Actions run 31805663418）。以降の抽出ルール開発・テストはこのfixtureをオフラインで反復利用し、追加の実アクセスは行っていない（しょうさん指示・条件3）。
+
+### 7-2. 判定基準（しょうさん指示・条件1）と結果
+
+合否基準: 発表日時（JST変換後の時刻まで）・重要度が既刊と完全一致すること。日本語正規名は、event-names.json経由で解決するソース（Census・ABS・FRED・ISM）は完全一致まで検証。RBA・BOJは中銀命名テンプレート（officials.json解決・期間サフィックス付与）の組み立て自体がレンダラー実装（task #12）の責務のため、本タスクでは日時・重要度・kind分類の一致までを検証範囲とした（`test/ground-truth-capture.test.js`にその旨を明記）。
+
+| ソース | 対象イベント | 判定 | 備考 |
+|---|---|---|---|
+| Census (`us_census`) | US trade_balance(8/4)・US retail_sales(8/14) | ✅ 日時・重要度・名称完全一致 | `scripts/checkers/extractors/census.js` |
+| ABS (`au_abs`) | AU trade_balance(8/6) | ✅ 日時・重要度・名称完全一致 | `scripts/checkers/extractors/abs.js` |
+| FRED (`us_bls_fred`) | US cpi×2・ppi×2・employment_situation・employment_indicator(JOLTS) | ✅ 日時・重要度・名称完全一致 | 既存のfred-verify.mjs実測結果をfixture化して再利用 |
+| ISM (`us_ism`) | US pmi_ism 製造業(8/3)・非製造業(8/5) | ✅ 日時・重要度・名称完全一致 | ルール計算ドラフト（§7-4参照。人間確認は未実施） |
+| RBA (`au_rba`) | AU policy_rate・press_conference・quarterly_report(8/11) | ✅ 日時・重要度・kind分類一致（名称組立はtask #12） | §7-3参照。weekly_scrapeからannual_schedule_config型へ再分類 |
+| BOJ (`jp_boj`) | JP opinions_summary(8/10)・minutes_summary(8/5) | ✅ 日時・重要度・kind分類一致（名称組立はtask #12） | §7-3参照。抽出対象をPDFからHTML(mpm_index)へ変更 |
+| ONS (`gb_ons`) | GB gdp(8/13) | ⚠️ 抽出ロジックは実装・構造確認済みだが既刊日での照合は不可 | §7-5参照（方式上の制約。本番運用には影響しない） |
+| Stats NZ (`nz_statsnz`) | NZ employment_situation(8/5) | ❌ 抽出不可（構造的ブロッカー） | §7-5参照 |
+| Statistics Canada (`ca_statcan`) | CA trade_balance(8/4)・employment_situation(8/7) | ❌ 抽出不可（構造的ブロッカー） | §7-5参照 |
+| RBA (aph.gov.au) | AU testimony(8/14) | — 対象外 | RBAではなく豪州議会側の告知が必要。別ソース（未着手） |
+
+優先度Aで担当する20イベント中、16イベントで日時・重要度の完全一致を確認（うち14イベントは名称も完全一致）。残り4イベント（GDP・NZ雇用統計・CA貿易収支・CA雇用統計）は構造的な制約により今回は照合できず、原因を§7-5に個別記録した（推測での合わせ込みは行っていない）。
+
+### 7-3. 捕捉テストで発見・修正した不一致（しょうさん指示・条件1: 原因別報告）
+
+テスト実装中に以下2件の実際の不一致を検出した。いずれも「抽出ミス」に分類され、その場で修正した（既刊側の誤りではない）。
+
+1. **US retail_sales のevent-names.json未登録（抽出ミス）**: `config/event-names.json`のUS retail_salesエントリはForex Factory側の表記（`retail sales m/m`）のみを`match`に持ち、Census公式タイトル`Advance Monthly Sales for Retail and Food Services`と一致しなかった。実データを確認のうえ`match`へ`advance monthly sales for retail`を追加して修正した。
+2. **US employment_indicator の重複束ね（抽出ミス）**: FREDのrelease_id=192（JOLTS）の日付が見つかった際、`event-names.json`のemployment_indicator kindに登録された2エントリ（JOLTS・ADP）を無条件で両方候補に含めてしまい、本来無関係なADP（優先度Bソース・別発表元）まで束ねてしまうバグを検出した。`config/official-sources.json`の`fred.releases[].match_hint`（既存の`"jolts"`値）でエントリを絞り込むよう`scripts/lib/resolve-candidate.js`を修正した。
+
+### 7-4. RBA・BOJ・ISMの追加実装（fixtureの実データ精査で判明した設計改善）
+
+- **RBA（`au_rba`）**: 実fixtureで`board-meeting-schedules.html`が単純なweekly_scrapeではなく、BOJと同様に**年間8会合分を1ページで丸ごと公表**していることを確認した（2027年分も一部掲載済み）。`scripts/checkers/extractors/rba.js`で抽出し、typeを`weekly_scrape`から`annual_schedule_config`へ再分類、2026年分をconfigへ投入した。四半期報告(quarterly_report)を伴う月はRBAの公知の運用（Feb/May/Aug/Nov）を仮定しているが、既刊で確認できたのは8月分のみのため、他3ヶ月は月曜FF事後突合での確認待ちとして明記した。
+- **BOJ（`jp_boj`）**: 当初PDFからの抽出を想定していたが、`mpm_index.htm`（HTML）の方が構造的に安定して抽出できると判明したため対象をHTMLへ変更（`scripts/checkers/extractors/boj.js`）。2026年8回・2027年一部を含む全会合分をconfigへ投入した。
+- **ISM（`us_ism`）**: `scripts/lib/us-federal-holidays.js`（米連邦祝日・振替ルール込み）＋`scripts/lib/ism-schedule.js`（第1/第3営業日ルール）でドラフト自動生成を実装。既刊ground truth（製造業=8/3・非製造業=8/5）と完全一致を確認した。2026年8月〜10月分をconfigへ投入済みだが、**しょうさんによる公式カレンダーページとの目視突合・確定はまだ**（`schedule_status: "pending_manual_verification"`）。
+
+**ISM初回手動確認のお願い（2026-08-14）**: 以下のドラフト（機械計算）を、下記URLの公式カレンダーと突合・確認してください。
+
+- 確認先URL: https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/
+- ドラフト（直近3ヶ月分）:
+
+| 月 | 製造業PMI（第1営業日） | 非製造業(Services)PMI（第3営業日） |
+|---|---|---|
+| 2026年8月 | 8/3(月) ✅既刊実績と一致 | 8/5(水) ✅既刊実績と一致 |
+| 2026年9月 | 9/1(火) | 9/3(木) |
+| 2026年10月 | 10/1(木) | 10/5(月) |
+
+いずれも米東部時間10:00発表の想定。確認後、問題なければ`config/official-sources.json`の`us_ism.schedule_status`を`"confirmed"`へ更新する。
+
+### 7-5. 構造的ブロッカー（今回は解消できなかった項目・follow-up）
+
+- **Stats NZ（`nz_statsnz`）**: `release-calendar/`の静的HTMLはナビゲーションと副次表のみを含み、実際のリリース一覧はページ読み込み後にJavaScript/APIで動的描画される（SPA構造）。埋め込みデータに`"MonthRange":{"max":"2027-02","min":"2012-07"}`というヒントがあり裏側にAPIが存在する可能性が高いが、エンドポイントは未特定。実際のAPI調査を要するfollow-upとする。
+- **Statistics Canada（`ca_statcan`）**: `cal1-eng.htm`は調査名・月のプルダウンを持つ検索フォームページであり、個別の発表日程は静的HTMLに含まれない（フォーム送信後にJS/AJAXで結果を描画する構造の可能性）。年次PDF（`n1/release-diffusion/{年}-eng.pdf`）も直リンクせず中間HTML着地ページに転送されるため直接取得は不可（§5で既知）。両経路とも実装保留とし、follow-upとする。
+- **ONS（`gb_ons`）**: 抽出ロジック自体は実装・構造確認済み（`scripts/checkers/extractors/ons.js`）。ただし使用中のAPIクエリ（`release-type=type-upcoming`）は実行時点より未来の日程しか返さないため、既に過去となった既刊ground truth日（2026-08-13）との直接照合はできない。本番運用では対象週は常に未来のため実害はないが、念のため明記する。
+
+いずれの未解消ソースも、`scripts/checkers/harness.mjs`の`checkWeeklyScrapeSource`は抽出ルール未登録として明示的にok:falseを返し、SPEC §3.4のフェールクローズ規則（見込みあり→HOLD／見込みなし→WARN／複数同時失敗→無条件HOLD）へ正しく接続することをテスト済み（`test/extractor-fail-closed.test.js`）。
+
+### 7-6. テスト
+
+`test/extractors.test.js`（実fixtureからの抽出単体テスト）・`test/resolve-candidate.test.js`（名称・重要度・JST変換の合成テスト）・`test/ground-truth-capture.test.js`（既刊2週の統合捕捉テスト・オフライン）・`test/extractor-fail-closed.test.js`（条件2: 構造変化時のフェールクローズ接続）・`test/us-federal-holidays.test.js`・`test/ism-schedule.test.js` を追加。`npm test`で112件全PASS。

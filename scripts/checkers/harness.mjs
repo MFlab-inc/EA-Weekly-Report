@@ -8,18 +8,23 @@
 // モックして実ネットワークなしに検証できる。main()のみが実際のconfig読み込み・fetch・
 // ファイル書き込みを行うCLIエントリ。
 //
-// 現状（2026-08-14）: weekly_scrapeソースの実データ抽出ルールは未実装（task #9で実装）。
-// そのためweekly_scrapeソースはfetch自体が成功しても「抽出未実装」でok:falseを返す。
-// これは意図的な挙動（フェールクローズ設計により、抽出ロジックが無い状態で誤った
-// 「イベントなし」を返すよりは、明示的に未実装として扱う）。実運用cron（weekly.yml）には
-// task #12までworkflows-draft/から移設しないため、現時点でこのハーネスがHOLDを返しても
-// 実配信には影響しない。
+// 2026-08-14: weekly_scrapeソースのうちus_census/au_abs/gb_onsは発表元別の抽出ルールを実装済み
+// （scripts/checkers/extractors/・実データfixtureで既刊ground truthと一致確認済み。docs/phase1-official-sources.md参照）。
+// nz_statsnz/ca_statcanは実測の結果、静的HTML取得だけでは日程一覧を抽出できないことが判明した
+// （SPAのJS描画・検索フォームのAJAX結果のため）。この2元は EXTRACTORS未登録のまま=「抽出ルール未実装」で
+// 明示的にok:falseを返す（フェールクローズ設計により、抽出ロジックが無い状態で誤って「イベントなし」を
+// 返すことはしない）。実運用cron（weekly.yml）にはtask #12までworkflows-draft/から移設しないため、
+// 現時点でこのハーネスがHOLDを返しても実配信には影響しない。
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getTargetWeek, formatYmd, parseYmd, addDays } from '../lib/dates.js';
 import { decideRunOutcome, isExpectedThisWeek, checkResidualMonitoring, checkRecurringMissing } from '../lib/fail-closed.js';
 import { matchesRecurringRule } from '../lib/recurring-rules.js';
 import { createRobotsChecker } from '../lib/robots.js';
+import { resolveCandidateEvent, resolveKindCandidates } from '../lib/resolve-candidate.js';
+import { extractCensusCalendar } from './extractors/census.js';
+import { extractAbsCalendar } from './extractors/abs.js';
+import { extractOnsReleases } from './extractors/ons.js';
 
 export const USER_AGENT = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; checker-harness)';
 
@@ -30,11 +35,33 @@ const RECURRING_CHECK_KIND = {
   米CPI: 'cpi',
 };
 
+// weekly_scrapeソースごとの抽出関数レジストリ。source.idで引く。
+// primaryLabel: source.access.targetsのうち抽出に使うfetch結果のlabel
+// parseFn: 生テキスト → { ok, rows } （rows内の各行を toRow() で共通行形式へ変換）
+// toRow: 抽出結果の1行 → { title, date?, localTime?, utcInstant? }（resolveCandidateEventの入力形）
+const WEEKLY_SCRAPE_EXTRACTORS = {
+  us_census: {
+    primaryLabel: 'calendar_listview',
+    parseFn: extractCensusCalendar,
+    toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime }),
+  },
+  au_abs: {
+    primaryLabel: 'future_releases_calendar',
+    parseFn: extractAbsCalendar,
+    toRow: (r) => ({ title: r.title, utcInstant: r.utcInstant }),
+  },
+  gb_ons: {
+    primaryLabel: 'releases_api_upcoming_gdp',
+    parseFn: extractOnsReleases,
+    toRow: (r) => ({ title: r.title, utcInstant: r.utcInstant }),
+  },
+};
+
 function isWithinWeek(dateStr, weekStartStr, weekEndStr) {
   return dateStr >= weekStartStr && dateStr <= weekEndStr;
 }
 
-export async function checkFredSource(source, targetWeek, { fetchImpl = fetch, apiKey } = {}) {
+export async function checkFredSource(source, targetWeek, { fetchImpl = fetch, apiKey, eventNames = [], importanceRules } = {}) {
   // targetWeek.targetWeekStart/targetWeekEnd は既に 'YYYY-MM-DD' 文字列（scripts/lib/dates.js）。
   // 日付演算にはparseYmd（文字列→疑似Date）とaddDaysを使う（.getTime()は文字列には無い）
   const weekStart = targetWeek.targetWeekStart;
@@ -68,13 +95,27 @@ export async function checkFredSource(source, targetWeek, { fetchImpl = fetch, a
     const body = await res.json();
     const dates = (body?.release_dates || []).map((d) => d.date);
     const foundDate = dates.find((d) => isWithinWeek(d, weekStart, weekEnd)) || null;
-    releaseResults.push({ kind: rel.kind, releaseId: rel.release_id, ok: true, foundDate });
+    let thisWeekCandidates = [];
+    if (foundDate) {
+      const timeCfg = source.announce_time_by_kind?.[rel.kind];
+      thisWeekCandidates = resolveKindCandidates(foundDate, {
+        country: source.country,
+        kind: rel.kind,
+        tz: timeCfg?.tz,
+        localTime: timeCfg?.local_time,
+        matchHint: rel.match_hint,
+        eventNames,
+        importanceRules,
+      });
+    }
+    releaseResults.push({ kind: rel.kind, releaseId: rel.release_id, ok: true, foundDate, thisWeekCandidates });
   }
   const ok = releaseResults.every((r) => r.ok);
   const foundKinds = releaseResults.filter((r) => r.foundDate).map((r) => r.kind);
+  const thisWeek = releaseResults.flatMap((r) => r.thisWeekCandidates || []).filter((c) => c.ok);
   // recurringCheckMatchesはrunChecks()側でmatchesRecurringRule（実際の対象週日付に基づく判定）が
   // 一元的に計算する。ここでは未設定（false）にしておく（二重計算・不整合を避けるため）
-  return { ok, releaseResults, foundKinds, annualConfigHasTargetWeek: false, recurringCheckMatches: false, reason: ok ? undefined : 'FREDリリース取得の一部が失敗' };
+  return { ok, releaseResults, foundKinds, thisWeek, annualConfigHasTargetWeek: false, recurringCheckMatches: false, reason: ok ? undefined : 'FREDリリース取得の一部が失敗' };
 }
 
 // annual_schedule_config型は週次のfetchを行わない（年次で確定済みのscheduleを照合するのみ）ため、
@@ -93,9 +134,22 @@ export function checkAnnualScheduleSource(source, targetWeek) {
   };
 }
 
-// weekly_scrape型: robots.txt確認→フェッチのみ実施。実データからの日程抽出ルールは
-// task #9で発表元ごとに実装するため、現状は「抽出未実装」で明示的に失敗を返す
-export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = fetch, robotsChecker } = {}) {
+// 生のタイトル文字列を、source.kindsのうちevent-names.jsonのmatchキーワードに一致する
+// kindへ分類する。どのkindにも一致しなければnull（このソースが追跡していない無関係な行として無視する）
+function classifyRowKind(row, source, eventNames) {
+  for (const kind of source.kinds || []) {
+    const entry = (eventNames || []).find(
+      (e) => e.country === source.country && e.kind === kind && (e.match || []).some((k) => row.title.toLowerCase().includes(k.toLowerCase()))
+    );
+    if (entry) return kind;
+  }
+  return null;
+}
+
+// weekly_scrape型: robots.txt確認→フェッチ→（登録済みなら）発表元別の抽出処理。
+// 抽出ルール未登録のソース（nz_statsnz・ca_statcan。実測の結果JS描画/検索フォームで静的取得不可と判明）は
+// 明示的に「抽出ルール未実装」の失敗を返す（フェールクローズ設計。誤って「イベントなし」を返さない）
+export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = fetch, robotsChecker, eventNames = [], importanceRules } = {}) {
   const targets = source.access?.targets || [];
   if (targets.length === 0) {
     return { ok: false, reason: '対象URL未設定（recon未実施）', annualConfigHasTargetWeek: false, recurringCheckMatches: false, foundKinds: [] };
@@ -111,25 +165,89 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
     }
     try {
       const res = await fetchImpl(t.url);
-      fetched.push({ label: t.label, ok: Boolean(res?.ok), status: res?.status });
+      const body = res?.ok ? await res.text() : null;
+      fetched.push({ label: t.label, ok: Boolean(res?.ok), status: res?.status, body });
     } catch (e) {
       fetched.push({ label: t.label, ok: false, reason: String(e?.message || e) });
     }
   }
   const anyFetchOk = fetched.some((f) => f.ok);
+  if (!anyFetchOk) {
+    return {
+      ok: false,
+      reason: `全対象URLの取得に失敗: ${fetched.map((f) => f.reason || f.status).join(' / ')}`,
+      fetched: fetched.map(({ body, ...rest }) => rest),
+      annualConfigHasTargetWeek: false,
+      recurringCheckMatches: false,
+      foundKinds: [],
+    };
+  }
+
+  const extractor = WEEKLY_SCRAPE_EXTRACTORS[source.id];
+  if (!extractor) {
+    return {
+      ok: false,
+      reason: '抽出ルール未実装（発表元別の抽出処理が未登録。docs/phase1-official-sources.md参照）',
+      fetched: fetched.map(({ body, ...rest }) => rest),
+      annualConfigHasTargetWeek: false,
+      recurringCheckMatches: false,
+      foundKinds: [],
+    };
+  }
+
+  const primary = fetched.find((f) => f.label === extractor.primaryLabel);
+  if (!primary?.ok || !primary.body) {
+    return {
+      ok: false,
+      reason: `抽出対象(${extractor.primaryLabel})の取得に失敗`,
+      fetched: fetched.map(({ body, ...rest }) => rest),
+      annualConfigHasTargetWeek: false,
+      recurringCheckMatches: false,
+      foundKinds: [],
+    };
+  }
+
+  const parsed = extractor.parseFn(primary.body);
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      reason: `抽出失敗（構造変化の疑い）: ${parsed.reason}`,
+      fetched: fetched.map(({ body, ...rest }) => rest),
+      annualConfigHasTargetWeek: false,
+      recurringCheckMatches: false,
+      foundKinds: [],
+    };
+  }
+
+  const rawRows = (parsed.rows || parsed.meetings || parsed.entries || []).map(extractor.toRow);
+  const candidates = [];
+  const unregistered = [];
+  for (const row of rawRows) {
+    const kind = classifyRowKind(row, source, eventNames);
+    if (!kind) continue; // このソースが追跡していない無関係な行
+    const tz = source.announce_time_by_kind?.[kind]?.tz;
+    const candidate = resolveCandidateEvent(row, { country: source.country, kind, tz, eventNames, importanceRules });
+    if (!candidate.ok) {
+      unregistered.push(candidate.reason);
+      continue;
+    }
+    candidates.push(candidate);
+  }
+  const thisWeek = candidates.filter((c) => isWithinWeek(c.date, targetWeek.targetWeekStart, targetWeek.targetWeekEnd));
+
   return {
-    ok: false,
-    reason: anyFetchOk
-      ? '抽出ルール未実装（task #9で発表元別の抽出処理を追加する）'
-      : `全対象URLの取得に失敗: ${fetched.map((f) => f.reason || f.status).join(' / ')}`,
-    fetched,
+    ok: true,
+    fetched: fetched.map(({ body, ...rest }) => rest),
+    allCandidatesCount: candidates.length,
+    thisWeek,
+    unregistered,
+    foundKinds: [...new Set(thisWeek.map((c) => c.kind))],
     annualConfigHasTargetWeek: false,
     recurringCheckMatches: false,
-    foundKinds: [],
   };
 }
 
-export async function runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl = fetch, apiKey, robotsChecker } = {}) {
+export async function runChecks({ sourcesConfig, importanceRules, eventNames, targetWeek, fetchImpl = fetch, apiKey, robotsChecker } = {}) {
   const results = [];
   for (const source of sourcesConfig.sources) {
     if (source.status === 'pending_recon') {
@@ -138,11 +256,11 @@ export async function runChecks({ sourcesConfig, importanceRules, targetWeek, fe
     }
     let result;
     if (source.type === 'date_api_fred') {
-      result = await checkFredSource(source, targetWeek, { fetchImpl, apiKey });
+      result = await checkFredSource(source, targetWeek, { fetchImpl, apiKey, eventNames, importanceRules });
     } else if (source.type === 'annual_schedule_config') {
       result = checkAnnualScheduleSource(source, targetWeek);
     } else {
-      result = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, robotsChecker });
+      result = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, robotsChecker, eventNames, importanceRules });
     }
     const recurringCheckMatches = (source.recurring_check_refs || []).some((name) => {
       const rule = (importanceRules?.recurring_checks || []).find((r) => r.name === name);
@@ -199,11 +317,13 @@ export async function runChecks({ sourcesConfig, importanceRules, targetWeek, fe
 async function main() {
   const sourcesConfig = JSON.parse(readFileSync('config/official-sources.json', 'utf8'));
   const importanceRules = JSON.parse(readFileSync('config/importance-rules.json', 'utf8'));
+  const eventNames = JSON.parse(readFileSync('config/event-names.json', 'utf8')).entries;
   const targetWeek = getTargetWeek();
   const robotsChecker = createRobotsChecker({ userAgent: USER_AGENT });
   const report = await runChecks({
     sourcesConfig,
     importanceRules,
+    eventNames,
     targetWeek,
     fetchImpl: fetch,
     apiKey: process.env.FRED_API_KEY,
