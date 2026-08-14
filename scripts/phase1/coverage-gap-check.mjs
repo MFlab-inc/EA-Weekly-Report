@@ -67,7 +67,22 @@ async function main() {
     }
   }
 
-  const inTargetWeek = allEvents.filter((e) => e.jstDate >= WEEK_START && e.jstDate <= WEEK_END);
+  let inTargetWeek = allEvents.filter((e) => e.jstDate >= WEEK_START && e.jstDate <= WEEK_END);
+  let usedFallbackWeek = false;
+  let fallbackRange = null;
+  if (inTargetWeek.length === 0) {
+    // 対象週(8/17-21)がFFにまだ公開されていない場合（task #2実測中の境界問題）、
+    // 現在取得できている週（thisweekフィードの実際の範囲）を構造的カバレッジ確認の
+    // 代替データとして使う。週固有のイベント有無ではなく「kind種別の構造的欠落」の
+    // 検証が目的のため、週がズレていても分析価値がある
+    const thisweekEvents = allEvents.filter((e) => e.feedName === 'thisweek');
+    if (thisweekEvents.length > 0) {
+      usedFallbackWeek = true;
+      const dates = thisweekEvents.map((e) => e.jstDate).sort();
+      fallbackRange = { start: dates[0], end: dates[dates.length - 1] };
+      inTargetWeek = thisweekEvents;
+    }
+  }
   // 重複除去（複数フィードに同一イベントが重複掲載される場合がある）
   const seen = new Set();
   const dedup = inTargetWeek.filter((e) => {
@@ -102,14 +117,19 @@ async function main() {
     targetWeek: { start: WEEK_START, end: WEEK_END },
     fetchStatus: Object.fromEntries(Object.entries(fetched).map(([name, r]) => [name, { ok: r.ok, status: r.status, eventCount: r.events?.length }])),
     availableWeeksByFeed: availableWeeks,
-    targetWeekFoundInAnyFeed: dedup.length > 0,
-    ffEventsInTargetWeek: dedup,
+    targetWeekFoundInAnyFeed: !usedFallbackWeek && dedup.length > 0,
+    usedFallbackWeek,
+    fallbackRange,
+    ffEventsInAnalyzedWeek: dedup,
     kindsByCountry,
   };
 
   writeFileSync(`${OUT_DIR}/coverage-gap-check.json`, JSON.stringify(result, null, 2));
 
-  console.log(`\n===== 対象週(${WEEK_START}〜${WEEK_END})のFFイベント: ${dedup.length}件 =====`);
+  if (usedFallbackWeek) {
+    console.log(`\n(注) 対象週(${WEEK_START}〜${WEEK_END})はFFにまだ公開されていない（nextweek 404）。代替として現在公開中の週(${fallbackRange.start}〜${fallbackRange.end})で構造的カバレッジを確認する`);
+  }
+  console.log(`\n===== 分析対象週のFFイベント: ${dedup.length}件 =====`);
   for (const e of dedup) {
     const tracked = (kindsByCountry[e.country] || []).map((k) => `${k.kind}(${k.sourceId}/${k.status})`).join(', ') || '(追跡ソース無し)';
     console.log(`- ${e.jstDate} ${e.jstTime} [${e.country}] impact=${e.impact} "${e.title}" | この国の追跡kind: ${tracked}`);
