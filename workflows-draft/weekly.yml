@@ -26,12 +26,10 @@ jobs:
       # Node.js一本（.github/workflows/ci.ymlと同一ランタイム）に統一した
       # （docs/validate-scripts-guide.md参照）。collect→build-ledger→renderの3ステップは
       # task #13後継の実データ接続（しょうさん指示2026-08-15）で配線済み（scripts/collect.mjs・
-      # scripts/build-ledger.mjs・scripts/render.mjs）。
-      # TODO(Claude Code): renderステップの--narrative（heroSummary/heroPillsの人手キュレーション
-      # 入力）は現状未指定＝毎回自動フォールバック生成になる。既刊相当の簡潔な要約文にするには、
-      # 週次runの前に人手でnarrativeファイルを用意しdata/narrative/へ置く運用を検討する
-      # （scripts/render.mjsのファイル先頭コメント参照）。並行運用開始前に要検討
-      # （task #34: 発表枠の束ね[bundle_id]も同様に未実装で残っている）
+      # scripts/build-ledger.mjs・scripts/render.mjs）。renderステップの--narrativeは指定しない
+      # （heroSummary/heroPillsはしょうさん確定仕様2026-08-15の自動生成ルールで生成する。
+      # scripts/render.mjsのautoHeroSummary/autoHeroPills参照。人手キュレーションが必要な場合のみ
+      # --narrativeで上書き可能）。発表枠の束ね（bundle_id、task #34）も配線済み
       - name: pipeline
         run: |
           node scripts/collect.mjs

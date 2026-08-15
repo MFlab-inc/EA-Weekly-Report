@@ -107,11 +107,15 @@ task #13（検証スクリプト5本の移植＋新設3検査）、しょうさ�
   `config/event-names.json`辞書照合対象）は、`scripts/phase1/observation-run.mjs`の
   `resolveAnnualDictionaryName()`が解決する（2026-08-15新設。country×kindで一意に決まらない場合
   [例: US `pmi_ism`=ISM製造業/非製造業の2エントリ]は`schedule`エントリの`subtype`で絞り込む）
-- `bundle_id`（同一発表枠のグルーピング）は台帳生成時点では未計算（常にnull）。design-mock_v1.2.htmlの
-  「発表枠」概念（例: RBA政策金利＋声明＋SOMPを1枠として停止バーを連結する）は
-  `scripts/render/ledger-to-week-input.js`が1イベント=1windowGroup（束ねなし）として扱っている
-  （しょうさん指示2026-08-15・次タスクとして別途対応。束ねルール案は
-  「同一国×同一source_id×同一日×発表時刻90分以内」で既刊2週のRBA3件クラスタ・CPI2件クラスタ・
-  PPI2件クラスタと一致することを検証済み）
+- `bundle_id`（同一発表枠のグルーピング、task #34）は`scripts/lib/build-ledger.js`の
+  `computeBundleIds()`が算出する（しょうさん確定ルール2026-08-15「同一国×同一source_id×
+  同一日×発表時刻90分以内」）。design-mock_v1.2.htmlの「発表枠」概念（例: RBA政策金利＋声明＋
+  SOMPを1枠として停止バーを連結する）は`scripts/render/ledger-to-week-input.js`の
+  `windowGroupsForDay()`がbundle_idに基づきグルーピングして再現する。既刊2週のRBA3件クラスタ・
+  CPI2件クラスタ・PPI2件クラスタで検証済み（`test/build-ledger.test.js`・
+  `test/ledger-to-week-input.test.js`）。既知の簡略化: windowGroupsのlabelItemsテキストは
+  台帳の`name_ja`（フル正式名）をそのまま「・」連結する。既刊は視覚的コンパクトさのため
+  手動で短縮表記（例:「RBA政策金利＆声明・四半期金融政策報告」）を使っており、本アダプタは
+  そのような短縮辞書を持たないため文言がやや長くなる
 - `sources[].http_status`は現状常にnull（harness.mjsが個別ソースのHTTPステータスをresult最上位に
   集約していないため）。今後の精緻化候補

@@ -3,15 +3,15 @@
 // 既刊ground truthと比較する回帰テスト（task #13後継、しょうさん指示2026-08-15）。
 //
 // 実アクセスは行わず、test/fixtures/official-sources/の実測fixtureをfetchモックで読み込む
-// （test/ground-truth-capture.test.jsと同じ方式）。
+// （test/ground-truth-capture.test.jsと同じ方式。共有ヘルパーはtest/support/regenerate-week.js）。
 //
 // 判定基準（しょうさん指示2026-08-15で修正）: 既刊output/*.htmlとのバイト一致ではなく、
 // 比較可能な部分集合（既知の差分3分類に属さないイベント）で日時・重要度・名称が一致すること。
 // 既知の差分3分類:
 //   (a) task #16未実装の3ソース4イベント（中国PMI×2・英建設業PMI・ADP、いずれも抽出未実装＝
 //       status pending_recon）
-//   (b) 発表枠の束ね未実装（RBA 3件クラスタ・CPI 2件クラスタ・PPI 2件クラスタは各々1枠に束ねず
-//       個別windowとして扱う。task #34で別途対応）
+//   (b) 発表枠の束ね（bundle_id）はtask #34で実装済み（windowGroupsの構造がそのため既刊と一致する
+//       ようになった。既刊output/*.htmlとの目視差分はtest/render.test.js参照）
 //   (c) gb_ons（英GDP）はAPIがrelease-type=type-upcoming固定のため過去週を再現できない
 //       （official-sources.jsonのgb_ons notes参照。抽出ロジック自体はtest/harness.test.jsの
 //       ONS(gb_ons)テストで別途、未来日程に対して検証済み）
@@ -20,16 +20,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync, mkdirSync, writeFileSync } = require('node:fs');
 const { join } = require('node:path');
+const { regenerateWeek, WEEK_20260803, WEEK_20260810 } = require('./support/regenerate-week');
 
-const FIXTURE_ROOT = join(__dirname, 'fixtures', 'official-sources');
-const readFixture = (...p) => readFileSync(join(FIXTURE_ROOT, ...p), 'utf8');
-
-const sourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
-const eventNames = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'event-names.json'), 'utf8')).entries;
-const importanceRules = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'importance-rules.json'), 'utf8'));
-const manualEventsConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'manual-events.json'), 'utf8'));
-const officialsConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'officials.json'), 'utf8'));
-const expectedCoverageConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'expected-coverage.json'), 'utf8'));
 const eventComments = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'event-comments.json'), 'utf8'));
 const reportPolicy = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'report-policy.json'), 'utf8'));
 const btcGuide = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'btc-weekend-guide.json'), 'utf8'));
@@ -39,14 +31,10 @@ const btcGuide = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'btc-we
 // 本テストの突合はkindを使わずdate/time/stars/name_ja/country_jaのみで行う
 const groundTruth = JSON.parse(readFileSync(join(__dirname, '..', 'scripts', 'phase0', 'expected-events.json'), 'utf8')).events;
 
-const ALLOW_ROBOTS = { isAllowed: async () => ({ allowed: true }) };
-
 // 既知の差分(a): task #16未実装3ソースの4イベント
 const KNOWN_GAP_A_IDS = new Set(['cn_ratingdog_mfg_pmi_20260803', 'cn_ratingdog_services_pmi_20260805', 'us_adp_20260805', 'uk_construction_pmi_20260806']);
 // 既知の差分(c): gb_ons（英GDP）はAPI仕様上、過去週を再現不可
 const KNOWN_GAP_C_IDS = new Set(['uk-gdp-2026-08-13']);
-// 束ね未実装(b)の対象（RBA3件・CPI2件・PPI2件）はevent自体は捕捉されるためKNOWN_GAP扱いはしない
-// （windowGroupsの粒度のみ既刊と異なる。本テストはイベント一覧の一致を見るためここでは対象外扱い不要）
 
 // 既知の差分(d)（新規発見・2026-08-15）: scripts/phase0/expected-events.jsonのname_jaは
 // reference/sample-report_20260808.htmlの生テキストをそのまま転記したもので、2026-08-03週
@@ -77,88 +65,6 @@ const NAME_OVERRIDE = {
 
 function expectedNameOf(g) {
   return NAME_OVERRIDE[g.id] || g.name_ja;
-}
-
-function fixtureFetch(map) {
-  return async (url) => {
-    const hit = Object.entries(map).find(([pattern]) => url.includes(pattern));
-    if (!hit) return { ok: false, status: 404 };
-    const [, body] = hit;
-    return { ok: true, status: 200, text: async () => body, json: async () => JSON.parse(body) };
-  };
-}
-
-const FRED_FIXTURES = {
-  10: readFixture('us_bls_fred', 'release_10_cpi.json'),
-  46: readFixture('us_bls_fred', 'release_46_ppi.json'),
-  50: readFixture('us_bls_fred', 'release_50_employment_situation.json'),
-  192: readFixture('us_bls_fred', 'release_192_jolts.json'),
-};
-
-// 全対象ソースを1つのfetchImplで賄うマスターモック。annual_schedule_config型（au_rba・jp_boj・us_ism・
-// ca_ivey・ca_statcan等）はfetchを行わないため対象外。nz_statsnzは本番targetsが「直近四半期ページ」
-// （次サイクルを予告）を指すためground truthの捕捉には前四半期ページのfixtureへ差し替える
-// （test/ground-truth-capture.test.jsと同じ既知の対応）
-async function masterFetchImpl(url) {
-  if (/release_id=(\d+)/.test(url)) {
-    const id = /release_id=(\d+)/.exec(url)[1];
-    return { ok: true, status: 200, json: async () => JSON.parse(FRED_FIXTURES[id]) };
-  }
-  if (url.includes('calendar-listview.html')) {
-    const body = readFixture('us_census', 'calendar_listview.html');
-    return { ok: true, status: 200, text: async () => body };
-  }
-  if (url.includes('future-releases-calendar')) {
-    const body = readFixture('au_abs', 'future_releases_calendar.html');
-    return { ok: true, status: 200, text: async () => body };
-  }
-  if (url.includes('2608e.htm')) {
-    const body = readFixture('jp_mof', 'auction_calendar_2608.html');
-    return { ok: true, status: 200, text: async () => body };
-  }
-  if (url.includes('feeds/speeches.xml')) {
-    const body = readFixture('us_frb_speeches', 'speeches_rss.xml');
-    return { ok: true, status: 200, text: async () => body };
-  }
-  if (url.includes('labour-market-statistics')) {
-    const body = readFixture('nz_statsnz', 'TEMP_ground_truth_validation_prior_quarter.html');
-    return { ok: true, status: 200, text: async () => body };
-  }
-  if (url.includes('search/releases')) {
-    const body = readFixture('gb_ons', 'releases_api_upcoming_gdp.json');
-    return { ok: true, status: 200, text: async () => body };
-  }
-  return { ok: false, status: 404 };
-}
-
-function targetWeekOf(startStr, endStr, dateStrs) {
-  return { collectionDate: dateStrs[0], targetWeekStart: startStr, targetWeekEnd: endStr, dates: dateStrs.map((date) => ({ date })) };
-}
-
-const WEEK_20260803 = targetWeekOf('2026-08-03', '2026-08-07', ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07']);
-const WEEK_20260810 = targetWeekOf('2026-08-10', '2026-08-14', ['2026-08-10', '2026-08-11', '2026-08-12', '2026-08-13', '2026-08-14']);
-
-async function regenerateWeek(targetWeek) {
-  const { collect } = await import('../scripts/collect.mjs');
-  const { buildLedgerFromCollectResult } = await import('../scripts/build-ledger.mjs');
-  const { validateLedger } = require('../scripts/lib/validate-ledger');
-
-  const collectResult = await collect({
-    sourcesConfig, importanceRules, eventNames, manualEventsConfig, targetWeek,
-    fetchImpl: masterFetchImpl, apiKey: 'dummy', robotsChecker: ALLOW_ROBOTS,
-  });
-  const ledger = buildLedgerFromCollectResult({
-    collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules,
-    expectedCoverageConfig, generatedAt: '2026-08-15T08:06:00+09:00',
-  });
-  const check = validateLedger(ledger);
-  assert.deepEqual(check.errors, [], `台帳スキーマ検証エラー（${targetWeek.targetWeekStart}週）`);
-  assert.equal(check.ok, true);
-  return ledger;
-}
-
-function findGtByDateName(ledgerEvent) {
-  return groundTruth.find((g) => g.date === ledgerEvent.date_jst && g.name_ja === ledgerEvent.name_ja);
 }
 
 test('既刊2週の実データ経路再生成: 2026-08-03週', async () => {

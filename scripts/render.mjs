@@ -4,15 +4,17 @@
 // で weekInput 形へ変換し、既存レンダラー（build-report-data.js・html-renderer.js、design-mock_v1.2.html
 // 再現・task #12実装済み）でHTMLを生成する。
 //
-// heroSummary/heroPills（ヒーロー要約文）は「その週の特に注目すべき事象を選び簡潔に言い表す」という
-// 編集判断を伴い、台帳から機械的に一意に導出できない（ledgerToWeekInputのコメント参照）。
+// heroSummary/heroPillsの生成ルール（しょうさん確定仕様2026-08-15）:
+// - heroSummary: 対象週の★★★イベントの表示名から、国+kindで重複を除いた上位4件
+//   （対象週内の発生順）を「、」で連結し、末尾に「を確認する週」を付ける。0件時は
+//   config/report-policy.jsonのhero_summary_no_star3_text
+// - heroPills: ★★★を日付順に最大3件、「{表示名} {M/D}」形式
 // このスクリプトは:
 // - --narrative <path> で {reportMeta?, createdDateJa?, heroSummary, heroPills} を持つJSON/JSファイルを
-//   指定すれば、それを人手キュレーション済みの入力として使う（推奨。既刊相当の品質になる）
-// - 指定が無い場合は台帳のimportance=3イベントから事実列挙のみの簡易要約を機械生成する
-//   （SPEC §6.2「事実列挙のみ」の範囲に収まる最小限の自動フォールバック。既刊のような複数イベントの
-//   まとめ表現[例:「ISM製造業・非製造業」]は行わないため、既刊ほど簡潔ではない点に留意。
-//   完全無人運用を可能にするための最終防波堤であり、品質を保証するものではない）
+//   指定すれば、そちらを優先する（任意の上書き。通常は指定不要）
+// - 指定が無い場合は上記ルールで自動生成する（既刊2週で検証済み。test/render.test.js参照。
+//   既刊の実際の文言とは選定基準が異なるため一致しない場合がある点に注意
+//   ＝既刊は複数kindを1フレーズにまとめる等の追加編集を行っているため）
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { createRequire } from 'node:module';
@@ -26,15 +28,28 @@ function pad2(n) {
   return String(n).padStart(2, '0');
 }
 
-// 対象週のimportance=3イベント名から「事実列挙のみ」の簡易要約を組み立てる（--narrative未指定時の
-// 最終フォールバック。上記ファイルコメント参照。上限4件で打ち切る：既刊実例[4フレーズ]と同程度の分量に抑える）
-function autoHeroSummary(ledger) {
-  const names = [...new Set(ledger.events.filter((e) => e.importance === 3).map((e) => e.name_ja))];
-  if (names.length === 0) return '対象週に最重要（★★★）イベントはありません';
-  return `${names.slice(0, 4).join('、')}を確認する週`;
+// 対象週の★★★イベントの表示名から、国+kindで重複を除いた上位4件（対象週内の発生順）を
+// 「、」で連結し、末尾に「を確認する週」を付ける（しょうさん確定仕様2026-08-15）。
+// 0件時はreportPolicy.hero_summary_no_star3_text
+export function autoHeroSummary(ledger, reportPolicy) {
+  const star3 = ledger.events
+    .filter((e) => e.importance === 3)
+    .sort((a, b) => (a.datetime_jst || '').localeCompare(b.datetime_jst || ''));
+  const seenCountryKind = new Set();
+  const names = [];
+  for (const e of star3) {
+    const key = `${e.country}|${e.kind}`;
+    if (seenCountryKind.has(key)) continue;
+    seenCountryKind.add(key);
+    names.push(e.name_ja);
+    if (names.length === 4) break;
+  }
+  if (names.length === 0) return reportPolicy.hero_summary_no_star3_text;
+  return `${names.join('、')}を確認する週`;
 }
 
-function autoHeroPills(ledger) {
+// ★★★を日付順に最大3件、「{表示名} {M/D}」形式（しょうさん確定仕様2026-08-15）
+export function autoHeroPills(ledger) {
   return ledger.events
     .filter((e) => e.importance === 3 && e.datetime_jst)
     .sort((a, b) => a.datetime_jst.localeCompare(b.datetime_jst))
@@ -49,11 +64,11 @@ function autoCreatedDateJa(now) {
   return `${d.getUTCFullYear()}年${d.getUTCMonth() + 1}月${d.getUTCDate()}日（${WEEKDAY_JA[d.getUTCDay()]}）`;
 }
 
-export function buildNarrative(ledger, override, now = new Date()) {
+export function buildNarrative(ledger, reportPolicy, override, now = new Date()) {
   return {
     reportMeta: override?.reportMeta || `ea-weekly-${ledger.meta.target_week_start.replace(/-/g, '')}`,
     createdDateJa: override?.createdDateJa || autoCreatedDateJa(now),
-    heroSummary: override?.heroSummary || autoHeroSummary(ledger),
+    heroSummary: override?.heroSummary || autoHeroSummary(ledger, reportPolicy),
     heroPills: override?.heroPills || autoHeroPills(ledger),
   };
 }
@@ -77,10 +92,7 @@ async function main() {
   const reportPolicy = JSON.parse(readFileSync('config/report-policy.json', 'utf8'));
   const btcGuide = JSON.parse(readFileSync('config/btc-weekend-guide.json', 'utf8'));
 
-  const narrative = buildNarrative(ledger, override);
-  if (!override) {
-    console.warn('警告: --narrativeが未指定のため、heroSummary/heroPillsを台帳から自動生成した（既刊のような編集judgment済みの簡潔な表現ではない。可能であれば公開前に人手で確認・上書きすること）');
-  }
+  const narrative = buildNarrative(ledger, reportPolicy, override);
 
   const weekInput = ledgerToWeekInput(ledger, narrative, eventComments);
   const reportData = buildReportData(weekInput);
