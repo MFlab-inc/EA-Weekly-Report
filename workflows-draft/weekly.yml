@@ -24,17 +24,21 @@ jobs:
         run: npx playwright install --with-deps chromium
       # 2026-08-15: 検証パイプラインをPython+Playwrightから移設した際にsetup-python/pipを撤去し、
       # Node.js一本（.github/workflows/ci.ymlと同一ランタイム）に統一した
-      # （docs/validate-scripts-guide.md参照）。
-      # TODO(Claude Code): scripts/checkers/harness.mjsのrunChecks()結果をscripts/lib/build-ledger.jsへ
-      # 渡すcollectステップのCLIエントリ、およびrenderステップ（ledger→weekInput変換込み）が未実装。
-      # 現時点で実装済みなのは check（scripts/checkers/harness.mjs）と
-      # gate（scripts/check/gate.mjs、ledger×HTML突合・ポリシーlint・モバイル多幅レイアウトを集約）。
+      # （docs/validate-scripts-guide.md参照）。collect→build-ledger→renderの3ステップは
+      # task #13後継の実データ接続（しょうさん指示2026-08-15）で配線済み（scripts/collect.mjs・
+      # scripts/build-ledger.mjs・scripts/render.mjs）。
+      # TODO(Claude Code): renderステップの--narrative（heroSummary/heroPillsの人手キュレーション
+      # 入力）は現状未指定＝毎回自動フォールバック生成になる。既刊相当の簡潔な要約文にするには、
+      # 週次runの前に人手でnarrativeファイルを用意しdata/narrative/へ置く運用を検討する
+      # （scripts/render.mjsのファイル先頭コメント参照）。並行運用開始前に要検討
+      # （task #34: 発表枠の束ね[bundle_id]も同様に未実装で残っている）
       - name: pipeline
         run: |
-          node scripts/collect.js
-          node scripts/build-ledger.js
-          node scripts/render.js
-          node scripts/check/gate.mjs --ledger "data/ledger/$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart)").json" --html "output/ea-weekly-$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart.replace(/-/g,''))").html" --result gate-result.json
+          node scripts/collect.mjs
+          node scripts/build-ledger.mjs
+          TARGET_WEEK_START=$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart)")
+          node scripts/render.mjs "data/ledger/${TARGET_WEEK_START}.json" --out "output/ea-weekly-${TARGET_WEEK_START//-/}.html"
+          node scripts/check/gate.mjs --ledger "data/ledger/${TARGET_WEEK_START}.json" --html "output/ea-weekly-${TARGET_WEEK_START//-/}.html" --result gate-result.json
       - name: commit outputs
         if: success()
         run: |

@@ -392,6 +392,24 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
   };
 }
 
+// recurring_checks各ルールの対象週該当・検出有無を全件返す（runChecks()内部の
+// recurringMissingWarnings算出と同じ照合ロジックだが、こちらはWARN文字列化する前の
+// 生ステータス全件を返す。scripts/lib/build-ledger.jsのbuildLedger()へcoverage.recurring_checks
+// としてそのまま渡せる形。CLIエントリ[scripts/build-ledger.mjs、task #31]向けに公開する）
+export function computeRecurringChecksStatus(results, importanceRules, targetWeek) {
+  return (importanceRules?.recurring_checks || []).map((rule) => {
+    const appliesThisWeek = matchesRecurringRule(rule, targetWeek.dates.map((d) => d.date));
+    const match = RECURRING_CHECK_MATCH[rule.name];
+    let found = false;
+    if (match) {
+      found = match.sourceId
+        ? Boolean(results.find((r) => r.id === match.sourceId)?.foundKinds?.includes(match.kind))
+        : results.some((r) => r.foundKinds?.includes(match.kind));
+    }
+    return { name: rule.name, applies_this_week: appliesThisWeek, found };
+  });
+}
+
 export async function runChecks({ sourcesConfig, importanceRules, eventNames, targetWeek, fetchImpl = fetch, apiKey, robotsChecker } = {}) {
   const results = [];
   for (const source of sourcesConfig.sources) {

@@ -405,6 +405,25 @@ test('runChecks: pending_reconソースの欠落はHOLDにせずrecurring_checks
   assert.match(report.recurringMissingWarnings[0], /中国PMI/);
 });
 
+test('computeRecurringChecksStatus: 全ルールのapplies_this_week/foundを返す（recurringMissingWarningsと同じ照合ロジック）', async () => {
+  const { runChecks, computeRecurringChecksStatus } = await loadHarness();
+  const sourcesConfig = {
+    sources: [{ id: 'cn_pmi', status: 'pending_recon', country: 'CN', kinds: ['pmi_ism'], type: 'weekly_scrape', recurring_check_refs: ['中国PMI'] }],
+  };
+  const importanceRules = {
+    recurring_checks: [
+      { name: '中国PMI', rule: '毎月1日〜7日ごろ', action: 'WARN' },
+      { name: '米CPI', rule: '毎月10日〜16日ごろ', action: 'WARN' },
+    ],
+  };
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek: EARLY_MONTH_WEEK });
+  const status = computeRecurringChecksStatus(report.results, importanceRules, EARLY_MONTH_WEEK);
+  assert.deepEqual(status, [
+    { name: '中国PMI', applies_this_week: true, found: false },
+    { name: '米CPI', applies_this_week: false, found: false },
+  ]);
+});
+
 test('runChecks: sourceId指定のrecurring_checksは同一kindの別ソース成功では消えない（誤った充足判定の防止）', async () => {
   const { runChecks } = await loadHarness();
   const sourcesConfig = {
