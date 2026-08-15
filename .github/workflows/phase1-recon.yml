@@ -41,6 +41,7 @@ jobs:
               "only_ids_c=" + (cfg.only_ids_c || ""),
               "run_recon_d=" + (cfg.run_recon_d === true ? "true" : "false"),
               "only_ids_d=" + (cfg.only_ids_d || ""),
+              "run_recon_e=" + (cfg.run_recon_e === true ? "true" : "false"),
               "verify_fred=" + (cfg.verify_fred === true ? "true" : "false"),
               "collect_fixtures=" + (cfg.collect_fixtures === true ? "true" : "false"),
               "only_ids_fixtures=" + (cfg.only_ids_fixtures || ""),
@@ -79,6 +80,9 @@ jobs:
       - name: Source recon (中銀policy_rate 6元, task #19)
         if: steps.cfg.outputs.run_recon_d == 'true'
         run: node scripts/phase1/source-recon-d.mjs '${{ steps.cfg.outputs.only_ids_d }}'
+      - name: Source recon (RBNZ訂正URL・SNB ICS実測・BOC慣行確認, しょうさん指示2026-08-15)
+        if: steps.cfg.outputs.run_recon_e == 'true'
+        run: node scripts/phase1/source-recon-e.mjs
       - name: FRED API verify
         if: steps.cfg.outputs.verify_fred == 'true'
         env:

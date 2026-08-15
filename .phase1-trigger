@@ -2,7 +2,7 @@
   "run_recon": false,
   "run_recon_b": false,
   "run_recon_c": false,
-  "run_recon_d": true,
-  "only_ids_d": "snb_policy_rate",
+  "run_recon_d": false,
+  "run_recon_e": true,
   "collect_fixtures": false
 }
