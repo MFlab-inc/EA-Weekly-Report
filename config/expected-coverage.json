@@ -32,17 +32,17 @@
     {
       "country": "EU",
       "kind": "cpi",
-      "note": "しょうさん承認2026-08-15（ユーロ圏HICP）。Eurostat release-calendar ICS feed（tier a、task #41で実装予定）"
+      "note": "しょうさん承認2026-08-15（ユーロ圏HICP）。task #41-3で実装済み（eurostat_hicp、速報値のみ2026年8ヶ月分）"
     },
     {
       "country": "EU",
       "kind": "gdp",
-      "note": "しょうさん承認2026-08-15。Eurostat。task #41で実装予定"
+      "note": "しょうさん承認2026-08-15。task #41-3で実装済み（eurostat_gdp、2026年上半期4件）"
     },
     {
       "country": "EU",
       "kind": "pmi_ism",
-      "note": "しょうさん承認2026-08-15（フラッシュPMI）。task #41で実装予定"
+      "note": "しょうさん承認2026-08-15（フラッシュPMI）。task #41-3で実装済み（eu_flash_pmi、2026年1-7月分。S&P Globalが年間分の事前公表をしないため8月以降は毎月手動更新が必要）"
     },
     {
       "country": "EU",
@@ -62,7 +62,7 @@
     {
       "country": "GB",
       "kind": "pmi_ism",
-      "note": "しょうさん承認2026-08-15（フラッシュPMI・製造業/サービス業）。現行gb_construction_pmiは建設業PMIのみで対象外。別ソースとしてtask #41で実装予定"
+      "note": "しょうさん承認2026-08-15（フラッシュPMI・製造業/サービス業）。task #41-3で実装済み（gb_flash_pmi、既存gb_construction_pmi[建設業PMI]とはsubtypeで区別）"
     },
     {
       "country": "AU",

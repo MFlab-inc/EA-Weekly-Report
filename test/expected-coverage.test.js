@@ -115,11 +115,13 @@ test('validateExpectedCoverage: 実config — 国×kind必須マトリクス（�
     // うち2026-08-20分＝7月分が8/17週の欠損事例そのもの）は実装済み（2026-08-15、いずれも新規
     // annual_schedule_config型ソースとして追加）のため3件ともここから削除した。いずれも
     // WebSearch経由確認（source_verified:false同等）。次回本番runでのライブ検証が必要
-    // --- task #41-3（Eurostat・フラッシュPMI。着手順3） ---
-    'EU:cpi', // ユーロ圏HICP。Eurostat release-calendar ICSフィード（tier a、calendar_EN.ics）
-    'EU:gdp', // Eurostat。ICSフィードで対応可能
-    'EU:pmi_ism', // フラッシュPMI（HCOB/S&P Global）
-    'GB:pmi_ism', // フラッシュPMI（製造業/サービス業）。現行gb_construction_pmiは建設業PMIのみで対象外、別ソース必要
+    // --- task #41-3（Eurostat・フラッシュPMI。着手順3）は完了 ---
+    // EU:cpi（eurostat_hicp、速報値2026年8ヶ月分）・EU:gdp（eurostat_gdp、2026年上半期4件）・
+    // EU:pmi_ism（eu_flash_pmi）・GB:pmi_ism（gb_flash_pmi、既存gb_construction_pmiとはsubtype
+    // で区別）は実装済み（2026-08-15）のため4件ともここから削除した。フラッシュPMIはS&P Globalが
+    // 向こう1〜2ヶ月分しか事前公表しないため2026年1-7月分のみ収録（8月以降はresidual_monitor_weeks
+    // による警告で毎月の手動更新を促す運用）。いずれもWebSearch経由確認（source_verified:false
+    // 同等）。次回本番runでのライブ検証が必要
     // --- task #41-4（NZ・AU GDP・CN 3件。着手順4・最後） ---
     'NZ:cpi', // 未調査。Stats NZの担当ページ実測が必要
     'NZ:gdp', // 未調査。同上

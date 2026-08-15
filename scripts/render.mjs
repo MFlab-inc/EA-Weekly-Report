@@ -30,11 +30,15 @@ function pad2(n) {
 
 // 対象週の★★★イベントの表示名から、国+kindで重複を除いた上位4件（対象週内の発生順）を
 // 「、」で連結し、末尾に「を確認する週」を付ける（しょうさん確定仕様2026-08-15）。
-// 0件時はreportPolicy.hero_summary_no_star3_text
+// 0件時はreportPolicy.hero_summary_no_star3_text。
+// datetime_jstが無い（時刻未公表）イベントはautoHeroPillsと同様に対象外とする（2026-08-15修正、
+// task #41-3で発覚: `(a.datetime_jst || '').localeCompare(...)`だと空文字列が実時刻より前方に
+// ソートされてしまい、時刻未確定のEU GDPが週内で最も早い発表であるかのように1位表示される実バグが
+// あった。「対象週内の発生順」という仕様の趣旨上、発生順が不明なイベントを先頭に置くのは誤り）
 export function autoHeroSummary(ledger, reportPolicy) {
   const star3 = ledger.events
-    .filter((e) => e.importance === 3)
-    .sort((a, b) => (a.datetime_jst || '').localeCompare(b.datetime_jst || ''));
+    .filter((e) => e.importance === 3 && e.datetime_jst)
+    .sort((a, b) => a.datetime_jst.localeCompare(b.datetime_jst));
   const seenCountryKind = new Set();
   const names = [];
   for (const e of star3) {

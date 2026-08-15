@@ -57,18 +57,19 @@ const RULE_GENERATED_KINDS = new Set([
 // annual_schedule_config型のschedule entry（{date, kind, subtype?, note?}）には抽出元の生テキストが
 // 無いため、resolveCandidateEventのようなキーワード部分一致（config/event-names.jsonのmatch）は
 // 使えない。country×kindでevent-names.jsonエントリが一意に決まる場合はそのまま使い、複数候補がある
-// 場合（例: US pmi_ism=ISM製造業/非製造業の2エントリ）はentry.subtypeで絞り込む
+// 場合（例: US pmi_ism=ISM製造業/非製造業の2エントリ、GB pmi_ism=建設業PMI/フラッシュPMIの2エントリ）
+// はentry.subtypeとevent-names.json側の対応エントリのsubtypeフィールドを突き合わせて絞り込む
 // （2026-08-15新設。displayNameを常にnullで返す設計[task #27]にした結果、annual_schedule_config由来の
-// 辞書照合kindの名称が一切解決されなくなっていたための修正）
+// 辞書照合kindの名称が一切解決されなくなっていたための修正。2026-08-15追記[task #41-3]: 当初は
+// match keywordの先頭文字列（"ism {subtype}"）から推測する方式だったが、ISM以外のsubtype組み合わせ
+// [GB construction/flash]では通用しないため、event-names.json側に明示的なsubtypeフィールドを
+// 追加する方式へ一般化した）
 function resolveAnnualDictionaryName(entry, source, eventNames) {
   if (RULE_GENERATED_KINDS.has(entry.kind)) return null; // naming.js側（build-ledger.js）の担当
   const candidates = (eventNames || []).filter((e) => e.country === source.country && e.kind === entry.kind);
   if (candidates.length === 1) return candidates[0].display_name;
   if (candidates.length > 1 && entry.subtype) {
-    // 現状ISM（us_ism）のみがsubtypeを持つ。match keywordの先頭が「kind種別+subtype」で
-    // 始まるものを選ぶ（部分一致だと「non-manufacturing」が「manufacturing」を誤って含んでしまうため
-    // startsWithで位置まで見る）
-    const hit = candidates.find((e) => (e.match || []).some((k) => k.toLowerCase().startsWith(`ism ${entry.subtype}`)));
+    const hit = candidates.find((e) => e.subtype === entry.subtype);
     if (hit) return hit.display_name;
   }
   return null;

@@ -31,6 +31,25 @@ test('autoHeroSummary: ★★★を国+kindで重複除去し、発生順に最�
   assert.equal(summary, 'RBA政策金利＆声明発表、消費者物価指数（CPI）、生産者物価指数（PPI）、ブロックRBA総裁：下院経済委員会への出席を確認する週');
 });
 
+// task #41-3（2026-08-15）で発覚した実バグの回帰テスト: `(a.datetime_jst || '').localeCompare(...)`
+// だと空文字列が実時刻より辞書順で前に来るため、時刻未公表の★★★イベント（例: eurostat_gdpの
+// EU GDP【速報値】。公表時刻がWebSearchで確認できず未設定のためdatetime_jst:null）が週内最速の
+// 発表であるかのように1位表示されてしまっていた。autoHeroPillsと同様にdatetime_jstが無いイベントは
+// 対象外とすることで修正した
+test('autoHeroSummary: datetime_jst未公表（null）の★★★イベントは対象外になる（時刻不明を先頭表示しない）', async () => {
+  const { autoHeroSummary } = await import('../scripts/render.mjs');
+  const ledger = {
+    events: [
+      ledgerEvent({ country: 'EU', kind: 'gdp', name_ja: 'GDP【速報値】', datetime_jst: null, date_jst: '2026-08-14' }),
+      ledgerEvent({ country: 'JP', kind: 'opinions_summary', name_ja: '日銀金融政策決定会合における主な意見の公表', datetime_jst: '2026-08-10T08:50:00+09:00' }),
+      ledgerEvent({ country: 'AU', kind: 'policy_rate', name_ja: 'RBA政策金利＆声明発表', datetime_jst: '2026-08-11T13:30:00+09:00' }),
+    ],
+  };
+  const summary = autoHeroSummary(ledger, reportPolicy);
+  assert.equal(summary, '日銀金融政策決定会合における主な意見の公表、RBA政策金利＆声明発表を確認する週');
+  assert.doesNotMatch(summary, /^GDP【速報値】/, 'datetime_jst:nullのイベントが先頭に来てはならない');
+});
+
 test('autoHeroSummary: ★★★が0件のときはreportPolicy.hero_summary_no_star3_text', async () => {
   const { autoHeroSummary } = await import('../scripts/render.mjs');
   assert.equal(autoHeroSummary({ events: [] }, reportPolicy), reportPolicy.hero_summary_no_star3_text);

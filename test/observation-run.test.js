@@ -298,6 +298,54 @@ test('annualEntryToCandidate: 貿易収支（JP trade_balance）が実configか�
   assert.equal(c.time, null); // announce_time_by_kind.trade_balance未設定（公表時刻がWebSearchで08:50/09:30と食い違い確定できなかったため推測値を入れていない）
 });
 
+// task #41-3（しょうさん承認済み国×kindマトリクス）の回帰テスト: Eurostat HICP・GDP速報値、
+// EU/GBフラッシュPMIを新規annual_schedule_config型ソースとして追加した
+test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_hicp');
+  const importanceRules = { importance_by_kind: { cpi: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'cpi' && e.date === '2026-07-31');
+  assert.ok(entry, '2026-07-31のHICP速報値scheduleエントリが見つからない（2026年7月分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '消費者物価指数（HICP）');
+  assert.equal(c.time, null); // announce_time_by_kind.cpi未設定（公表時刻が11:00 CET/15:00 CETで情報源が食い違い確定できなかったため）
+});
+
+test('annualEntryToCandidate: GDP【速報値】（EU gdp）が実configから名称解決できる（8/10週の既刊fixtureと重なる実例）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_gdp');
+  const importanceRules = { importance_by_kind: { gdp: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'gdp' && e.date === '2026-08-14');
+  assert.ok(entry, '2026-08-14のGDP統合速報scheduleエントリが見つからない（2026年04-06月期）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'GDP【速報値】');
+  assert.equal(c.time, null); // announce_time_by_kind.gdp未設定
+});
+
+// GB pmi_ismは既存の建設業PMI（gb_construction_pmi、subtype:construction）とkind衝突するため、
+// resolveAnnualDictionaryNameのsubtype照合による曖昧性解消（task #41-3で一般化）が正しく機能し、
+// 両者が別々の表示名に解決されることを確認する
+test('annualEntryToCandidate: 英フラッシュPMI（GB pmi_ism, subtype:flash）が建設業PMI（subtype:construction）と混同されずに名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'gb_flash_pmi');
+  const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'pmi_ism' && e.date === '2026-07-24');
+  assert.ok(entry, '2026-07-24のフラッシュPMI scheduleエントリが見つからない');
+  assert.equal(entry.subtype, 'flash');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '英フラッシュPMI');
+});
+
+test('annualEntryToCandidate: ユーロ圏フラッシュPMI（EU pmi_ism）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'eu_flash_pmi');
+  const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'pmi_ism' && e.date === '2026-07-24');
+  assert.ok(entry, '2026-07-24のフラッシュPMI scheduleエントリが見つからない');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'ユーロ圏フラッシュPMI');
+});
+
 test('renderText: outcome・候補一覧・停止目安を含むテキストを生成する（例外を投げない）', async () => {
   const { buildObservationSummary, renderText } = await import('../scripts/phase1/observation-run.mjs');
   const report = {
