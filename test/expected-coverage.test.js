@@ -68,13 +68,47 @@ test('validateExpectedCoverage: 未充足があればok:false・missingに列挙
 // schedule確定）・SNB（weekly_scrape・event-scheduleページの平文リスト抽出）の担当ソースが解決したため、
 // 8/8中銀すべてがactive/draft_scheduleのpolicy_rate担当ソースを持つ状態になった（期待カバレッジCIグリーン化。
 // docs/annual-schedule-maintenance.md参照）。以後、新たな中銀の担当ソースが意図せず欠落した場合は
-// missingが非空になりこのテストが落ちる（回帰検知）
+// missingが非空になりこのテストが落ちる（回帰検知）。derived_rules（policy_rate）のみを対象にし、
+// 下記の国×kindマトリクス（additional_required）とは独立に検証する
 test('validateExpectedCoverage: 実config — 8/8中銀すべてpolicy_rate担当ソースを充足している', () => {
   const sourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
   const officials = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'officials.json'), 'utf8'));
   const expectedCoverageConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'expected-coverage.json'), 'utf8'));
-  const r = validateExpectedCoverage(sourcesConfig, officials, expectedCoverageConfig);
+  const derivedOnlyConfig = { ...expectedCoverageConfig, additional_required: [] };
+  const r = validateExpectedCoverage(sourcesConfig, officials, derivedOnlyConfig);
   assert.equal(r.required.length, 8, 'officials.json登録中銀8行から導出される必須カバレッジは8件のはず');
   assert.equal(r.ok, true, '8/8中銀すべて充足しているはず（新規欠落の回帰検知）');
   assert.deepEqual(r.missing, []);
+});
+
+// task #38（実ネットワーク検証、しょうさん指摘2026-08-15）の是正: 中銀policy_rate以外の
+// 定例統計発表元がexpected-coverageで一切検査されておらず、対象週の主要イベントが軒並み
+// 欠落してもPUBLISH_READYが出てしまう「サイレント欠落」があった。国×kindの必須マトリクスを
+// config/expected-coverage.jsonのadditional_requiredへ追加し（しょうさん承認2026-08-15）、
+// 担当ソースが無い組み合わせをコミット時点（npm test）で検出できるようにした。
+//
+// 【意図的にこのテストは現在失敗する】task #41（新規ソース実装）が完了するまで、
+// 承認済みマトリクスのうち未実装の組み合わせがmissingに列挙され続ける。これはバグではなく、
+// 「実行時ではなくコミット時点で気づける形を維持する」というしょうさんの明示的な設計要求どおりの
+// 挙動である。task #41の進捗に応じてmissingの件数が減り、全件実装完了時にこのテストがパスする
+test('validateExpectedCoverage: 実config — 国×kind必須マトリクス（しょうさん承認2026-08-15）の充足状況', () => {
+  const sourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
+  const officials = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'officials.json'), 'utf8'));
+  const expectedCoverageConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'expected-coverage.json'), 'utf8'));
+  const r = validateExpectedCoverage(sourcesConfig, officials, expectedCoverageConfig);
+  const stillMissing = r.missing.map((m) => `${m.country}:${m.kind}`).sort();
+  assert.deepEqual(
+    stillMissing,
+    [
+      'AU:gdp', 'AU:minutes_summary',
+      'CA:minutes_summary',
+      'CN:gdp', 'CN:industrial_production', 'CN:retail_sales',
+      'EU:cpi', 'EU:gdp', 'EU:minutes_summary', 'EU:pmi_ism',
+      'GB:pmi_ism',
+      'JP:cpi', 'JP:gdp', 'JP:trade_balance',
+      'NZ:cpi', 'NZ:gdp',
+      'US:minutes_summary',
+    ].sort(),
+    'task #41の進捗と食い違う場合は、このリストを実際のmissingへ更新すること（新規に閉じた項目を削除・想定外の新規欠落があれば要調査）'
+  );
 });

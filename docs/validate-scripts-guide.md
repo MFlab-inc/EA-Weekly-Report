@@ -21,7 +21,28 @@ validate_daily_event_layout.py・validate_ledger.py）は、存在しない属�
 | `scripts/check/ledger-html-audit.mjs` | 台帳×HTML突合検査（1対1対応・ルート属性・日付グループ整合） |
 | `scripts/check/policy-lint.mjs` | 禁止語・禁止セクション・免責/出典文言の存在・外部リンクの許可ドメイン照合＋到達性 |
 | `scripts/check/mobile-layout-check.mjs` | モバイル5幅（320/360/375/390/414px）での横スクロール検出（Playwright） |
-| `scripts/check/gate.mjs` | 上記全てをオーケストレーションしPUBLISH_READY/HOLDを判定・記録 |
+| `scripts/lib/validate-event-volume.js` | イベント件数の下限チェック（2026-08-15新設・task #38）。純粋関数 |
+| `scripts/check/gate.mjs` | 上記全てをオーケストレーションしPUBLISH_READY/REVIEW_REQUIRED/HOLDを判定・記録 |
+
+## 判定の3状態（2026-08-15改定・task #38）
+
+しょうさん指摘: 実ネットワーク検証で「対象週(8/17-21)の主要イベントが軒並み欠落（入札3件・★★★0件）
+していたにもかかわらずPUBLISH_READYが出た」事例が見つかった。台帳×HTML突合等の検査は
+「台帳とHTMLの整合性」しか見ておらず、「台帳自体の中身が薄すぎる」ケースを検出できていなかった
+（config/expected-coverage.jsonの国×kind必須マトリクスとは別の、二段構えの安全網として新設）。
+
+- **PUBLISH_READY**: 1〜5の検査すべてERROR無し かつ イベント件数下限チェックもクリア →
+  `output/`へコミット
+- **REVIEW_REQUIRED**（新設）: 1〜5はERROR無しだが件数下限チェックに抵触 → `output/`へコミット
+  しない（artifact/プレビューにのみ出力）。人間が内容を確認し、妥当なら`--acknowledge-low-volume`
+  フラグを付けて再実行することでPUBLISH_READY相当に格上げできる（HOLDは上書きしない）。
+  weekly.yml移設時にworkflow_dispatch入力から本フラグへ渡す設計を想定（weekly.ymlは2026-08-15時点
+  workflows-draft/に据え置きのため未配線）
+- **HOLD**: 1〜5のいずれかにERRORがある（従来どおり）
+
+件数下限の閾値は`config/volume-check-policy.json`で設定する（既定: 掲載対象イベント4件未満、
+または★★★0件）。gate-result.jsonの`decision`フィールドが3値のいずれかを取り、
+`schema_version`は`"1.1"`へ更新した。
 
 ## モバイル検証のPython→Node置き換えについて
 
@@ -81,6 +102,7 @@ chromium`でインストールした既定のブラウザを使う設計にし�
 | 禁止語を入れる | `policy-lint.mjs`（FORBIDDEN_READER_TERM） | `test/policy-lint.test.js`・`test/gate.test.js` |
 | リンクを許可外ドメインにする | `policy-lint.mjs`（LINK_DOMAIN_NOT_ALLOWLISTED） | 同上 |
 | 横スクロールが出る幅指定を入れる | `mobile-layout-check.mjs`（HORIZONTAL_SCROLL） | `test/mobile-layout-check.test.js` |
+| イベント件数が下限を下回る（例: 8/17週の入札3件・★★★0件） | `validate-event-volume.js`（REVIEW_REQUIRED、ERRORではないためHOLDにはならない） | `test/validate-event-volume.test.js`・`test/gate.test.js` |
 
 いずれも`npm test`（CI）に含まれ、全件PASSがコミット条件（HANDOFF.md §7）。
 
@@ -91,6 +113,8 @@ node scripts/check/gate.mjs \
   --ledger data/ledger/2026-08-17.json \
   --html output/ea-weekly-20260817.html \
   --result gate-result.json
+  # REVIEW_REQUIRED後、人間が内容を確認して妥当と判断した場合のみ:
+  # --acknowledge-low-volume を追加して再実行するとPUBLISH_READY相当に格上げされる
 ```
 
 `--skip-mobile`（Playwright起動を省略）・`--skip-link-reachability`（外部ネットワークアクセスを

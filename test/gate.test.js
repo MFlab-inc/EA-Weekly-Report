@@ -120,3 +120,59 @@ test('禁止語混入・許可外ドメインリンクはpolicy_lintでHOLD', as
   assert.ok(lintCheck.errors.some((e) => e.includes('FORBIDDEN_READER_TERM')));
   assert.ok(lintCheck.errors.some((e) => e.includes('LINK_DOMAIN_NOT_ALLOWLISTED')));
 });
+
+// task #38実ネットワーク検証（しょうさん指摘2026-08-15）で新設した3状態判定（PUBLISH_READY/
+// REVIEW_REQUIRED/HOLD）のテスト。8/17週で★★★0件・掲載対象3件のままPUBLISH_READYが
+// 出てしまった事例を受け、検査エラーが無くてもイベント件数が下限を下回ればREVIEW_REQUIRED
+// とし、output/へコミットしない安全網を追加した
+const VOLUME_POLICY = { min_displayed_events: 4, require_at_least_one_star3: true };
+
+test('decideGateOutcome: 検査エラーがあれば下限チェックの結果に関わらずHOLD', async () => {
+  const { decideGateOutcome } = await loadGate();
+  const checks = [{ name: 'ledger_schema', errors: ['出典が空'], warnings: [] }];
+  const decision = decideGateOutcome(checks, { belowThreshold: false, reasons: [] });
+  assert.equal(decision, 'HOLD');
+});
+
+test('decideGateOutcome: 検査エラー無し・件数下限抵触ありはREVIEW_REQUIRED', async () => {
+  const { decideGateOutcome } = await loadGate();
+  const checks = [{ name: 'ledger_schema', errors: [], warnings: [] }];
+  const decision = decideGateOutcome(checks, { belowThreshold: true, reasons: ['最重要（★★★）イベントが0件です'] });
+  assert.equal(decision, 'REVIEW_REQUIRED');
+});
+
+test('decideGateOutcome: acknowledgeLowVolume:trueなら件数下限抵触があってもPUBLISH_READYへ格上げされる', async () => {
+  const { decideGateOutcome } = await loadGate();
+  const checks = [{ name: 'ledger_schema', errors: [], warnings: [] }];
+  const decision = decideGateOutcome(checks, { belowThreshold: true, reasons: ['test'] }, { acknowledgeLowVolume: true });
+  assert.equal(decision, 'PUBLISH_READY');
+});
+
+test('decideGateOutcome: acknowledgeLowVolume:trueでも検査エラーがあればHOLDのまま（オーバーライドはHOLDを上書きしない）', async () => {
+  const { decideGateOutcome } = await loadGate();
+  const checks = [{ name: 'ledger_schema', errors: ['出典が空'], warnings: [] }];
+  const decision = decideGateOutcome(checks, { belowThreshold: true, reasons: ['test'] }, { acknowledgeLowVolume: true });
+  assert.equal(decision, 'HOLD');
+});
+
+test('decideGateOutcome: 検査エラー無し・件数下限もクリアならPUBLISH_READY', async () => {
+  const { decideGateOutcome } = await loadGate();
+  const checks = [{ name: 'ledger_schema', errors: [], warnings: [] }];
+  const decision = decideGateOutcome(checks, { belowThreshold: false, reasons: [] });
+  assert.equal(decision, 'PUBLISH_READY');
+});
+
+// task #38の8/17週の再現ケース: baseLedger()は既定でイベント1件のみ（掲載対象<4件）のため、
+// 実際のrunGateChecks()結果と組み合わせてもREVIEW_REQUIRED相当になることを確認する
+test('統合: baseLedger()（イベント1件のみ）はchecksにERROR無しでもcheckEventVolumeで下限抵触する', async () => {
+  const { runGateChecks, decideGateOutcome } = await loadGate();
+  const { checkEventVolume } = await import('../scripts/lib/validate-event-volume.js');
+  const checks = await runGateChecks({
+    ledger: baseLedger(), html: baseHtml(), reportPolicy: REPORT_POLICY, btcGuide: BTC_GUIDE,
+    skipMobile: true, skipLinkReachability: true,
+  });
+  assert.deepEqual(checks.flatMap((c) => c.errors), []);
+  const volumeCheck = checkEventVolume(baseLedger(), VOLUME_POLICY);
+  assert.equal(volumeCheck.belowThreshold, true);
+  assert.equal(decideGateOutcome(checks, volumeCheck), 'REVIEW_REQUIRED');
+});

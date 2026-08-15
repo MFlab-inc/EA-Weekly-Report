@@ -1,0 +1,11 @@
+{
+  "_comment": "対象週のイベント件数が異常に少ない週を検知する下限チェック（しょうさん指示2026-08-15、task #38: 8/17週で★★★0件・掲載対象3件のままPUBLISH_READYが出た事例を受けて新設）。国×kindの必須マトリクス（config/expected-coverage.json）は『既知の指標種別に担当ソースがあるか』を守るが、想定外の欠落を防ぎきれない可能性があるための二段構えの安全網。gate.mjsのrunGateChecks()が本設定を読み、下限を下回った場合はREVIEW_REQUIRED（output/へコミットしない）とする。HOLDにはしない理由: 閾値の誤検知リスクがあるため、人間の目視確認を促すに留める",
+  "min_displayed_events": 4,
+  "min_displayed_events_note": "掲載対象イベント（importance 2または3）の総数がこれ未満ならREVIEW_REQUIRED対象",
+  "require_at_least_one_star3": true,
+  "require_at_least_one_star3_note": "trueの場合、★★★（importance=3）が0件の週もREVIEW_REQUIRED対象とする",
+  "historical_median_check": {
+    "enabled": false,
+    "note": "しょうさん指示2026-08-15: 8週分の実績が溜まったら『過去中央値の50%未満』も条件に追加することを検討。実績データが無いため現時点ではenabled:false。有効化する際はhistorical_event_counts等の実績データソースと閾値計算方法を別途設計すること"
+  }
+}

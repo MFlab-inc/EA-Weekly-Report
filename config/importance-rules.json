@@ -11,6 +11,7 @@
     "ppi": 3,
     "gdp": 3,
     "retail_sales": 3,
+    "industrial_production": 3,
     "employment_situation": 3,
     "minutes_summary": 2,
     "employment_indicator": 2,
@@ -30,7 +31,8 @@
     "pmi_ism": "PMI・景況指数全般（ISM・Caixin/RatingDog・CIPS建設業PMI・Ivey等）。米ISMのみcountry_overridesで★★★に引き上げ",
     "trade_balance": "貿易収支。豪州のみcountry_overridesで★★★に引き上げ（既刊実績・AUD系EA運用実態）",
     "official_speech": "中銀理事・地区連銀総裁等の発言（議長本人の発言はpress_conference/testimonyへ分類）",
-    "bond_auction": "国債入札（日本・米国等）"
+    "bond_auction": "国債入札（日本・米国等）",
+    "industrial_production": "鉱工業生産指数。2026-08-15新設（しょうさん承認・国×kind必須マトリクス、CN=NBS担当）"
   },
   "country_overrides": [
     { "kind": "pmi_ism", "country": "US", "importance": 3, "reason": "ISM製造業/非製造業景況指数。既刊2週で★★★（Phase 0実測）", "downgrade_ok": true },
