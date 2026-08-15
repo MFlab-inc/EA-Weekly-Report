@@ -127,6 +127,16 @@ node scripts/check/gate.mjs \
 （検索エンジンにインデックスされたページ内容からの確認）だけで登録している
 （`source_verified`はfalse、`note`に確認方法を明記）。
 
+**2026-08-15追記（task #41-1）**: この限界は`display_name`だけでなく、`schedule[]`の
+**日付そのもの**にも同様に当てはまる。ECB Accounts of the monetary policy meeting
+（`ecb_policy_rate`）・BOC Summary of Governing Council Deliberations（`boc_policy_rate`）は、
+FOMC/RBAの議事要旨と異なり会合日からの固定オフセット計算ができない（各中銀がその都度個別に
+次回日程を告知する運用）。実日付6件（ECB）・8件（BOC）はいずれもWebSearch経由でのみ確認し、
+`config/official-sources.json`の該当`schedule[]`エントリに`note`で確認方法を明記した。
+さらにECBは公表時刻（何時に公表されるか）自体もWebSearchで確認できなかったため、
+`announce_time_by_kind.minutes_summary`を未設定のままにし、`time: null`で扱っている
+（推測時刻を入れてfabricationするより、未確定であることを明示する方を優先した）。
+
 **この方式は過去に実バグの原因になった**: GB GDPの旧`match`キーワード（`gdp m/m`・
 `prelim gdp q/q`）はFF（Forex Factory）想定の表記であり、実際の担当ソースgb_ons（ONS
 releases API）の実タイトル『GDP first quarterly estimate, UK: {期間}』とは一致していなかった。

@@ -229,6 +229,37 @@ test('annualEntryToCandidate + resolveRuleGeneratedName: RBA議事要旨（AU mi
   assert.equal(resolveRuleGeneratedName({ kind: c.kind, country: c.country }, null), 'RBA議事要旨');
 });
 
+// task #41-1完了分の回帰テスト: ECB Accounts of the monetary policy meeting・BOC Summary of
+// Governing Council Deliberationsは、FOMC/RBAと異なり固定オフセット計算ではなく各中銀が単発
+// 告知する実日付をWebSearch経由で個別収録した（config/official-sources.jsonの該当notes参照）。
+// ここでは収録した実日付の1件が正しく解決されることを確認する
+test('annualEntryToCandidate + resolveRuleGeneratedName: ECB議事要旨（EU minutes_summary）が実configから正しく組み立てられる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const { resolveRuleGeneratedName } = require('../scripts/lib/build-ledger');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'ecb_policy_rate');
+  const importanceRules = { importance_by_kind: { minutes_summary: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'minutes_summary' && e.date === '2026-08-27');
+  assert.ok(entry, '2026-08-27のECB Accounts scheduleエントリが見つからない（accounts索引ページのnext release表記で確認済み）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, null); // rule_generated kindのためresolveAnnualDictionaryNameは対象外
+  assert.equal(c.time, null); // announce_time_by_kind.minutes_summary未設定（公表時刻がWebSearchで確認できなかったため推測値を入れていない）
+  assert.equal(resolveRuleGeneratedName({ kind: c.kind, country: c.country }, null), 'ECB議事要旨');
+});
+
+test('annualEntryToCandidate + resolveRuleGeneratedName: BOC議事要旨（CA minutes_summary）が実configから正しく組み立てられる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const { resolveRuleGeneratedName } = require('../scripts/lib/build-ledger');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'boc_policy_rate');
+  const importanceRules = { importance_by_kind: { minutes_summary: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'minutes_summary' && e.date === '2026-09-16');
+  assert.ok(entry, '2026-09-16のBOC Summary scheduleエントリが見つからない（2026-09-02決定分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, null); // rule_generated kindのためresolveAnnualDictionaryNameは対象外
+  assert.equal(c.time, '02:30'); // 13:30 ET(EDT, UTC-4) → 翌日02:30 JST
+  assert.equal(c.date, '2026-09-17'); // JST変換で日付が繰り上がる
+  assert.equal(resolveRuleGeneratedName({ kind: c.kind, country: c.country }, null), 'BOC議事要旨');
+});
+
 test('renderText: outcome・候補一覧・停止目安を含むテキストを生成する（例外を投げない）', async () => {
   const { buildObservationSummary, renderText } = await import('../scripts/phase1/observation-run.mjs');
   const report = {

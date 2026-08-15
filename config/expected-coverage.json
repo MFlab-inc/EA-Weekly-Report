@@ -47,7 +47,7 @@
     {
       "country": "EU",
       "kind": "minutes_summary",
-      "note": "しょうさん承認2026-08-15（ECB Accounts of the monetary policy meeting）。既存ecb_policy_rateへの追記で対応可能（次回日程を事前明示、task #41）"
+      "note": "しょうさん承認2026-08-15（ECB Accounts of the monetary policy meeting）。task #41-1で実装済み（既存ecb_policy_rateへWebSearch確認済みの実日付6件を追加）"
     },
     {
       "country": "GB",
@@ -107,7 +107,7 @@
     {
       "country": "CA",
       "kind": "minutes_summary",
-      "note": "しょうさん承認2026-08-15（BOC Summary of Governing Council Deliberations）。BOCが翌年分日程を毎年8月に事前公表（最も確実なtier）。既存boc_policy_rateへの追記で対応可能（task #41）"
+      "note": "しょうさん承認2026-08-15（BOC Summary of Governing Council Deliberations）。task #41-1で実装済み（既存boc_policy_rateへWebSearch確認済みの2026年通年8件を追加）"
     },
     {
       "country": "CN",

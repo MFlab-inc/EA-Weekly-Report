@@ -47,11 +47,17 @@ const OFFICIAL_SPEECH_ROLE_BY_COUNTRY = {
 // minutes_summary（中銀議事要旨）のBOJ以外向け国別命名（task #41-1、しょうさん承認済み
 // 国×kindマトリクス）。BOJ（naming.bojMinutesName、periodJa付き）とは異なり、各中銀の
 // 議事要旨は通称としての固有名詞が既に確立しているため、対象会合の特定を伴わない固定文言とする。
-// 会合日程自体は既存の中銀ソース（us_frb_policy_rate/au_rba等）のscheduleへ固定オフセットで
-// 算出したminutes_summaryエントリを追加する形で配線している（新規フェッチ不要）
+// 会合日程自体は既存の中銀ソース（us_frb_policy_rate/au_rba/ecb_policy_rate/boc_policy_rate）の
+// scheduleへ配線している（US/AUは会合日からの固定オフセット計算、EU/CAは各中銀が単発告知する
+// 実日付をWebSearch経由で個別収録。config/official-sources.json該当ソースのnotes参照）。
+// EU（ECB Accounts of the monetary policy meeting）・CA（BOC Summary of Governing Council
+// Deliberations）はいずれも公式文書名が「議事録（transcript）」ではなく「要旨（summary/accounts）」
+// のため、FOMC議事録ではなくRBA議事要旨と同じ命名パターンを踏襲した
 const MINUTES_SUMMARY_NAME_BY_COUNTRY = {
   US: 'FOMC議事録',
   AU: 'RBA議事要旨',
+  EU: 'ECB議事要旨',
+  CA: 'BOC議事要旨',
 };
 
 // SPEC §4.2の規則生成命名テンプレート（scripts/lib/naming.js）による解決を試みる。

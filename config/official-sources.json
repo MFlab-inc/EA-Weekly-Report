@@ -1494,7 +1494,8 @@
       "country": "EU",
       "kinds": [
         "policy_rate",
-        "press_conference"
+        "press_conference",
+        "minutes_summary"
       ],
       "type": "annual_schedule_config",
       "recurring_check_refs": [],
@@ -1517,7 +1518,7 @@
           "tz": "Europe/Berlin"
         }
       },
-      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。countryを'EU'としたが、既存configの国コード体系（ISO国コード）と整合しないため要検討（country-currency-map.json等への影響を含む）。2026-08-15実測: robots.txt許可・HTTP 200・106KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。構造確認・抽出ルール実装は未着手 | 2026-08-15: annual_schedule_config化完了（scripts/checkers/extractors/ecb-policy-rate.js実測）。country=\"EU\"を正式採用（scripts/phase0/phase0.mjsのCOUNTRY_JA_TO_CODEに既存の\"ユーロ圏\"→\"EU\"変換と整合。naming.jsのpolicyRateName()はbankAbbr直接指定のためcountry値に依存せず、resolveCandidateEventのruleGenerated分岐によりevent-names.json辞書照合も不要なため実害なしと判断）。schedule[]は2026年分（fetch時点で既に一部が過ぎているため2027・2028年分中心）＋2027・2028年分を収録。2027年通年8回・次回会合(2026-09-10)が未来であることを確認済み（検証基準b。既実施会合はページ非掲載のため検証不可）。発表時刻14:15/14:45 CET/CESTはECB公式運用の規定時刻。tz=Europe/Berlin（フランクフルト本部・IANA上はEurope/Frankfurt未定義のためドイツ標準zoneを使用）",
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。countryを'EU'としたが、既存configの国コード体系（ISO国コード）と整合しないため要検討（country-currency-map.json等への影響を含む）。2026-08-15実測: robots.txt許可・HTTP 200・106KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。構造確認・抽出ルール実装は未着手 | 2026-08-15: annual_schedule_config化完了（scripts/checkers/extractors/ecb-policy-rate.js実測）。country=\"EU\"を正式採用（scripts/phase0/phase0.mjsのCOUNTRY_JA_TO_CODEに既存の\"ユーロ圏\"→\"EU\"変換と整合。naming.jsのpolicyRateName()はbankAbbr直接指定のためcountry値に依存せず、resolveCandidateEventのruleGenerated分岐によりevent-names.json辞書照合も不要なため実害なしと判断）。schedule[]は2026年分（fetch時点で既に一部が過ぎているため2027・2028年分中心）＋2027・2028年分を収録。2027年通年8回・次回会合(2026-09-10)が未来であることを確認済み（検証基準b。既実施会合はページ非掲載のため検証不可）。発表時刻14:15/14:45 CET/CESTはECB公式運用の規定時刻。tz=Europe/Berlin（フランクフルト本部・IANA上はEurope/Frankfurt未定義のためドイツ標準zoneを使用） | 2026-08-15追記（task #41-1、しょうさん承認済み国×kindマトリクス）: minutes_summary（ECB Accounts of the monetary policy meeting）を追加。会合終了+4週間が目安だがFOMC/RBAと異なり単純な固定オフセット計算ではなく毎回ECBが単発で次回日程を告知する運用のため、6件（2025年12月〜2026年7月会合分）の実日付をWebSearch経由でecb.europa.eu実ページURL（日付コード付き）から個別確認して収録した（source_verified:false同等、直接フェッチ不可のため）。9-10月・12月会合分は2026-08-15時点で未告知のため未収録（次回本番run以降に確認・追記が必要）。公表時刻は複数のWebSearch試行でも確認できず（14:15 CETは政策金利発表の時刻でありAccountsとは別。誤った時刻を推測で入れないためannounce_time_by_kind.minutes_summaryは未設定とし、time:nullで扱う。次回本番runでのライブ確認対象）",
       "schedule": [
         {
           "date": "2026-09-10",
@@ -1670,6 +1671,36 @@
         {
           "date": "2028-12-07",
           "kind": "press_conference"
+        },
+        {
+          "date": "2026-01-22",
+          "kind": "minutes_summary",
+          "note": "2025-12-17-18会合分のAccounts of the monetary policy meeting。WebSearch経由でecb.europa.eu/press/accounts/2026/html/ecb.mg260122配下の実ページURLを確認（task #41-1調査、要ライブ確認）"
+        },
+        {
+          "date": "2026-03-05",
+          "kind": "minutes_summary",
+          "note": "2026-02-04-05会合分。WebSearch経由でecb.mg260305配下の実ページURLを確認（task #41-1調査、要ライブ確認）"
+        },
+        {
+          "date": "2026-04-16",
+          "kind": "minutes_summary",
+          "note": "2026-03-18-19会合分。WebSearch経由でecb.mg260416配下の実ページURLを確認（task #41-1調査、要ライブ確認）"
+        },
+        {
+          "date": "2026-05-28",
+          "kind": "minutes_summary",
+          "note": "2026-04-29-30会合分。WebSearch経由でecb.mg260528配下の実ページURLを確認（task #41-1調査、要ライブ確認）"
+        },
+        {
+          "date": "2026-07-09",
+          "kind": "minutes_summary",
+          "note": "2026-06-10-11会合分。WebSearch経由でecb.mg260709配下の実ページURLを確認（task #41-1調査、要ライブ確認）"
+        },
+        {
+          "date": "2026-08-27",
+          "kind": "minutes_summary",
+          "note": "2026-07-22-23会合分。ECB accounts索引ページの『next release』表記で確認（task #41-1調査、要ライブ確認）。9-10月・12月会合（2026-09-10/2026-10-29/2026-12-17、既存policy_rateスケジュール参照）分のAccounts日程はECBが単発告知のみ（年間分の事前公表なし）のため2026-08-15時点で確認不可。次回本番run以降、index.en.htmlの『next release』表記を都度確認し追記すること"
         }
       ],
       "residual_monitor_weeks": 4
@@ -1775,7 +1806,8 @@
       "country": "CA",
       "kinds": [
         "policy_rate",
-        "quarterly_report"
+        "quarterly_report",
+        "minutes_summary"
       ],
       "type": "annual_schedule_config",
       "recurring_check_refs": [],
@@ -1805,9 +1837,14 @@
           "local_time": "09:45",
           "tz": "America/Toronto",
           "note": "政策金利発表と同時刻（同一発表枠としてbundling_ruleで束ねる）。Monetary Policy Reportは1・4・7・10月の発表回に限り同時発表"
+        },
+        "minutes_summary": {
+          "local_time": "13:30",
+          "tz": "America/Toronto",
+          "note": "Summary of Governing Council deliberations。WebSearch経由で複数の公式プレスページ本文『available on the Bank's website at 13:30 (ET)』を確認（source_verified:false同等、直接フェッチ不可のため。次回本番runでのライブ確認対象）"
         }
       },
-      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt許可・HTTP 200・148KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。当初はupcoming-events/がローリング約4ヶ月先までの催事一覧（年次一括公表ではない）と判明したためweekly_scrape型とし、抽出はscripts/checkers/extractors/boc-policy-rate.jsで実装（年8回・09:45(ET)発表を実データ確認済み） | 2026-08-15追記（しょうさん指摘・一次ソース実測）: BOCは毎年、翌年分の政策金利発表日程を年次プレスリリース『Bank of Canada publishes its {年}年 schedule for policy interest rate announcements and other major publications』で一括公表する慣行が2012年から継続していることをWebSearchで確認（canada.ca archiveに2013〜2015年分の同種リリースあり）。実際に2026年分（2025-08-06公表）・2027年分（2026-07-27公表）のプレスリリース本文を実測取得し（scripts/phase1/source-recon-g.mjs）、2026年全8回・2027年全8回の日程を直接確認。2027年分リリースは『reconfirmed』として2026年9〜12月分も再掲しており、2026年分リリースとの重複確認（2026-09-02・10-28・12-09が両リリースで一致）によりダブルチェック済み。全会合とも09:45(ET)発表・Monetary Policy Reportは1/4/7/10月の発表回に同時発表という記載も両リリースで一致。annual_schedule_config型へ格上げし、既存のweekly_scrape抽出（scripts/checkers/extractors/boc-policy-rate.js・test/extractors-boc-policy-rate.test.js）はFRB/ECB/BOE等と同様、スケジュール導出・将来の再検証用のオフラインツールとして温存する（harness.mjsの実行時抽出からは外す）",
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt許可・HTTP 200・148KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。当初はupcoming-events/がローリング約4ヶ月先までの催事一覧（年次一括公表ではない）と判明したためweekly_scrape型とし、抽出はscripts/checkers/extractors/boc-policy-rate.jsで実装（年8回・09:45(ET)発表を実データ確認済み） | 2026-08-15追記（しょうさん指摘・一次ソース実測）: BOCは毎年、翌年分の政策金利発表日程を年次プレスリリース『Bank of Canada publishes its {年}年 schedule for policy interest rate announcements and other major publications』で一括公表する慣行が2012年から継続していることをWebSearchで確認（canada.ca archiveに2013〜2015年分の同種リリースあり）。実際に2026年分（2025-08-06公表）・2027年分（2026-07-27公表）のプレスリリース本文を実測取得し（scripts/phase1/source-recon-g.mjs）、2026年全8回・2027年全8回の日程を直接確認。2027年分リリースは『reconfirmed』として2026年9〜12月分も再掲しており、2026年分リリースとの重複確認（2026-09-02・10-28・12-09が両リリースで一致）によりダブルチェック済み。全会合とも09:45(ET)発表・Monetary Policy Reportは1/4/7/10月の発表回に同時発表という記載も両リリースで一致。annual_schedule_config型へ格上げし、既存のweekly_scrape抽出（scripts/checkers/extractors/boc-policy-rate.js・test/extractors-boc-policy-rate.test.js）はFRB/ECB/BOE等と同様、スケジュール導出・将来の再検証用のオフラインツールとして温存する（harness.mjsの実行時抽出からは外す） | 2026-08-15追記（task #41-1、しょうさん承認済み国×kindマトリクス）: minutes_summary（Summary of Governing Council Deliberations）を追加。BOCは政策金利発表と同様、Summaryの発表日程も個別プレスリリース『Summary of Governing Council deliberations: Fixed announcement date of {日付}』で単発告知する運用（FOMCのような固定オフセット計算ではない）。2026年通年8件をWebSearch経由で実ページ（bankofcanada.ca/2026/...）から個別確認して収録した。発表時刻13:30 ETも複数の同種プレスページで確認",
       "residual_monitor_weeks": 4,
       "schedule_status": "confirmed",
       "confirmed_at": "2026-08-15",
@@ -1915,6 +1952,46 @@
         {
           "date": "2027-12-08",
           "kind": "policy_rate"
+        },
+        {
+          "date": "2026-02-11",
+          "kind": "minutes_summary",
+          "note": "2026-01-28決定分。WebSearch経由でbankofcanada.ca個別プレスページを確認（task #41-1調査、要ライブ確認）"
+        },
+        {
+          "date": "2026-04-01",
+          "kind": "minutes_summary",
+          "note": "2026-03-18決定分。同上"
+        },
+        {
+          "date": "2026-05-13",
+          "kind": "minutes_summary",
+          "note": "2026-04-29決定分。同上"
+        },
+        {
+          "date": "2026-06-24",
+          "kind": "minutes_summary",
+          "note": "2026-06-10決定分。同上"
+        },
+        {
+          "date": "2026-07-29",
+          "kind": "minutes_summary",
+          "note": "2026-07-15決定分。同上"
+        },
+        {
+          "date": "2026-09-16",
+          "kind": "minutes_summary",
+          "note": "2026-09-02決定分。同上"
+        },
+        {
+          "date": "2026-11-10",
+          "kind": "minutes_summary",
+          "note": "2026-10-28決定分。同上"
+        },
+        {
+          "date": "2026-12-23",
+          "kind": "minutes_summary",
+          "note": "2026-12-09決定分。同上"
         }
       ]
     },
