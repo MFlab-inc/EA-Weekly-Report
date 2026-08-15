@@ -91,8 +91,10 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     parseFn: extractNzNextRelease,
     toRow: (r) => ({ title: 'Labour market statistics', date: r.releaseDate, localTime: '10:45' }),
   },
-  // BOC: row.kindが抽出側で確定済み（policy_rate / quarterly_report）。SPEC §4.2の
-  // 規則生成命名kindのためevent-names.json辞書照合を行わない（harness側のruleGenerated分岐）
+  // BOC: row.kindが抽出側で確定済み（policy_rate / quarterly_report）。2026-08-15にconfig側の
+  // boc_policy_rateはannual_schedule_config型へ格上げ済み（runChecks()はsource.typeで分岐するため
+  // 本番経路では到達しない）。このマッピングはtest/harness.test.jsの「row.kind確定型」汎用回帰テスト
+  // （event-names.json未登録でも抽出成功しdisplayNameがnullで返ることの検証）のために意図的に残している
   boc_policy_rate: {
     primaryLabel: 'upcoming_events',
     parseFn: extractBocPolicyRateSchedule,

@@ -25,8 +25,9 @@ WARNが出たら、そのメッセージ（対象ソース名）をそのままC
 | FRB（FOMC政策金利カレンダー） | 随時（前年末〜当年始めに翌年分を公表。実測時点で2027年分も掲載済み） | 年8回の会合日程（政策金利＋会見＋うち4回はSummary of Economic Projections＝四半期報告相当） | federalreserve.gov/monetarypolicy/fomccalendars.htm（2026-08-15実測でHTML抽出済み。task #19。`scripts/checkers/extractors/frb-policy-rate.js`） |
 | ECB（Governing Council政策金利カレンダー） | 随時（実測時点で2028年分まで掲載済み） | 年8回の金融政策会合日程（政策金利＋会見） | ecb.europa.eu/press/calendars/mgcgc/html/index.en.html（2026-08-15実測でHTML抽出済み。task #19。`scripts/checkers/extractors/ecb-policy-rate.js`。country="EU"採用の設計判断は下記参照） |
 | BOE（MPC政策金利カレンダー） | 随時（実測時点で2026・2027年分が確定済み(confirmed)として掲載） | 年8回の会合日程（政策金利のみ。会見は本ソース未収録） | bankofengland.co.uk/monetary-policy/upcoming-mpc-dates（2026-08-15実測でHTML抽出済み。task #19。`scripts/checkers/extractors/boe-policy-rate.js`） |
-| RBNZ（OCR政策金利カレンダー） | **手動確定が必要（robots.txt自体が403でインフラ側ブロック）**。年1回、下記手順で確定 | 年8回のOCR決定日程（現地時間14:00が通例。要ページ確認） | rbnz.govt.nz/.../monetary-policy-and-ocr-decision-dates-until-february-2027（自動取得不可。しょうさんへ確認依頼中。下記「RBNZ固有の手順」参照） |
-| SNB（金融政策評価カレンダー） | **手動確定が必要（先行一括公表ページ無し）**。四半期ごとに直近会合を確認 | 年4回（3・6・9・12月）の金融政策評価 | snb.ch/en/the-snb/mandates-goals/monetary-policy/decisions（自動取得不可・先行一括公表ページ未発見。しょうさんへ確認依頼中。下記「SNB固有の手順」参照） |
+| BOC（政策金利発表カレンダー） | 毎年7〜8月頃（翌年分。2012年から継続する年次プレスリリース慣行をWebSearchで確認、2026-08-15） | 年8回の会合日程（政策金利＋うち1/4/7/10月の4回はMonetary Policy Report同時発表） | bankofcanada.ca『Bank of Canada publishes its {年} schedule for policy interest rate announcements and other major publications』（2026-08-15実測でプレスリリース本文2件を直接確認・annual_schedule_config化。`scripts/checkers/extractors/boc-policy-rate.js`は将来の再検証用に温存、harness.mjs実行時抽出からは除外） |
+| RBNZ（OCR政策金利カレンダー） | 前年内（2026-02-19公表の最新ページで2028年2月分まで掲載）。年1回、下記手順で確定 | 年8回のOCR決定日程（現地時間14:00が通例） | rbnz.govt.nz/.../ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028（**2026-08-15訂正**: 旧URL[until-february-2027]は廃止・404。しょうさんが一次ソースを直接確認し新URL・全12回分の日程を転記、schedule_status=confirmed。robots.txt自体が新URLでもHTTP403でありClaude Code側の自動取得は引き続き不可。下記「RBNZ固有の手順」参照） |
+| SNB（Time schedule・金融政策評価カレンダー） | 常時（ページ自体が将来分を掲載し続けるため年次確定作業は不要） | 年4回（3・6・9・12月）の金融政策評価（press release 09:30＋news conference 10:00）＋Summary of monetary policy discussion | snb.ch/en/services-events/digital-services/event-schedule（**2026-08-15訂正**: 「一括先行公表なし」は誤りだった。しょうさんが一次ソースを直接確認し発見。同ページ本文の平文日程リストを`scripts/checkers/extractors/snb-policy-rate.js`で直接抽出するweekly_scrape型へ変更、annual_schedule_config方式は不採用。下記「SNB固有の手順」参照） |
 
 ### ISM固有の手順（年1回・手動照合が必須）
 
@@ -43,10 +44,10 @@ ISM公式サイトは自動取得がCAPTCHAでブロックされるため、他�
 
 ### RBNZ固有の手順（年1回・手動照合が必須。ISMと同方式）
 
-RBNZ公式サイトはrobots.txt自体がHTTP 403でインフラ側ブロックされており自動取得不可（2026-08-15実測）。一方でRBNZは年8回のOCR（Official Cash Rate）決定日程を「until February 2027」のような専用ページで前年に一括先行公表する運用のため、ISMと同じ「人間が年1回、公式ページを目視して確定する」annual_schedule_config方式を採用する。WARN暫定緩和では対応しない（NZDペア運用者にとってRBNZ政策金利は★★★の停止対象のため、しょうさん指示によりWARNのみの緩和は不採用）。
+RBNZ公式サイトはrobots.txt自体がHTTP 403でインフラ側ブロックされており自動取得不可（2026-08-14実測、2026-08-15新URLでも再現）。一方でRBNZは年8回のOCR（Official Cash Rate）決定日程を専用ページで前年に一括先行公表する運用のため、ISMと同じ「人間が年1回、公式ページを目視して確定する」annual_schedule_config方式を採用する。WARN暫定緩和では対応しない（NZDペア運用者にとってRBNZ政策金利は★★★の停止対象のため、しょうさん指示によりWARNのみの緩和は不採用）。
 
 1. しょうさんが下記URLをブラウザで開き、以下の項目を目視確認してClaude Codeへ転記する:
-   - **確認URL**: `https://www.rbnz.govt.nz/news-and-events/how-we-release-information/monetary-policy-and-ocr-decision-dates-until-february-2027`
+   - **確認URL**: `https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028`（2026-08-15訂正: 旧URL[...-until-february-2027]は廃止・404済み。新URLは2026-02-19公表・2028年2月分までカバー）
    - **転記してほしい項目**（会合ごとに）:
      - 会合日（決定発表日）
      - 発表時刻（現地時間。暫定値はNZ時間14:00と想定しているが、ページ記載の実際の値で確認してほしい）
@@ -54,18 +55,17 @@ RBNZ公式サイトはrobots.txt自体がHTTP 403でインフラ側ブロック�
 2. 転記内容をClaude Codeが`config/official-sources.json`のrbnz_policy_rate.scheduleへ反映し、`schedule_status`を`confirmed`に、`confirmed_at`/`confirmed_by`を記録する
 3. 以後は残量監視WARN（本文の仕組み参照）が翌年分の確定時期を知らせる
 
-**現在の状態（2026-08-15）**: config側の受け皿（type=annual_schedule_config・schedule=[]・access.manual_verify_url設定済み）は準備完了。しょうさんへの確認依頼中で未確定（`schedule_status: "awaiting_confirmation"`）。scheduleが空のため残量監視WARNが常時出る状態になっている（これは意図した挙動＝確定するまで「未確定」であることを毎回可視化する）。
+**現在の状態（2026-08-15、しょうさんが一次ソース直接確認）**: 新URL・2026年9月〜2028年2月分の全12回分をしょうさんが直接転記し、`schedule_status: "confirmed"`・`status: "active"`へ反映済み（2027年から年7→8回体制へ増加し、旧2027年2月分程日程は1週間前倒しになった点も反映）。**残課題**: 発表時刻14:00 NZTはWebSearchの複数の裏付け記事（『announced to financial markets at 2pm (NZT)』）で確認したが、RBNZ公式ページ本文の時刻表記そのものは自動取得不可（robots.txt 403、開発コンテナ・GitHub Actionsランナー双方で再現）のためClaude Code側で直接一次照合できていない。しょうさんが上記URLを開いた際に併せて時刻表記を確認できれば教えてほしい（tz=Pacific/Auckland指定によりNZST/NZDT切替自体は自動判定されるため、確認が必要なのは「14:00」という数値自体の正しさのみ）。
 
-### SNB固有の手順（RBNZと異なり先行一括公表ページが無いため四半期ごとの確認が必要）
+### SNB固有の手順（2026-08-15訂正: 先行一括公表あり・手動確認は不要に）
 
-SNBは年4回（3・6・9・12月）の金融政策評価を実施するが、WebSearch再調査（2026-08-15）でもFRB/ECB/BOE/RBNZのような「翌年分を一括先行公表する専用ページ」は見つからなかった。実際の会合日は、その回が近づいてから（プレスリリースの形で）公表される運用とみられる。data.snb.ch/en/calendar（データポータル）はAngular SPAで静的取得不可と確認済み。
+**訂正**: 旧記録「先行一括公表ページ無し・四半期ごとの手動確認が必要」は誤りだった。しょうさんが一次ソースを直接取得し、SNB公式「Time schedule」ページ（`https://www.snb.ch/en/services-events/digital-services/event-schedule`）に金融政策評価・Summary of monetary policy discussionを含む全日程が掲載されていることを発見した。
 
-しょうさんへの依頼内容（RBNZと同時に確認をお願いしたい）:
-- **確認URL**: `https://www.snb.ch/en/the-snb/mandates-goals/monetary-policy/decisions`（過去実績のみのアーカイブだが、直近の次回会合予告が掲載されていないか確認してほしい。無ければその旨を教えてほしい）
-- 次回（2026年9月）・次々回（2026年12月）の会合日が確認できる場合は、会合日・発表時刻・現地TZを転記してほしい
-- 確認できない場合は、四半期の会合が近づく都度（例年2月・5月・8月・11月頃に次回分の公表がある想定）、改めて確認をお願いする運用にする
+同ページは各イベントに個別iCalendarファイル（`snb.ch/public/ical/event/en/{uuid}.ics`）も提供しており、Claude Codeが実測（Actionsランナー経由）で94件のICSリンクを発見、サンプル3件とも有効なVCALENDAR形式（`X-WR-TIMEZONE:Europe/Zurich`・`REFRESH-INTERVAL:PT6H`）であることを確認した。ただしICS個別取得は94件と週次には非効率で、かつUUID→イベント名の対応がページのDOM順とずれる構造（実測で判明）のため、**同じ公式データソースであるページ本文の平文リスト（「DD.MM.YYYY HH:MM タイトル」形式）を直接パースするweekly_scrape抽出を採用**した（`scripts/checkers/extractors/snb-policy-rate.js`）。annual_schedule_config方式は不採用（ページ自体が常に将来分を掲載し続けるため、他の年次確定ソースと違って人間による年次確認作業が不要）。
 
-**現在の状態（2026-08-15）**: config側の受け皿（type=annual_schedule_config・schedule=[]・access.manual_verify_url設定済み）は準備完了。しょうさんへの確認依頼中で未確定（`schedule_status: "awaiting_confirmation"`）。RBNZ同様、scheduleが空の間は残量監視WARNが常時出る。
+しょうさん転記の日程（金融政策評価6回・Summary of monetary policy discussion 5回）はすべて実測データと完全一致確認済み。発表時刻（press release 09:30・news conference 10:00）もページ本文で確認済み。ページ末尾の注記に「All times are local time in Switzerland (CET/CEST)」との明記があることも実測で確認した（tz=Europe/Zurich指定でCET/CEST切替は自動判定される）。
+
+**現在の状態（2026-08-15）**: `type: "weekly_scrape"`・`status: "active"`。RBNZとは異なり年次の手動確認作業自体が不要になったため、以後はページ構造変化時の抽出失敗（フェールクローズ）でのみ気づく運用（他のweekly_scrapeソースと同様）。
 
 ### Stats NZ固有の手順（annual_schedule_config型ではなくweekly_scrape型・四半期ごとの手動URL更新が必要）
 

@@ -21,6 +21,7 @@ const require = createRequire(import.meta.url);
 const { computeHaltWindow, unionIntervals } = require('../lib/halt-schedule.js');
 const { zonedWallTimeToJst } = require('../lib/tz-convert.js');
 const { resolveImportance } = require('../lib/importance.js');
+const { candidatesForTargetWeek } = require('../lib/manual-events.js');
 
 export const USER_AGENT = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; observation-mode)';
 
@@ -45,8 +46,10 @@ export function annualEntryToCandidate(entry, source, importanceRules) {
   return { ...base, date: jst.date, time: jst.time };
 }
 
-// report（runChecks()の戻り値）から候補イベントの統合一覧・★★★の停止目安（簡易版）を組み立てる
-export function buildObservationSummary(report, sourcesConfig, importanceRules) {
+// report（runChecks()の戻り値）から候補イベントの統合一覧・★★★の停止目安（簡易版）を組み立てる。
+// manualEventsConfig（config/manual-events.json）を渡すと、対象週に該当する手動登録イベント
+// （RBA証言等の突発イベント。scripts/lib/manual-events.js）も他ソースと同列の候補として取り込む
+export function buildObservationSummary(report, sourcesConfig, importanceRules, manualEventsConfig) {
   const candidates = [];
   for (const r of report.results) {
     if (r.skipped) continue;
@@ -57,6 +60,9 @@ export function buildObservationSummary(report, sourcesConfig, importanceRules) 
       const source = sourcesConfig.sources.find((s) => s.id === r.id);
       for (const e of r.matchedEntries) candidates.push(annualEntryToCandidate(e, source, importanceRules));
     }
+  }
+  if (manualEventsConfig) {
+    candidates.push(...candidatesForTargetWeek(manualEventsConfig, report.targetWeek.start, report.targetWeek.end));
   }
   candidates.sort((a, b) => `${a.date}${a.time || ''}`.localeCompare(`${b.date}${b.time || ''}`));
 
@@ -148,6 +154,7 @@ async function main() {
   const sourcesConfig = JSON.parse(readFileSync('config/official-sources.json', 'utf8'));
   const importanceRules = JSON.parse(readFileSync('config/importance-rules.json', 'utf8'));
   const eventNames = JSON.parse(readFileSync('config/event-names.json', 'utf8')).entries;
+  const manualEventsConfig = JSON.parse(readFileSync('config/manual-events.json', 'utf8'));
   const targetWeek = getTargetWeek();
   const robotsChecker = createRobotsChecker({ userAgent: USER_AGENT });
 
@@ -163,7 +170,7 @@ async function main() {
     robotsChecker,
   });
 
-  const summary = buildObservationSummary(report, sourcesConfig, importanceRules);
+  const summary = buildObservationSummary(report, sourcesConfig, importanceRules, manualEventsConfig);
 
   mkdirSync('phase1-out', { recursive: true });
   writeFileSync('phase1-out/observation-summary.json', JSON.stringify(summary, null, 2));

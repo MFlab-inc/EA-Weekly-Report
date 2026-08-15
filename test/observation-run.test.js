@@ -73,6 +73,52 @@ test('buildObservationSummary: thisWeek由来とmatchedEntries由来の候補を
   assert.ok(!summary.candidates.some((c) => c.sourceId === 'cn_pmi'));
 });
 
+test('buildObservationSummary: manualEventsConfigの対象週内entriesを他ソースと同列の候補として取り込む', async () => {
+  const { buildObservationSummary } = await import('../scripts/phase1/observation-run.mjs');
+  const report = {
+    targetWeek: { start: '2026-08-17', end: '2026-08-21' },
+    outcome: { status: 'OK' },
+    residualWarnings: [],
+    recurringMissingWarnings: [],
+    results: [],
+  };
+  const manualEventsConfig = {
+    entries: [
+      {
+        id: 'rba-testimony-2026-08',
+        date: '2026-08-18',
+        local_time: '08:30',
+        tz: 'Australia/Sydney',
+        country: 'AU',
+        kind: 'testimony',
+        display_name: 'ブロックRBA総裁：下院経済委員会への出席',
+        importance: 3,
+        source_note: 'aph.gov.au確認',
+        registered_by: 'しょうさん',
+        registered_at: '2026-08-15',
+      },
+      {
+        id: 'out-of-week',
+        date: '2026-09-01',
+        local_time: '08:30',
+        tz: 'Australia/Sydney',
+        country: 'AU',
+        kind: 'testimony',
+        display_name: '対象週外イベント（含まれてはいけない）',
+        importance: 3,
+        source_note: 'test',
+        registered_by: 'test',
+        registered_at: '2026-08-15',
+      },
+    ],
+  };
+  const summary = buildObservationSummary(report, { sources: [] }, {}, manualEventsConfig);
+  assert.equal(summary.candidateCount, 1);
+  assert.equal(summary.candidates[0].sourceId, 'manual_events');
+  assert.equal(summary.candidates[0].displayName, 'ブロックRBA総裁：下院経済委員会への出席');
+  assert.ok(!summary.candidates.some((c) => c.displayName?.includes('含まれてはいけない')));
+});
+
 test('renderText: outcome・候補一覧・停止目安を含むテキストを生成する（例外を投げない）', async () => {
   const { buildObservationSummary, renderText } = await import('../scripts/phase1/observation-run.mjs');
   const report = {

@@ -45,7 +45,9 @@ function extractSnbEvents(html) {
   let m;
   while ((m = DATE_ROW_RE.exec(text)) !== null) {
     const [, dd, mo, yyyy, hh, mi, titleRaw] = m;
-    const title = titleRaw.trim();
+    // ページ末尾のイベントは次の日付パターンが無いため行末までを拾ってしまう。「Calendar feeds」以降は
+    // 静的なページ本文（凡例・注記）と判明しているため切り落とす（実測2026-08-15で確認）
+    const title = titleRaw.split(/\s*Calendar feeds\b/i)[0].trim();
     if (!title) continue;
     const kind = classifyTitle(title);
     if (!kind) continue;
