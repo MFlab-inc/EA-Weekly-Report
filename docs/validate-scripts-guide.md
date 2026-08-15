@@ -142,6 +142,42 @@ FOMC/RBAの議事要旨と異なり会合日からの固定オフセット計算
 releases API）の実タイトル『GDP first quarterly estimate, UK: {期間}』とは一致していなかった。
 これは実fixtureを取得して初めて発覚した（2026-08-15）。
 
+### 教訓1: WebSearchで矛盾する情報が出た場合、条件の違いを疑う（しょうさん指摘2026-08-15）
+
+task #41-3でユーロ圏HICPの公表時刻を調査した際、WebSearch結果間で「11:00 CET」「15:00 CET」
+という2つの異なる時刻情報が見つかり、どちらかが誤りだと判断して両方を採用せず
+`announce_time_by_kind`を空のままにした（time:null）。
+
+その後しょうさんが一次ソース（ECB Statistical calendars、
+`ecb.europa.eu/press/calendars/statscal/ges/html/sthicp.en.html`）を直接確認したところ、
+**両方とも正しく、単に対象が違っていた**ことが判明した: 速報値（flash estimate）は15:00 CET、
+確報値（seasonally adjusted、final）は12:00 CET（当初のWebSearch結果の「11:00」はこれの近似値
+だった可能性がある）。
+
+**教訓**: WebSearch経由で矛盾する複数の情報（時刻・日付・名称等）が見つかった場合、
+「どちらかが誤り」と即断せず、**発表段階（速報/確報）・対象範囲（全国/地域）・算出方法
+（原数値/季節調整値）等の条件が違うために両方とも正しい可能性を先に検討すること**。
+安易にtime:nullへ倒す前に、一次ソースで両方の条件を突き合わせる一手間が有効な場合がある。
+
+### 教訓2: SPA構造で直接取得できない公式サイトでも、関連する別の公式機関が同じ情報を
+静的公開している場合がある（しょうさん発見2026-08-15）
+
+`eurostat_hicp`/`eurostat_gdp`のrelease-calendarページ（ec.europa.eu/eurostat）は
+JavaScriptによる動的読み込み（SPA構造）のため、実ネットワーク経由でも静的HTMLからは
+日程データを取得できなかった（task #41ライブ検証）。
+
+しかし、EU統計とその金融政策的な利用先であるECB（European Central Bank）は密接な関係にあり、
+**ECBが独自にStatistical calendars（`ecb.europa.eu/press/calendars/statscal/`配下）という
+静的HTMLページで、Eurostat発表分を含む複数の統計リリース日程・時刻を公開している**ことが
+判明した。これはSPA構造を迂回する代替経路として機能する。
+
+**教訓**: ある公式発表元のページがSPA構造・API専用等で直接取得できない場合、
+「その発表元自身の別ページ」だけでなく、**当該統計を業務上利用している関連公的機関
+（中央銀行、上位省庁、国際機関等）が同じ情報を独自に静的公開していないか**を探索パターン
+として持っておくこと。既知の構造的ブロッカー（NZ Stats NZのrelease-calendar/、中国NBSの
+詳細ドキュメント未到達等）に対しても、同様の迂回経路（関連機関の静的ページ）がないか
+今後探索する価値がある。
+
 ## 既刊レポートの位置づけ（正解データではない。しょうさん指示2026-08-15）
 
 `reference/sample-report_20260808.html`等の既刊2週は、Manusが実際に出力した結果であって、

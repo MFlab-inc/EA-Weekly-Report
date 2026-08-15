@@ -300,7 +300,7 @@ test('annualEntryToCandidate: 貿易収支（JP trade_balance）が実configか�
 
 // task #41-3（しょうさん承認済み国×kindマトリクス）の回帰テスト: Eurostat HICP・GDP速報値、
 // EU/GBフラッシュPMIを新規annual_schedule_config型ソースとして追加した
-test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）が実configから名称解決できる', async () => {
+test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）が実configから名称解決できる（時刻はしょうさん発見のECB statscal静的ページで確定）', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
   const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_hicp');
   const importanceRules = { importance_by_kind: { cpi: 3 } };
@@ -308,7 +308,19 @@ test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）が実c
   assert.ok(entry, '2026-07-31のHICP速報値scheduleエントリが見つからない（2026年7月分）');
   const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
   assert.equal(c.displayName, '消費者物価指数（HICP）');
-  assert.equal(c.time, null); // announce_time_by_kind.cpi未設定（公表時刻が11:00 CET/15:00 CETで情報源が食い違い確定できなかったため）
+  assert.equal(c.time, '22:00'); // 15:00 CEST(夏時間、UTC+2) → 同日22:00 JST。ECB statscal（sthicp.en.html）で直接確認
+  assert.equal(c.date, '2026-07-31');
+});
+
+test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）8月分以降の新規追加分（ECB statscal由来）も名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_hicp');
+  const importanceRules = { importance_by_kind: { cpi: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'cpi' && e.date === '2026-09-01');
+  assert.ok(entry, '2026-09-01のHICP速報値scheduleエントリが見つからない（2026年8月分、ECB statscalで新規確認）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '消費者物価指数（HICP）');
+  assert.equal(c.time, '22:00'); // 15:00 CEST → 同日22:00 JST
 });
 
 test('annualEntryToCandidate: GDP【速報値】（EU gdp）が実configから名称解決できる（8/10週の既刊fixtureと重なる実例）', async () => {

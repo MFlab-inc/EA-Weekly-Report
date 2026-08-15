@@ -1977,10 +1977,16 @@
             "url": "https://ec.europa.eu/eurostat/news/release-calendar"
           }
         ],
-        "note": "release-calendarページに『Want to subscribe?』からのICS購読機能がある（WebSearch経由で存在を確認済みだが、実際の.icsファイルURLはブラウザ操作が必要で未解決。task #41-3調査）。将来weekly_scrape/ICS直接取得へ切り替える際はこの導線を使う"
+        "note": "release-calendarページに『Want to subscribe?』からのICS購読機能がある（WebSearch経由で存在を確認済みだが、実際の.icsファイルURLはブラウザ操作が必要で未解決。task #41-3調査）。将来weekly_scrape/ICS直接取得へ切り替える際はこの導線を使う | 2026-08-15追記（しょうさん発見）: EurostatのSPA制約を迂回する代替経路として、ECBが独自に静的公開しているStatistical calendarsのHICP専用ページ（statscal/ges/html/sthicp.en.html）が利用可能。次回ライブ検証・将来のweekly_scrape化ではこちらを優先すること"
       },
-      "announce_time_by_kind": {},
-      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏HICP速報値（flash estimate、Eurostat）。公式運用ルール『月末（同月の速報値公表日は原則として当該月の最終暦日、休日の場合は翌営業日）』をWebSearch経由で確認し、Eurostat自身のURL日付スタンプ（例: 2-03032026-ap）から2026年8ヶ月分の実発表日を確認した。改定値（確報、対象月の翌月17日前後）は1件のみの照合例（2月分→3/18）しかなく規則性が未確定のため収録していない（しょうさんの原指摘『ユーロ圏HICP改定値』は速報値の誤認、または確報を指している可能性があるが、経済指標カレンダーとして通常追跡されるのは市場動意の大きい速報値のため、こちらを優先して実装した。確報が必要な場合は別途指摘してください）。公表時刻は11:00 CETという通説があるが、今回の調査では検索結果間で11:00 CET・15:00 CET（別ページ、ECB独自算出系列の可能性）の食い違いがあり確定できなかったため、推測値を入れずannounce_time_by_kind.cpiは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: release-calendarページを実ネットワークで直接取得したところ、実際のカレンダーデータ（各リリースの日付一覧）は静的HTMLに含まれておらず、JavaScriptによる動的読み込み（SPA構造）と判明した。取得した生HTMLにはナビゲーションメニュー等の定型文のみで、日程データそのものへの到達には至らなかった。よってschedule[]の日付・時刻ともWebSearch経由確認のまま未検証（Stats NZのrelease-calendar/と同種の構造的ブロッカー。docs/annual-schedule-maintenance.md参照）。将来的な対応にはPlaywrightでのレンダリング取得、またはICS購読フィードの直接特定が必要",
+      "announce_time_by_kind": {
+        "cpi": {
+          "local_time": "15:00",
+          "tz": "Europe/Berlin",
+          "note": "2026-08-15追記（しょうさん発見・ライブ検証で確認）。ECB Statistical calendars（statscal/ges/html/sthicp.en.html）を実ネットワークで直接取得し、flash estimateの公表時刻を15:00 CET/CESTと確認。当初のWebSearchで見つかった『11:00 CET』説はこの直接確認により否定的（別の古い情報または混同の可能性）。ただしこのECBページ自体が『Release calendar for the Euro area seasonally adjusted HICP statistics』（季節調整値専用）であり、ページ本文に『Unadjusted HICP data are released by Eurostat; please use the Eurostat release calendar』と明記されている点に注意——このflash estimateがEurostat自身が公表する非季節調整の速報値（経済指標カレンダーで通常追跡される本来の対象）と完全に同一日・同時刻かは未確認。時刻の信頼度は中〜高だが、日付についてはEurostat自身のURL日付スタンプで裏付け済みの2026年1-7月分（下記schedule参照）を優先根拠とし、8月分以降の新規追加分はこのECBページのみが根拠のため確度がやや低い（要継続検証）"
+        }
+      },
+      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏HICP速報値（flash estimate、Eurostat）。公式運用ルール『月末（同月の速報値公表日は原則として当該月の最終暦日、休日の場合は翌営業日）』をWebSearch経由で確認し、Eurostat自身のURL日付スタンプ（例: 2-03032026-ap）から2026年1-7月分の実発表日を確認した。改定値（確報、対象月の翌月17日前後）は1件のみの照合例（2月分→3/18）しかなく規則性が未確定のため収録していない（しょうさんの原指摘『ユーロ圏HICP改定値』は速報値の誤認、または確報を指している可能性があるが、経済指標カレンダーとして通常追跡されるのは市場動意の大きい速報値のため、こちらを優先して実装した。確報が必要な場合は別途指摘してください） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: release-calendarページ（ec.europa.eu/eurostat）を実ネットワークで直接取得したところ、実際のカレンダーデータは静的HTMLに含まれておらず、JavaScriptによる動的読み込み（SPA構造）と判明した（Stats NZのrelease-calendar/と同種の構造的ブロッカー） | 2026-08-15追記（しょうさん発見・ライブ検証PASS）: EurostatのSPA制約を迂回し、ECBのStatistical calendars静的ページ（sthicp.en.html）から2026年8月分〜2026年12月分（2027年1月発表分まで）の実日付・実時刻（15:00 CET/CESTのflash、12:00 CET/CESTの確報）を直接確認した。ただし上記announce_time_by_kind.cpi.note記載のとおり、このページはEurostat自身の非季節調整速報値と完全に同一かの確証が無いため、8月分以降の新規追加日程は『中程度の確度』として扱う（次回本番runでの実挙動確認が必要）",
       "schedule": [
         { "date": "2026-01-07", "kind": "cpi", "note": "2025年12月分速報値" },
         { "date": "2026-02-04", "kind": "cpi", "note": "2026年1月分速報値。2025年=100への基準改定に伴い通常より発表が遅れた回" },
@@ -1989,7 +1995,12 @@
         { "date": "2026-04-30", "kind": "cpi", "note": "2026年4月分速報値" },
         { "date": "2026-06-02", "kind": "cpi", "note": "2026年5月分速報値（5/31が日曜のため翌営業日）" },
         { "date": "2026-07-01", "kind": "cpi", "note": "2026年6月分速報値（6/30が休日相当のため翌営業日と推定）" },
-        { "date": "2026-07-31", "kind": "cpi", "note": "2026年7月分速報値" }
+        { "date": "2026-07-31", "kind": "cpi", "note": "2026年7月分速報値。Eurostat自身のURL日付スタンプで確認済み（最も確度が高い）" },
+        { "date": "2026-09-01", "kind": "cpi", "note": "2026年8月分速報値。2026-08-15、ECB statscal（sthicp.en.html）から新規確認（中程度の確度、上記notes参照）" },
+        { "date": "2026-10-02", "kind": "cpi", "note": "2026年9月分速報値。同上" },
+        { "date": "2026-11-04", "kind": "cpi", "note": "2026年10月分速報値。同上" },
+        { "date": "2026-12-01", "kind": "cpi", "note": "2026年11月分速報値。同上" },
+        { "date": "2027-01-06", "kind": "cpi", "note": "2026年12月分速報値。同上" }
       ],
       "residual_monitor_weeks": 4
     },
