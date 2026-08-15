@@ -2020,16 +2020,30 @@
           {
             "label": "release_calendar",
             "url": "https://ec.europa.eu/eurostat/news/release-calendar"
+          },
+          {
+            "label": "route_a_pdf_annual_skeleton",
+            "url": "https://ec.europa.eu/eurostat/documents/24987/6642470/QNA_release_calendar.pdf",
+            "note": "task #46（2026-08-15、しょうさん発見の第三の経路）: 「Overview on Main Aggregates releases」PDF。ECB statscal配下にGDP相当の静的ページが存在しないと確認された後の代替経路。ライブ検証でHTTP 200・robots許可を確認し、pdf-parseで全文抽出成功（4ページ・6150字）。年間の骨格（2025Q2〜2027Q1相当のTable 1: Release calendar）を提供するが、PDF本文自体に『dates are PROVISIONAL until confirmed in Eurostat weekly release calendar』と明記されているため確度は中扱い"
+          },
+          {
+            "label": "route_b_news_release_body",
+            "url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-DDMMYYYY-ap",
+            "note": "task #46（2026-08-15）: EurostatのGDPニュースリリース本文（URL日付スタンプ規則 2-DDMMYYYY-ap＝予備速報/-bp＝統合速報）に『Next release: ...』等の直近1件の確定日程が明記されている。経路Aの年間骨格を裏取り・上書きする用途。ライブ検証で2026-08-14分（2-14082026-ap）・2026-07-30分（2-30072026-ap）の実本文を取得し、いずれも経路Aと完全一致することを確認済み"
           }
         ]
       },
       "announce_time_by_kind": {},
-      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏GDP速報値（Eurostat）。2段階公表（四半期末+30日でGDP単独の予備速報、+45日でGDP+雇用の統合速報）というEurostat公式の方法論ページ記載のルールをWebSearch経由で確認し、Eurostat自身のURL日付スタンプから2026年上半期分（Q1・Q2）の実発表日を確認した。Q3・Q4分はルールからの外挿のみで実URLでの照合ができなかったため収録していない（推測で埋めていない。task #41-3調査agent報告）。公表時刻はHICPと同様に確定できなかったためannounce_time_by_kind.gdpは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: eurostat_hicpと同一のrelease-calendarページを使用しており、同じくJavaScript動的読み込み（SPA構造）のため日程データへの到達不可（未検証のまま。詳細はeurostat_hicp notes参照）。2026-08-14発表分（8/10週で新規検出、docs/validate-scripts-guide.md「既刊レポートの位置づけ」参照）はこのライブ検証では裏付けできていない点に注意",
+      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏GDP速報値（Eurostat）。2段階公表（四半期末+30日でGDP単独の予備速報、+45日でGDP+雇用の統合速報）というEurostat公式の方法論ページ記載のルールをWebSearch経由で確認し、Eurostat自身のURL日付スタンプから2026年上半期分（Q1・Q2）の実発表日を確認した。Q3・Q4分はルールからの外挿のみで実URLでの照合ができなかったため収録していない（推測で埋めていない。task #41-3調査agent報告）。公表時刻はHICPと同様に確定できなかったためannounce_time_by_kind.gdpは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: eurostat_hicpと同一のrelease-calendarページを使用しており、同じくJavaScript動的読み込み（SPA構造）のため日程データへの到達不可（未検証のまま。詳細はeurostat_hicp notes参照）。2026-08-14発表分（8/10週で新規検出、docs/validate-scripts-guide.md「既刊レポートの位置づけ」参照）はこのライブ検証では裏付けできていない点に注意 | task #46（2026-08-15、しょうさん指示）: ECB statscal配下にGDP相当の静的ページが存在しないと確認済み（(b)Playwright導入は既存の構造的ブロッカーとの一貫性を欠くため不採用）。第三の経路として、Eurostat自身の静的経路A（QNA_release_calendar.pdf、年間骨格）・経路B（GDPニュースリリース本文のNext release記載、直近1件の確定日程）をライブ検証。経路AのTable 1に記載された2026年4回分の日付は既存の実URL確認済み4件（2026-04-30/05-13/07-30/08-14）と完全一致し、経路Aの信頼性が裏付けられた。これにより2026Q3分（10/30・11/13）・2026Q4分（2027-01-29・02-15）を新規追加。うち2026Q3分は経路B（2-14082026-ap本文の『Next release: 13 November 2026』、2-30072026-ap本文の『Next release: 30 October 2026』）でも独立に確認できたため高確度、2026Q4分は経路A（PDF）のみが根拠のためPDF自身のPROVISIONAL注記どおり中確度として区別する。時刻情報は経路A・Bのいずれにも記載がなかったため、推測を入れずannounce_time_by_kind.gdpは空のまま（time:nullで扱う。SPEC §5により★★★でも停止目安の対象外となるが、しょうさん確認済みの運用方針）",
       "schedule": [
         { "date": "2026-04-30", "kind": "gdp", "note": "2026年1-3月期・予備速報（GDP単独、四半期末+30日）" },
         { "date": "2026-05-13", "kind": "gdp", "note": "2026年1-3月期・統合速報（GDP+雇用、四半期末+45日）" },
         { "date": "2026-07-30", "kind": "gdp", "note": "2026年4-6月期・予備速報（GDP単独）" },
-        { "date": "2026-08-14", "kind": "gdp", "note": "2026年4-6月期・統合速報（GDP+雇用）" }
+        { "date": "2026-08-14", "kind": "gdp", "note": "2026年4-6月期・統合速報（GDP+雇用）" },
+        { "date": "2026-10-30", "kind": "gdp", "note": "2026年7-9月期・予備速報（GDP単独）。task #46: 経路A(PDF)・経路B(2-14082026-ap/2-30072026-ap本文のNext release記載)の両方で確認済み（高確度）" },
+        { "date": "2026-11-13", "kind": "gdp", "note": "2026年7-9月期・統合速報（GDP+雇用）。task #46: 経路A(PDF)・経路B(2-14082026-ap本文のNext release記載)の両方で確認済み（高確度）" },
+        { "date": "2027-01-29", "kind": "gdp", "note": "2026年10-12月期・予備速報（GDP単独）。task #46: 経路A(PDF)のみが根拠（PDF本文のPROVISIONAL注記どおり中確度、経路Bでの裏取り未実施）" },
+        { "date": "2027-02-15", "kind": "gdp", "note": "2026年10-12月期・統合速報（GDP+雇用）。task #46: 経路A(PDF)のみが根拠（中確度、経路Bでの裏取り未実施）" }
       ],
       "residual_monitor_weeks": 4
     },

@@ -334,6 +334,20 @@ test('annualEntryToCandidate: GDP【速報値】（EU gdp）が実configから�
   assert.equal(c.time, null); // announce_time_by_kind.gdp未設定
 });
 
+// task #46（2026-08-15、しょうさん指示の経路A/B）の回帰テスト: EurostatのSPAカレンダーを迂回し、
+// 経路A(QNA_release_calendar.pdf・年間骨格)と経路B(ニュースリリース本文のNext release記載)を
+// ライブ検証してeurostat_gdpのschedule 2026Q3・Q4分を新規追加した
+test('annualEntryToCandidate: GDP【速報値】（EU gdp）2026Q3分（経路A・B両方で確認済み）も名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_gdp');
+  const importanceRules = { importance_by_kind: { gdp: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'gdp' && e.date === '2026-11-13');
+  assert.ok(entry, '2026-11-13のGDP統合速報scheduleエントリが見つからない（2026年07-09月期、task #46で新規追加）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'GDP【速報値】');
+  assert.equal(c.time, null); // 経路A・Bのいずれにも時刻記載がなかったため推測せずnullのまま
+});
+
 // GB pmi_ismは既存の建設業PMI（gb_construction_pmi、subtype:construction）とkind衝突するため、
 // resolveAnnualDictionaryNameのsubtype照合による曖昧性解消（task #41-3で一般化）が正しく機能し、
 // 両者が別々の表示名に解決されることを確認する
