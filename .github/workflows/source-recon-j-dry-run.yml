@@ -1,0 +1,24 @@
+# task #47ライブ検証用の一時ワークフロー（2026-08-15）。
+# scripts/phase1/source-recon-j.mjsを実ネットワーク環境で実行し、gb_onsのCPI重複出力事象を切り分ける。
+# 検証完了後は削除すること（task #38のpipeline-dry-run.ymlと同じ運用）。
+name: source-recon-j-dry-run
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - claude/ea-weekly-report-automation-lw6cio
+    paths:
+      - '.github/workflows/source-recon-j-dry-run.yml'
+      - 'scripts/phase1/source-recon-j.mjs'
+permissions:
+  contents: read
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: source-recon-j
+        run: node scripts/phase1/source-recon-j.mjs
