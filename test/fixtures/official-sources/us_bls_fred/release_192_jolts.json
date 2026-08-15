@@ -1,0 +1,10 @@
+{
+  "_comment": "2026-08-14の実ライブ検証（Actions run 31795936275、参考検証・PASS）で実際に返却されたJOLTS(release_id=192)の日程データ",
+  "release_id": 192,
+  "release_dates": [
+    { "release_id": 192, "date": "2026-08-04" },
+    { "release_id": 192, "date": "2026-09-01" },
+    { "release_id": 192, "date": "2026-09-29" },
+    { "release_id": 192, "date": "2026-11-03" }
+  ]
+}

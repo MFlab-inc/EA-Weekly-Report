@@ -1,0 +1,121 @@
+# Phase 1 公式ソース実測（優先度A・9元）用の一時ワークフロー
+# 目的: docs/phase1-official-sources.md の優先度A発表元について、Actionsランナー上で
+# robots.txt確認→許可パスのみ最小限フェッチし、取得方式（構造化フィードかHTML/PDFか）
+# を判定する。生データはartifact（保持3日）にのみ保存し、リポジトリにはコミットしない。
+#
+# 起動方式: 開発ブランチへの `.phase1-trigger` 変更pushで起動する
+#   （workflow_dispatchはデフォルトブランチ登録が必要なため、Phase 0と同じ方式を踏襲）
+#
+# 本ワークフローは実測完了後（config/official-sources.json構築完了後）に削除する。
+name: phase1-recon
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths: ['.phase1-trigger']
+permissions:
+  contents: write
+concurrency:
+  group: phase1-recon
+  cancel-in-progress: false
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Resolve config from .phase1-trigger
+        id: cfg
+        run: |
+          node -e '
+            const fs = require("fs");
+            let cfg = {};
+            try { cfg = JSON.parse(fs.readFileSync(".phase1-trigger", "utf8")); } catch (e) {}
+            const out = [
+              "only_ids=" + (cfg.only_ids || ""),
+              "run_recon=" + (cfg.run_recon === false ? "false" : "true"),
+              "run_recon_b=" + (cfg.run_recon_b === true ? "true" : "false"),
+              "only_ids_b=" + (cfg.only_ids_b || ""),
+              "run_recon_c=" + (cfg.run_recon_c === true ? "true" : "false"),
+              "only_ids_c=" + (cfg.only_ids_c || ""),
+              "run_recon_d=" + (cfg.run_recon_d === true ? "true" : "false"),
+              "only_ids_d=" + (cfg.only_ids_d || ""),
+              "run_recon_e=" + (cfg.run_recon_e === true ? "true" : "false"),
+              "run_recon_f=" + (cfg.run_recon_f === true ? "true" : "false"),
+              "run_recon_g=" + (cfg.run_recon_g === true ? "true" : "false"),
+              "verify_fred=" + (cfg.verify_fred === true ? "true" : "false"),
+              "collect_fixtures=" + (cfg.collect_fixtures === true ? "true" : "false"),
+              "only_ids_fixtures=" + (cfg.only_ids_fixtures || ""),
+            ].join("\n") + "\n";
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, out);
+          '
+      - name: Source recon
+        if: steps.cfg.outputs.run_recon == 'true'
+        run: node scripts/phase1/source-recon.mjs '${{ steps.cfg.outputs.only_ids }}'
+      - name: Source recon (priority B)
+        if: steps.cfg.outputs.run_recon_b == 'true'
+        run: node scripts/phase1/source-recon-b.mjs '${{ steps.cfg.outputs.only_ids_b }}'
+      - name: Source recon (Stats NZ / Statistics Canada, task #15)
+        if: steps.cfg.outputs.run_recon_c == 'true'
+        run: node scripts/phase1/source-recon-c.mjs '${{ steps.cfg.outputs.only_ids_c }}'
+      - name: Extract StatCan annual PDF text (diagnostic, task #15)
+        if: steps.cfg.outputs.run_recon_c == 'true'
+        run: |
+          if [ -f phase1-out/ca_statcan.annual_pdf_2026.pdf ]; then
+            sudo apt-get install -y poppler-utils >/dev/null
+            pdftotext -layout phase1-out/ca_statcan.annual_pdf_2026.pdf phase1-out/ca_statcan.annual_pdf_2026.txt
+            echo "----- FULL TEXT (line-numbered) -----"
+            cat -n phase1-out/ca_statcan.annual_pdf_2026.txt
+          else
+            echo "annual_pdf_2026.pdf not found, skipping"
+          fi
+      - name: Grep Stats NZ pages for embedded API/JSON hints (diagnostic, task #15)
+        if: steps.cfg.outputs.run_recon_c == 'true'
+        run: |
+          for f in phase1-out/nz_statsnz.*.html; do
+            echo "----- $f -----"
+            grep -oE '(https?://[a-zA-Z0-9./_-]*api[a-zA-Z0-9./_-]*|[a-zA-Z0-9._-]+\.json[a-zA-Z0-9?=&_-]*|"MonthRange"[^}]*}|fetch\([^)]*\)|axios\.[a-zA-Z]+\([^)]*\)|data-releasedate[^ >]*|Next release[^<]{0,80}|will be released on[^<]{0,80})' "$f" | sort -u | head -80 || echo "(no matches)"
+          done
+          echo "----- nz_statsnz.labour_market_2026q2.html: 'next' / 'release' context lines -----"
+          grep -oE '.{80}[Nn]ext [Rr]elease.{80}|.{80}will be released.{80}' phase1-out/nz_statsnz.labour_market_2026q2.html | head -20 || echo "(no matches)"
+      - name: Source recon (中銀policy_rate 6元, task #19)
+        if: steps.cfg.outputs.run_recon_d == 'true'
+        run: node scripts/phase1/source-recon-d.mjs '${{ steps.cfg.outputs.only_ids_d }}'
+      - name: Source recon (RBNZ訂正URL・SNB ICS実測・BOC慣行確認, しょうさん指示2026-08-15)
+        if: steps.cfg.outputs.run_recon_e == 'true'
+        run: node scripts/phase1/source-recon-e.mjs
+      - name: Source recon (SNB ICSイベントブロック特定, しょうさん指示2026-08-15)
+        if: steps.cfg.outputs.run_recon_f == 'true'
+        run: node scripts/phase1/source-recon-f.mjs
+      - name: Source recon (BOC翌年分一括公表プレスリリース全文確認, しょうさん指示2026-08-15)
+        if: steps.cfg.outputs.run_recon_g == 'true'
+        run: node scripts/phase1/source-recon-g.mjs
+      - name: FRED API verify
+        if: steps.cfg.outputs.verify_fred == 'true'
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: node scripts/phase1/fred-verify.mjs
+      - name: Upload raw data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-recon-raw
+          path: phase1-out
+          retention-days: 3
+          if-no-files-found: warn
+      - name: Collect fixtures
+        if: steps.cfg.outputs.collect_fixtures == 'true'
+        run: node scripts/phase1/collect-fixtures.mjs '${{ steps.cfg.outputs.only_ids_fixtures }}'
+      - name: Commit fixtures
+        if: steps.cfg.outputs.collect_fixtures == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add test/fixtures/official-sources
+          if git diff --cached --quiet; then
+            echo "no fixture changes"
+          else
+            git commit -m "chore: collect official-sources fixtures (offline capture test)"
+            git push origin HEAD:${{ github.ref_name }}
+          fi

@@ -1,0 +1,12 @@
+{
+  "_comment": "国×イベント種別ごとに担当ソースの存在を宣言する期待カバレッジ表（SPEC設計判断、2026-08-15・task #19・docs/coverage-gap-2026-08-15.md）。しょうさん指摘: FF突合は実行時（土曜早朝）にFFがnextweekを持たないため使えず、担当ソース自体が無いkindはフェールクローズのHOLD/WARNすら発動しないサイレント欠落になる。よって守り方は静的な宣言＋config検証（scripts/lib/validate-expected-coverage.js、npm test）でコミット時点に検出する方式とした。derived_rulesはofficials.jsonから自動導出する不変条件（新しい中銀を登録すれば自動的にカバレッジ必須対象になる。手動でこのファイルを更新する必要はない）。additional_requiredは officials.json 由来ではない追加の宣言用（現状なし。将来task #16等で使う想定）",
+  "derived_rules": [
+    {
+      "name": "officials.json登録中銀のpolicy_rate担当ソース必須",
+      "description": "config/officials.jsonのrole_type=\"central_bank_governor\"な各役職について、そのcountryにkind=policy_rateを持つactive/draft_schedule状態のソースがofficial-sources.jsonに最低1件存在しなければならない（pending_reconは実行時runChecksでskipされるため充足とみなさない）",
+      "officials_role_type": "central_bank_governor",
+      "required_kind": "policy_rate"
+    }
+  ],
+  "additional_required": []
+}

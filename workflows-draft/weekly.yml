@@ -1,0 +1,49 @@
+# 週次レポート自動生成（ドラフト）
+# 実装完了までは workflows-draft/ に置く（この場所ではActionsは起動しない）。
+# Phase 2で .github/workflows/weekly.yml へ移設して有効化する。
+name: weekly-report
+on:
+  schedule:
+    - cron: '6 23 * * 5'    # 土曜 08:06 JST（本番）
+    - cron: '41 23 * * 5'   # 土曜 08:41 JST（保険。冪等ガードで二重生成防止）
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: weekly-report
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: Install Playwright Chromium (モバイル多幅レイアウト検証に使用)
+        run: npx playwright install --with-deps chromium
+      # 2026-08-15: 検証パイプラインをPython+Playwrightから移設した際にsetup-python/pipを撤去し、
+      # Node.js一本（.github/workflows/ci.ymlと同一ランタイム）に統一した
+      # （docs/validate-scripts-guide.md参照）。collect→build-ledger→renderの3ステップは
+      # task #13後継の実データ接続（しょうさん指示2026-08-15）で配線済み（scripts/collect.mjs・
+      # scripts/build-ledger.mjs・scripts/render.mjs）。renderステップの--narrativeは指定しない
+      # （heroSummary/heroPillsはしょうさん確定仕様2026-08-15の自動生成ルールで生成する。
+      # scripts/render.mjsのautoHeroSummary/autoHeroPills参照。人手キュレーションが必要な場合のみ
+      # --narrativeで上書き可能）。発表枠の束ね（bundle_id、task #34）も配線済み
+      - name: pipeline
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          node scripts/collect.mjs
+          node scripts/build-ledger.mjs
+          TARGET_WEEK_START=$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart)")
+          node scripts/render.mjs "data/ledger/${TARGET_WEEK_START}.json" --out "output/ea-weekly-${TARGET_WEEK_START//-/}.html"
+          node scripts/check/gate.mjs --ledger "data/ledger/${TARGET_WEEK_START}.json" --html "output/ea-weekly-${TARGET_WEEK_START//-/}.html" --result gate-result.json
+      - name: commit outputs
+        if: success()
+        run: |
+          git config user.name "ea-weekly-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add output/ data/ docs/
+          git diff --cached --quiet || git commit -m "weekly report $(date -u +%Y-%m-%d)"
+          git push

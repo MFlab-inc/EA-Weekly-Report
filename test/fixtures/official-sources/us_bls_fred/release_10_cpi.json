@@ -1,0 +1,11 @@
+{
+  "_comment": "2026-08-14の実ライブ検証（Actions run 31795936275、キー修正後の再検証・PASS）で実際に返却されたCPI(release_id=10)の日程データをそのまま保存したfixture。オフライン再現テスト用（しょうさん指示・実アクセス最小化）",
+  "release_id": 10,
+  "release_dates": [
+    { "release_id": 10, "date": "2026-07-14" },
+    { "release_id": 10, "date": "2026-08-12" },
+    { "release_id": 10, "date": "2026-09-11" },
+    { "release_id": 10, "date": "2026-10-14" },
+    { "release_id": 10, "date": "2026-11-10" }
+  ]
+}

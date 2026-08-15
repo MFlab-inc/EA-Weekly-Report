@@ -1,0 +1,1651 @@
+{
+  "_comment": "公式ソースチェッカーのレジストリ（SPEC §3.5）。type別に取得方式が異なる: date_api_fred=FRED API日付検索／weekly_scrape=対象ページを毎週フェッチしパース／annual_schedule_config=年次公表済み確定日程をscheduleに保持し照合のみ。announce_time_by_kindは指標別の現地固定発表時刻（発表元の現地タイムゾーン表記。JST換算はscripts/lib/tz-convert.jsがIANAデータで実行時に行うためconfigにJST値は持たない）。時刻の根拠はreference/sample-report_20260808.html（既刊29イベント）のJST実績時刻から現地TZへ逆算し、各発表元の公知の発表慣行と突合したもの。実データ照合（実際にページを取得して確認）はtask #9で実施する",
+  "schema_version": "1.0",
+  "created": "2026-08-14",
+  "residual_monitor_default_weeks": 4,
+  "sources": [
+    {
+      "id": "us_bls_fred",
+      "name_ja": "米労働統計局（BLS）※FRED API経由",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "cpi",
+        "ppi",
+        "employment_situation",
+        "employment_indicator"
+      ],
+      "type": "date_api_fred",
+      "recurring_check_refs": [
+        "米雇用統計",
+        "米CPI"
+      ],
+      "fred": {
+        "api_base": "https://api.stlouisfed.org/fred/release/dates",
+        "api_key_env": "FRED_API_KEY",
+        "releases": [
+          {
+            "release_id": 10,
+            "kind": "cpi",
+            "note": "2026-08-14ライブ検証PASS。既刊実績2026-08-12を含む返却を確認"
+          },
+          {
+            "release_id": 46,
+            "kind": "ppi",
+            "note": "2026-08-14ライブ検証PASS。既刊実績2026-08-13を含む返却を確認"
+          },
+          {
+            "release_id": 50,
+            "kind": "employment_situation",
+            "note": "2026-08-14ライブ検証PASS。既刊実績2026-08-07を含む返却を確認"
+          },
+          {
+            "release_id": 192,
+            "kind": "employment_indicator",
+            "match_hint": "jolts",
+            "note": "合否対象外（参考検証のみ）。2026-08-14検証で日程取得を確認済み"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "cpi": {
+          "local_time": "08:30",
+          "tz": "America/New_York"
+        },
+        "ppi": {
+          "local_time": "08:30",
+          "tz": "America/New_York"
+        },
+        "employment_situation": {
+          "local_time": "08:30",
+          "tz": "America/New_York"
+        },
+        "employment_indicator": {
+          "local_time": "10:00",
+          "tz": "America/New_York",
+          "note": "JOLTS。CPI/PPI/雇用統計本体（08:30 ET）とは異なる時刻（既刊実績23:00 JST=10:00 ETから逆算）"
+        }
+      },
+      "notes": "docs/phase1-official-sources.md §5-4参照。BLS直接アクセスはrobots.txt 403のためFRED経由に統一"
+    },
+    {
+      "id": "au_rba",
+      "name_ja": "豪州準備銀行（RBA）",
+      "status": "active",
+      "country": "AU",
+      "kinds": [
+        "policy_rate",
+        "quarterly_report",
+        "press_conference"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "residual_monitor_weeks": 4,
+      "schedule_status": "confirmed",
+      "schedule": [
+        {
+          "date": "2026-02-03",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-02-03",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-02-03",
+          "kind": "quarterly_report",
+          "note": "SMP四半期報告月（推定。§note参照）"
+        },
+        {
+          "date": "2026-03-17",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-03-17",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-05-05",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-05-05",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-05-05",
+          "kind": "quarterly_report",
+          "note": "SMP四半期報告月（推定。§note参照）"
+        },
+        {
+          "date": "2026-06-16",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-06-16",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-08-11",
+          "kind": "policy_rate",
+          "note": "ground truth au-rba-rate-2026-08-11と一致確認済み"
+        },
+        {
+          "date": "2026-08-11",
+          "kind": "press_conference",
+          "note": "ground truth au-rba-press-2026-08-11と一致確認済み"
+        },
+        {
+          "date": "2026-08-11",
+          "kind": "quarterly_report",
+          "note": "ground truth au-rba-smp-2026-08-11と一致確認済み"
+        },
+        {
+          "date": "2026-09-29",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-09-29",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-11-03",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-11-03",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-11-03",
+          "kind": "quarterly_report",
+          "note": "SMP四半期報告月（推定。§note参照）"
+        },
+        {
+          "date": "2026-12-08",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-12-08",
+          "kind": "press_conference"
+        }
+      ],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "board_meeting_schedule",
+            "url": "https://www.rba.gov.au/schedules-events/board-meeting-schedules.html"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "policy_rate": {
+          "local_time": "14:30",
+          "tz": "Australia/Sydney"
+        },
+        "quarterly_report": {
+          "local_time": "14:30",
+          "tz": "Australia/Sydney",
+          "note": "政策金利発表と同時刻（同一発表枠としてbundling_ruleで束ねる）"
+        },
+        "press_conference": {
+          "local_time": "15:30",
+          "tz": "Australia/Sydney"
+        }
+      },
+      "notes": "2026-08-14: 実測fixture（board_meeting_schedule.html）から年間8会合の日付を抽出（scripts/checkers/extractors/rba.js）し、weekly_scrapeからannual_schedule_config型へ再分類（RBAは翌年分を年1回まとめて公表する年次公表ソースのため）。8月分はground truth 3件（policy_rate/press_conference/quarterly_report、いずれも2026-08-11）と完全一致を確認。四半期報告(quarterly_report)を伴う月は公知のRBA運用（Feb/May/Aug/Nov）と仮定しているが、既刊で確認できたのは8月分のみのため、他3ヶ月（Feb/May/Nov）は月曜FF事後突合（SPEC §3.3）での確認待ち。下院経済委員会証言（testimony）はRBAではなく豪州議会（aph.gov.au）側の告知が必要なため本ソースの担当外（未実装・将来対応）"
+    },
+    {
+      "id": "us_census",
+      "name_ja": "米国勢調査局（Census Bureau）",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "retail_sales",
+        "trade_balance"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "calendar_listview",
+            "url": "https://www.census.gov/economic-indicators/calendar-listview.html"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "retail_sales": {
+          "local_time": "08:30",
+          "tz": "America/New_York"
+        },
+        "trade_balance": {
+          "local_time": "08:30",
+          "tz": "America/New_York"
+        }
+      },
+      "notes": "抽出はscripts/checkers/extractors/census.js（calendar-listview.htmlの<tr height=\"20\">行をパースし、リンクテキスト＋sorttable_customkey属性から確定日時を取得）。2026-08-14実測fixtureでground truth 2件（us_trade_20260804=貿易収支・us-retail-sales-20260814=小売売上高）と日付・時刻とも完全一致を確認。indicators_rss.xml（econcards/assets/xml/indicator.xml）は2021年の古いデータ要約フィードでありスケジュール情報を含まないと判明（2026-08-14実測で確認）したため対象URLから除外した"
+    },
+    {
+      "id": "gb_ons",
+      "name_ja": "英国家統計局（ONS）",
+      "status": "active",
+      "country": "GB",
+      "kinds": [
+        "gdp"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "releases_api_upcoming_gdp",
+            "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "gdp": {
+          "local_time": "07:00",
+          "tz": "Europe/London"
+        }
+      },
+      "notes": "抽出はscripts/checkers/extractors/ons.js（releases[].description.title/release_dateをJSON.parseで直接取得）。9元中最良の構造化JSON API（release_date・date_changes訂正履歴を含む）。統計実施規範により12ヶ月ローリング事前公表＋4週間前確定。既知の制約（2026-08-14実測で判明）: 本APIは`release-type=type-upcoming`のため実行時点より未来の日程しか返さない。そのため既刊ground truth（2026-08-13のGDP速報値）のような既に過去となった日付は本番同様の照合ができない（本番運用では対象週は常に未来のため実害はない） | 2026-08-15追記（しょうさん指示・恒久的な検証免除にしない）: 「未来日程は照合済み」の事実を明記する。実キャプチャ済みfixture（releases_api_upcoming_gdp.json）に含まれる実在リリース『GDP monthly estimate, UK: July 2026』（2026-09-11発表予定）の抽出をtest/harness.test.jsで回帰テスト化した。また、この過程でevent-names.jsonのGB/gdp matchキーワード（旧: gdp m/m・prelim gdp q/q、FF想定の表記）が、実際の担当ソースgb_onsが返す実タイトル形式『GDP first quarterly estimate, UK: {期間}』と一致しないバグをWebSearchでons.gov.uk実在ブリテン名を確認のうえ発見・修正した（config/event-names.json・test/match-event-name.test.js参照）。現行fixtureのAPIレスポンス窓（2026-09-11〜10-15）には次回のGDP first quarterly estimate（Q3=7-9月分、11月頃公表見込み）自体は含まれていないため、修正後のmatchキーワードは既刊実例の文言（第2四半期分）と架空でない実タイトル形式の両方で確認したうえでの訂正であり、次回API窓に入り次第そのまま機能する設計"
+    },
+    {
+      "id": "nz_statsnz",
+      "name_ja": "ニュージーランド統計局（Stats NZ）",
+      "status": "active",
+      "country": "NZ",
+      "kinds": [
+        "employment_situation"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "next_release_pointer": true,
+        "targets": [
+          {
+            "label": "latest_labour_market_release",
+            "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
+            "crawl_delay_seconds": 10
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "employment_situation": {
+          "local_time": "10:45",
+          "tz": "Pacific/Auckland"
+        }
+      },
+      "next_release_maintenance": "このtargets URLは『直近に公表されたLabour market statistics四半期リリースページ』を指す。各ページは本文内に次回リリース予定日（『Labour market statistics: {次の月} {年} quarter will be released on {date}.』）を埋め込んでおり、抽出はこの1文をパースする方式（open data API [api.stats.govt.nz] は2024-08-30に閉鎖済みのため利用不可、年次PDFカレンダーも未発見）。四半期ごとの新リリース公表後、このURLを次の四半期のページ（例: labour-market-statistics-september-2026-quarter）へ更新する必要がある（jp_mofのmonth_url_patternと同種の手動メンテナンス）。次回の更新目安は**2026年11月上旬（2026年9月期のLabour market statisticsが公表され次第、targetsをlabour-market-statistics-september-2026-quarterへ更新）**。access.next_release_pointer:trueにより、抽出結果（次回リリース予定日）が全件対象週より過去の場合はcheckWeeklyScrapeSourceが構造的失敗（ok:false）を返し、フェールクローズ規則へ接続する設計とした（更新漏れの自動検知。docs/annual-schedule-maintenance.md参照）",
+      "notes": "四半期リリース『Labour market statistics: {月} {年} quarter』（config/event-names.json照合済み）。四半期末から約5週間後に公表。【2026-08-14実測で判明】release-calendar/はSPA構造で静的取得不可（旧記録のとおり）。open data API（api.stats.govt.nz）は2024-08-30に閉鎖済みと判明し(a)API系統は不可。年次PDFカレンダーも(b)で探索したが発見できなかった。一方、各四半期の情報公開ページ自体（例: labour-market-statistics-june-2026-quarter）が本文に次回リリース予定日を埋め込み公表している（Stats NZ自身の公式コンテンツ）ことを発見し、これを抽出対象とする方式へ変更した。extractors/nz-statsnz.jsで抽出し、前四半期ページ（2026年3月期・ground truth検証用に別途取得）が『June 2026 quarter will be released on 5 August 2026』を埋め込んでいることを確認、ground truthのnz_labour_q2_20260805（2026年6月期）と完全一致した。現在のtargets（2026年6月期ページ）は次サイクルの2026年9月期＝2026-11-04を正しく抽出できることも確認済み。ページURLの四半期ごとの手動更新が必要（next_release_maintenance参照）"
+    },
+    {
+      "id": "ca_statcan",
+      "name_ja": "カナダ統計局（Statistics Canada）",
+      "status": "active",
+      "country": "CA",
+      "kinds": [
+        "employment_situation",
+        "trade_balance"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "annual_release_dates_pdf",
+            "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
+            "crawl_delay_seconds": 2
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "employment_situation": {
+          "local_time": "08:30",
+          "tz": "America/Toronto"
+        },
+        "trade_balance": {
+          "local_time": "08:30",
+          "tz": "America/Toronto"
+        }
+      },
+      "residual_monitor_weeks": 4,
+      "schedule_status": "confirmed",
+      "schedule": [
+        {
+          "date": "2026-01-08",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-01-09",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-01-29",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-02-06",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-02-19",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-03-12",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-03-13",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-04-02",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-04-10",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-05-05",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-05-08",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-06-05",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-06-09",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-07-07",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-07-10",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-08-04",
+          "kind": "trade_balance",
+          "note": "ground truth ca_goods_trade_20260804と一致確認済み"
+        },
+        {
+          "date": "2026-08-07",
+          "kind": "employment_situation",
+          "note": "ground truth ca_labour_20260807と一致確認済み"
+        },
+        {
+          "date": "2026-09-03",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-09-04",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-10-06",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-10-09",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-11-04",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-12-04",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2026-12-08",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2027-01-06",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2027-01-08",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2027-02-04",
+          "kind": "trade_balance"
+        },
+        {
+          "date": "2027-02-05",
+          "kind": "employment_situation"
+        },
+        {
+          "date": "2027-03-12",
+          "kind": "employment_situation"
+        }
+      ],
+      "notes": "【2026-08-14再実測で訂正】前回記録（cal1-eng.htmは検索フォームで発表日程を含まない・年次PDFは中間HTML着地ページに転送され直接取得不可）のうち、年次PDF側の判断は誤りだったと判明した。cal1-eng.htm自身が年次PDF（n1/release-diffusion/2026-eng.pdf）へのリンクを含んでおり、このURLへ直接フェッチするとHTTP 200・content-type application/pdf・リダイレクト無しで『2026-2027 release dates Major economic releases』というタイトルのPDF本体（約159KB）が取得できることを確認した（前回の判断はcal1-eng.htm自体の到達性テストと混同していた可能性が高い）。PDFはStatistics Canadaが毎年公表する主要経済指標の年次発表日程表で、Labour Force Survey（雇用統計）・Canadian international merchandise trade（国際商品貿易）を含む全指標の発表日・対象期間が2026年1月〜2027年3月分まで掲載されている。しょうさん指示の優先順(a)API/RSS/ICS→(b)年次PDFのうち(b)で解決。scripts/checkers/extractors/statcan.jsで抽出し、既刊ground truth（CA国際商品貿易2026-08-04＝2026年6月分、CA雇用統計2026-08-07＝2026年7月分）と完全一致を確認した。typeをweekly_scrapeからannual_schedule_configへ再分類し、抽出結果（2026年1月〜2027年3月分、trade_balance15件・employment_situation15件）をscheduleへ投入済み"
+    },
+    {
+      "id": "au_abs",
+      "name_ja": "豪州統計局（ABS）",
+      "status": "active",
+      "country": "AU",
+      "kinds": [
+        "trade_balance"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "future_releases_calendar",
+            "url": "https://www.abs.gov.au/release-calendar/future-releases-calendar"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "trade_balance": {
+          "local_time": "11:30",
+          "tz": "Australia/Sydney"
+        }
+      },
+      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする"
+    },
+    {
+      "id": "us_ism",
+      "name_ja": "ISM",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "pmi_ism"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "residual_monitor_weeks": 4,
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-08-14",
+      "confirmed_by": "しょうさん（ISM公式カレンダーページの目視確認）",
+      "confirmed_note": "2026年9月・10月分（製造業9/1・非製造業9/3、製造業10/1・非製造業10/5）をドラフト提示し、ISM公式カレンダーページと一致することを確認済み。8月分は既刊ground truthとも一致。次回の年次確認は残量監視WARN（対象週+4週先までscheduleに日程が無い場合）で促す運用とする",
+      "schedule": [
+        {
+          "date": "2026-08-03",
+          "kind": "pmi_ism",
+          "subtype": "manufacturing",
+          "note": "ground truth us_ism_mfg_20260803と一致確認済み（機械計算＋しょうさん目視確認2026-08-14）"
+        },
+        {
+          "date": "2026-08-05",
+          "kind": "pmi_ism",
+          "subtype": "services",
+          "note": "ground truth us_ism_services_20260805と一致確認済み（機械計算＋しょうさん目視確認2026-08-14）"
+        },
+        {
+          "date": "2026-09-01",
+          "kind": "pmi_ism",
+          "subtype": "manufacturing",
+          "note": "しょうさん目視確認2026-08-14（ISM公式カレンダーと一致）"
+        },
+        {
+          "date": "2026-09-03",
+          "kind": "pmi_ism",
+          "subtype": "services",
+          "note": "しょうさん目視確認2026-08-14（ISM公式カレンダーと一致）"
+        },
+        {
+          "date": "2026-10-01",
+          "kind": "pmi_ism",
+          "subtype": "manufacturing",
+          "note": "しょうさん目視確認2026-08-14（ISM公式カレンダーと一致）"
+        },
+        {
+          "date": "2026-10-05",
+          "kind": "pmi_ism",
+          "subtype": "services",
+          "note": "しょうさん目視確認2026-08-14（ISM公式カレンダーと一致）"
+        }
+      ],
+      "draft_rule": {
+        "description": "製造業PMI=毎月第1営業日、非製造業(Services)PMI=毎月第3営業日、いずれも米東部時間10:00。米連邦祝日を考慮して機械計算したドラフトを人間が年1回、公式カレンダーページと突合・確定する",
+        "business_day_rule": "1st_and_3rd_business_day_of_month",
+        "us_federal_holidays_considered": true
+      },
+      "access": {
+        "robots_check": true,
+        "automated_fetch": false,
+        "manual_verify_url": "https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/",
+        "note": "robots.txtは許可だが実ページがreCAPTCHA付きログイン(ecommerce.ismworld.org/SSO/Login.aspx)へリダイレクトされ単純HTTPフェッチ不可（2026-08-14実測）。UA偽装によるブロック回避は行わない方針のため自動取得は放棄し、年次スケジュールconfig型に統一"
+      },
+      "announce_time_by_kind": {
+        "pmi_ism": {
+          "local_time": "10:00",
+          "tz": "America/New_York"
+        }
+      },
+      "notes": "2026-08-14: ドラフト生成コード実装（scripts/lib/ism-schedule.js）。既刊ground truth（2026-08-03=製造業・2026-08-05=非製造業）と一致することを確認済み。2026-08〜10月分をscheduleへ機械投入し、しょうさんによる公式カレンダーページとの目視突合・確定が完了（confirmed_at参照）。docs/annual-schedule-maintenance.md参照"
+    },
+    {
+      "id": "jp_boj",
+      "name_ja": "日本銀行（BOJ）",
+      "status": "draft_schedule",
+      "country": "JP",
+      "kinds": [
+        "policy_rate",
+        "opinions_summary",
+        "minutes_summary"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "residual_monitor_weeks": 4,
+      "schedule_status": "confirmed",
+      "schedule": [
+        {
+          "date": "2026-01-23",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-02-02",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2026-03-19",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-03-25",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2026-03-30",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2026-04-28",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-05-07",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2026-05-12",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2026-06-16",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-06-19",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2026-06-24",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2026-07-31",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-08-05",
+          "kind": "minutes_summary",
+          "note": "ground truth jp_boj_minutes_20260805と一致確認済み"
+        },
+        {
+          "date": "2026-08-10",
+          "kind": "opinions_summary",
+          "note": "ground truth jp-boj-summary-2026-08-10と一致確認済み"
+        },
+        {
+          "date": "2026-09-18",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-09-28",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2026-10-01",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2026-10-30",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-11-05",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2026-11-10",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2026-12-18",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-12-23",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2026-12-28",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2027-01-22",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-01-27",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2027-02-01",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2027-03-18",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-03-24",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2027-03-29",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2027-04-28",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-05-07",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2027-05-12",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2027-06-11",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-06-16",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2027-06-21",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2027-07-22",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-07-27",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2027-07-30",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2027-09-22",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-09-28",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2027-10-01",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2027-10-29",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-11-04",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2027-11-09",
+          "kind": "opinions_summary"
+        },
+        {
+          "date": "2027-12-17",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-12-22",
+          "kind": "minutes_summary"
+        },
+        {
+          "date": "2027-12-27",
+          "kind": "opinions_summary"
+        }
+      ],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "mpm_index",
+            "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm"
+          },
+          {
+            "label": "mpm_2026_schedule_pdf",
+            "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/m_ref/mref250731a.pdf"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "opinions_summary": {
+          "local_time": "08:50",
+          "tz": "Asia/Tokyo"
+        },
+        "minutes_summary": {
+          "local_time": "08:50",
+          "tz": "Asia/Tokyo"
+        },
+        "policy_rate": {
+          "local_time": "12:00",
+          "tz": "Asia/Tokyo",
+          "note": "日銀の政策決定発表は他中銀と異なり公式な固定時刻の事前公表が無く、実際の発表は会合2日目の審議終了タイミング次第で前後する（実務上おおむね正午前後）。暫定値としてJST12:00を採用し、月曜の事後FF突合（SPEC §3.3・二層目のドリフト検知）で実際の発表時刻との乖離を継続監視する"
+        }
+      },
+      "notes": "毎年7月31日に翌年8回の会合日程を公表。主な意見=会合後6営業日目08:50、議事要旨=次回会合後3営業日目08:50。2026-08-14: mpm_index.htm（HTML）の方がPDFよりも構造的に安定して抽出できると判明したため、抽出対象をPDFからHTML(mpm_index)へ変更（scripts/checkers/extractors/boj.js）。実測fixtureからground truth 2件（2026-08-05議事要旨・2026-08-10主な意見）と完全一致を確認。2027年分も同ページに一部（会合日未確定分含む）掲載されていたため合わせて取り込んだ | 2026-08-15追加（task #19・coverage-gap-2026-08-15.md）: 列[1]「Date of MPM」（会合2日目）からpolicy_rateを追加抽出（scripts/checkers/extractors/boj.js）。2026・2027年とも年8回で既存のopinions_summary/minutes_summaryと会合回数が一致することを確認済み。発表時刻は固定時刻の公式公表が無いため暫定でJST12:00とし、月曜FF事後突合で継続検証する（announce_time_by_kind.policy_rate.note参照）"
+    },
+    {
+      "id": "us_treasury",
+      "name_ja": "米財務省（TreasuryDirect／Fiscal Data）",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "bond_auction"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "fiscaldata_upcoming_auctions",
+            "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions"
+          }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "優先度B1a。2026-08-14実測: treasurydirect.gov（TA_WS API含む）はrobots.txtで`Disallow: /`のため全面ブロック。代わりにapi.fiscaldata.treasury.gov（米財務省Fiscal Data、別ドメイン）の`upcoming_auctions`データセットが200・構造化JSON（record_date/security_type/security_term/cusip/announcemt_date/auction_date/issue_date）で到達可能と確認。クエリパラメータ無しの応答は2024年3月〜直近まで約90件を含む未整理な一括データのため、scripts/checkers/extractors/us-treasury.jsで対象週内のauction_dateのみを自前フィルタする方式で実装済み（実fixtureで2026-08-19の20年債を正しく抽出確認）。既刊ground truthに米国債入札の実例が無いため既刊一致検証はできないが、実データの形式・フィルタ動作は確認済み。命名はSPEC §4.2の米国債テンプレート（国別分岐）をレンダラー実装（task #12）側で使用 | 2026-08-15（task #19付随の配線ギャップ修正）: harness.mjsのWEEKLY_SCRAPE_EXTRACTORSへ登録完了。extractUsTreasuryAuctionsが(json, weekStart, weekEnd)を取る特殊シグネチャのため、harnessのparseFn呼び出しに対象週コンテキストを渡す仕組み（第2引数ctx）を追加して対応。観測モード実測（job 94843102819）で確認された「抽出ルール未実装」失敗はこれで解消"
+    },
+    {
+      "id": "jp_mof",
+      "name_ja": "日本財務省（MOF・JGB）",
+      "status": "active",
+      "country": "JP",
+      "kinds": [
+        "bond_auction"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "auction_calendar_index",
+            "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm"
+          },
+          {
+            "label": "auction_calendar_2608",
+            "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/2608e.htm"
+          }
+        ],
+        "month_url_pattern": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/{YY}{MM}e.htm",
+        "note": "対象週の月に応じてmonth_url_patternのYY(西暦下2桁)/MM(月2桁)を差し替えてフェッチする必要がある（例: 2026年9月分=2609e.htm）。現状のauction_calendar_2608は2026年8月固定のfixture確認用。checkWeeklyScrapeSourceは現状static targetsのみ対応のため、動的URL生成の配線はextractor実装時に追加する"
+      },
+      "announce_time_by_kind": {},
+      "notes": "優先度B1b。2026-08-14実測: auction_calendar_indexは月別インデックスページと判明（2026年1〜10月分は月別ページへのリンク済み、11・12月はまだリンクなし＝BOJ/RBAのような年次一括公表ではなく月次ローリング公表と判明。typeをannual_schedule_configからweekly_scrapeへ訂正）。月別ページ（2608e.htm=2026年8月分）の`<table class=\"table2a\">`からground truth 2件（10年債8/4・30年債8/6）を完全一致で抽出確認済み（scripts/checkers/extractors/mof.js）。命名（SPEC §4.2の国別分岐テンプレート）はレンダラー実装（task #12）側で適用する | 2026-08-15（task #19付随の配線ギャップ修正）: harness.mjsのWEEKLY_SCRAPE_EXTRACTORSへ登録完了。月別ローリング公表のためaccess.month_url_patternから対象週の月ページURLを動的生成するbuildMofMonthTargets()を追加（primaryLabel未指定として複数ページのマージに対応。月またぎ週は2ページ分を合成）。観測モード実測（job 94843102819）で確認された「抽出ルール未実装」失敗はこれで解消"
+    },
+    {
+      "id": "us_frb_speeches",
+      "name_ja": "FRB（理事講演カレンダー）",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          {
+            "label": "speeches_rss",
+            "url": "https://www.federalreserve.gov/feeds/speeches.xml"
+          }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "優先度B2。2026-08-14実測: 標準的なRSS 2.0フィード（/feeds/speeches.xml）から、ground truth（Cook理事講演、UTC 2026-08-05T20:05:00Z=JST 2026-08-06 05:05）と完全一致するpubDateを抽出確認済み（scripts/checkers/extractors/frb-speeches.js）。pubDateは絶対UTC値のためconfig固定時刻は不要（access.provides_exact_time:true）。**未解決**: config/officials.jsonにFRB理事個人（Cook・Waller・Jefferson・Barr・Bowman等、議長ではなく理事）が未登録のため、姓（例:\"Cook\"）から正式な人名・役職を解決してSPEC §4.2命名テンプレート「{人名}{役職}の発言」を適用する処理は未実装。Phase 0のofficials.json調査と同じ方式（公式サイト＋日本語金融メディア2ソース以上のクロスチェック）での追加調査が必要（推測での登録は不可）。証言（testimony.xml）・理事別個別フィードも同様に未実装 | 2026-08-15（task #19付随の配線ギャップ修正）: harness.mjsのWEEKLY_SCRAPE_EXTRACTORSへ登録完了。pubDateRawをutcInstantとして渡しrow.kind='official_speech'を付与（SPEC §4.2の規則生成命名kind、event-names.json辞書照合はスキップ）。話者の人名・役職解決（task #17でofficials.jsonにFRB理事を追加後に対応）は引き続き未実装だが、フェールクローズ判定・候補検出自体は機能する。観測モード実測（job 94843102819）で確認された「抽出ルール未実装」失敗はこれで解消"
+    },
+    {
+      "id": "cn_pmi",
+      "name_ja": "S&P Global（Caixin/RatingDog中国PMI）",
+      "status": "pending_recon",
+      "country": "CN",
+      "kinds": [
+        "pmi_ism"
+      ],
+      "recurring_check_refs": [
+        "中国PMI"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": []
+      },
+      "announce_time_by_kind": {},
+      "notes": "優先度B3。2026-08-14実測: 公表元S&P Globalのpmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（BLSと同様のインフラ側ブロックの疑い。UA偽装による回避は行わない方針）。冠スポンサーのRatingDog自身のサイト（ratingdog.cn）も試したが、Monaco Editor/Viteバンドルを含む本格的なSPA構造で日程データは静的HTMLに含まれないと判明（us_adp・Stats NZと同種の構造的ブロッカー）。follow-up調査対象（task #15と合わせて管理）"
+    },
+    {
+      "id": "gb_construction_pmi",
+      "name_ja": "S&P Global／CIPS（英建設業PMI）",
+      "status": "pending_recon",
+      "country": "GB",
+      "kinds": [
+        "pmi_ism"
+      ],
+      "recurring_check_refs": [
+        "英国建設業PMI"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": []
+      },
+      "announce_time_by_kind": {},
+      "notes": "優先度B4。2026-08-14実測: pmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（cn_pmiと同じ理由）。代替候補として試したcips.org/en/supply-management/news/pmi/はHTTP 404（URLが誤りの可能性。CIPS.orgの正しいPMI公表ページURLは未特定）。follow-up調査対象"
+    },
+    {
+      "id": "us_adp",
+      "name_ja": "ADP Research Institute",
+      "status": "pending_recon",
+      "country": "US",
+      "kinds": [
+        "employment_indicator"
+      ],
+      "recurring_check_refs": [
+        "ADP雇用統計"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "top",
+            "url": "https://adpemploymentreport.com/"
+          }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "優先度B5。2026-08-14実測: robots.txt許可・HTTP 200で到達可能だが、実体はReact/ViteのSPA（`<div id=\"root\"></div>`＋JSバンドルのみ）で日程データは静的HTMLに含まれないと判明（Stats NZと同種の構造的ブロッカー）。API/RSSの追加調査、またはPlaywrightレンダリング取得が必要"
+    },
+    {
+      "id": "ca_ivey",
+      "name_ja": "Ivey Business School（Western大学）",
+      "status": "active",
+      "country": "CA",
+      "kinds": [
+        "pmi_ism"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "residual_monitor_weeks": 4,
+      "schedule_status": "confirmed",
+      "schedule": [
+        {
+          "date": "2026-01-07",
+          "kind": "pmi_ism"
+        },
+        {
+          "date": "2026-02-06",
+          "kind": "pmi_ism"
+        },
+        {
+          "date": "2026-03-06",
+          "kind": "pmi_ism"
+        },
+        {
+          "date": "2026-04-07",
+          "kind": "pmi_ism"
+        },
+        {
+          "date": "2026-05-06",
+          "kind": "pmi_ism"
+        },
+        {
+          "date": "2026-06-05",
+          "kind": "pmi_ism"
+        },
+        {
+          "date": "2026-07-07",
+          "kind": "pmi_ism"
+        },
+        {
+          "date": "2026-08-07",
+          "kind": "pmi_ism",
+          "note": "ground truth ca_ivey_pmi_20260807と一致確認済み"
+        },
+        {
+          "date": "2026-09-04",
+          "kind": "pmi_ism"
+        },
+        {
+          "date": "2026-10-06",
+          "kind": "pmi_ism"
+        },
+        {
+          "date": "2026-11-06",
+          "kind": "pmi_ism"
+        },
+        {
+          "date": "2026-12-04",
+          "kind": "pmi_ism"
+        }
+      ],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "faq",
+            "url": "https://iveypmi.uwo.ca/faq/"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "pmi_ism": {
+          "local_time": "10:00",
+          "tz": "America/Toronto"
+        }
+      },
+      "notes": "優先度B6。2026-08-14実測: robots.txt許可・HTTP 200・61KB HTMLで到達確認済み。FAQページ本文に『Index Release Dates in 2026 are: January 7, February 6, ..., December 4』という平文の年間発表日一覧が直接埋め込まれており、静的HTMLから容易に抽出可能と確認（ISMのような自動取得ブロックなし）。ground truth（8/7）と完全一致。『第3または第4営業日、米東部標準時10:00』との記載あり（ISMのような一律ルールではなく年ごとに確定値を都度取得する方式が適切）"
+    },
+    {
+      "id": "us_frb_policy_rate",
+      "name_ja": "FRB（FOMC政策金利カレンダー）",
+      "status": "draft_schedule",
+      "country": "US",
+      "kinds": [
+        "policy_rate",
+        "press_conference",
+        "quarterly_report"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "fomc_calendars",
+            "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "policy_rate": {
+          "local_time": "14:00",
+          "tz": "America/New_York"
+        },
+        "quarterly_report": {
+          "local_time": "14:00",
+          "tz": "America/New_York",
+          "note": "政策金利発表と同時刻（同一発表枠としてbundling_ruleで束ねる）"
+        },
+        "press_conference": {
+          "local_time": "14:30",
+          "tz": "America/New_York"
+        }
+      },
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。既存us_frb_speeches（理事講演）とは別物。2026-08-15実測: robots.txt許可・HTTP 200・164KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。構造確認・抽出ルール実装は未着手 | 2026-08-15: annual_schedule_config化完了（scripts/checkers/extractors/frb-policy-rate.js実測）。schedule[]は2026-01以降を収録（fixtureは2021年分まで遡れるが直近2年分に限定）。既実施会合（2026-07-29等）が抽出結果に含まれることを確認済み（検証基準a）。発表時刻14:00 ET(声明)・14:30 ET(会見)はFRB公式運用の規定時刻（2019年以降全会合後に会見を実施）。DST変換テストはtest/tz-convert.test.js・test/resolve-candidate.test.jsのAmerica/New_York変換で担保",
+      "schedule": [
+        {
+          "date": "2026-01-28",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-01-28",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-03-18",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-03-18",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-03-18",
+          "kind": "quarterly_report",
+          "note": "Summary of Economic Projections公表会合"
+        },
+        {
+          "date": "2026-04-29",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-04-29",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-06-17",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-06-17",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-06-17",
+          "kind": "quarterly_report",
+          "note": "Summary of Economic Projections公表会合"
+        },
+        {
+          "date": "2026-07-29",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-07-29",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-09-16",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-09-16",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-09-16",
+          "kind": "quarterly_report",
+          "note": "Summary of Economic Projections公表会合"
+        },
+        {
+          "date": "2026-10-28",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-10-28",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-12-09",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-12-09",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-12-09",
+          "kind": "quarterly_report",
+          "note": "Summary of Economic Projections公表会合"
+        },
+        {
+          "date": "2027-01-27",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-01-27",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-03-17",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-03-17",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-03-17",
+          "kind": "quarterly_report",
+          "note": "Summary of Economic Projections公表会合"
+        },
+        {
+          "date": "2027-04-28",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-04-28",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-06-09",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-06-09",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-06-09",
+          "kind": "quarterly_report",
+          "note": "Summary of Economic Projections公表会合"
+        },
+        {
+          "date": "2027-07-28",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-07-28",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-09-15",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-09-15",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-09-15",
+          "kind": "quarterly_report",
+          "note": "Summary of Economic Projections公表会合"
+        },
+        {
+          "date": "2027-10-27",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-10-27",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-12-08",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-12-08",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-12-08",
+          "kind": "quarterly_report",
+          "note": "Summary of Economic Projections公表会合"
+        }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
+      "id": "ecb_policy_rate",
+      "name_ja": "ECB（Governing Council政策金利カレンダー）",
+      "status": "draft_schedule",
+      "country": "EU",
+      "kinds": [
+        "policy_rate",
+        "press_conference"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "gc_calendar",
+            "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "policy_rate": {
+          "local_time": "14:15",
+          "tz": "Europe/Berlin"
+        },
+        "press_conference": {
+          "local_time": "14:45",
+          "tz": "Europe/Berlin"
+        }
+      },
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。countryを'EU'としたが、既存configの国コード体系（ISO国コード）と整合しないため要検討（country-currency-map.json等への影響を含む）。2026-08-15実測: robots.txt許可・HTTP 200・106KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。構造確認・抽出ルール実装は未着手 | 2026-08-15: annual_schedule_config化完了（scripts/checkers/extractors/ecb-policy-rate.js実測）。country=\"EU\"を正式採用（scripts/phase0/phase0.mjsのCOUNTRY_JA_TO_CODEに既存の\"ユーロ圏\"→\"EU\"変換と整合。naming.jsのpolicyRateName()はbankAbbr直接指定のためcountry値に依存せず、resolveCandidateEventのruleGenerated分岐によりevent-names.json辞書照合も不要なため実害なしと判断）。schedule[]は2026年分（fetch時点で既に一部が過ぎているため2027・2028年分中心）＋2027・2028年分を収録。2027年通年8回・次回会合(2026-09-10)が未来であることを確認済み（検証基準b。既実施会合はページ非掲載のため検証不可）。発表時刻14:15/14:45 CET/CESTはECB公式運用の規定時刻。tz=Europe/Berlin（フランクフルト本部・IANA上はEurope/Frankfurt未定義のためドイツ標準zoneを使用）",
+      "schedule": [
+        {
+          "date": "2026-09-10",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-09-10",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-10-29",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-10-29",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2026-12-17",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-12-17",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-02-04",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-02-04",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-03-18",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-03-18",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-04-29",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-04-29",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-06-10",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-06-10",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-07-22",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-07-22",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-09-09",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-09-09",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-10-28",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-10-28",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2027-12-16",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-12-16",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2028-02-03",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2028-02-03",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2028-03-23",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2028-03-23",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2028-05-04",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2028-05-04",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2028-06-08",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2028-06-08",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2028-07-20",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2028-07-20",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2028-09-07",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2028-09-07",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2028-10-12",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2028-10-12",
+          "kind": "press_conference"
+        },
+        {
+          "date": "2028-12-07",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2028-12-07",
+          "kind": "press_conference"
+        }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
+      "id": "boe_policy_rate",
+      "name_ja": "BOE（MPC政策金利カレンダー）",
+      "status": "draft_schedule",
+      "country": "GB",
+      "kinds": [
+        "policy_rate"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "upcoming_mpc_dates",
+            "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "policy_rate": {
+          "local_time": "12:00",
+          "tz": "Europe/London"
+        }
+      },
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt許可・HTTP 200・78KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。ページタイトルが『Monetary Policy Committee dates for 2026 and 2027』で専用の先行公表ページと確認。構造確認・抽出ルール実装は未着手 | 2026-08-15: annual_schedule_config化完了（scripts/checkers/extractors/boe-policy-rate.js実測）。schedule[]は2026・2027年分（各8回）を収録。既実施会合（2026-07-30）が抽出結果に含まれることを確認済み（検証基準a）。発表時刻12:00(UK時間)はBOE公式運用の規定時刻。press_conferenceは本ソースでは未収録（BOEは四半期のMonetary Policy Report発行月のみ会見を実施し全回ではないため、誤って毎回press_conferenceを立てるとFRB/ECBと異なり過大計上になる。個別実測が必要なため今回は対象外・kinds=policy_rateのみ）",
+      "schedule": [
+        {
+          "date": "2026-02-05",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-03-19",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-04-30",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-06-18",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-07-30",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-09-17",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-11-05",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-12-17",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-02-04",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-03-18",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-04-29",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-06-17",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-07-29",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-09-16",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-11-04",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-12-16",
+          "kind": "policy_rate"
+        }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
+      "id": "boc_policy_rate",
+      "name_ja": "BOC（政策金利発表カレンダー）",
+      "status": "active",
+      "country": "CA",
+      "kinds": [
+        "policy_rate",
+        "quarterly_report"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "upcoming_events",
+            "url": "https://www.bankofcanada.ca/press/upcoming-events/"
+          },
+          {
+            "label": "release_2027_schedule",
+            "url": "https://www.bankofcanada.ca/2026/07/bank-canada-publishes-2027-schedule-policy-interest-rate-announcements-other-major-publications/"
+          },
+          {
+            "label": "release_2026_schedule",
+            "url": "https://www.bankofcanada.ca/2025/08/bank-canada-publishes-2026-schedule-policy-interest-rate-announcements-other-major-publications/"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "policy_rate": {
+          "local_time": "09:45",
+          "tz": "America/Toronto"
+        },
+        "quarterly_report": {
+          "local_time": "09:45",
+          "tz": "America/Toronto",
+          "note": "政策金利発表と同時刻（同一発表枠としてbundling_ruleで束ねる）。Monetary Policy Reportは1・4・7・10月の発表回に限り同時発表"
+        }
+      },
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt許可・HTTP 200・148KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。当初はupcoming-events/がローリング約4ヶ月先までの催事一覧（年次一括公表ではない）と判明したためweekly_scrape型とし、抽出はscripts/checkers/extractors/boc-policy-rate.jsで実装（年8回・09:45(ET)発表を実データ確認済み） | 2026-08-15追記（しょうさん指摘・一次ソース実測）: BOCは毎年、翌年分の政策金利発表日程を年次プレスリリース『Bank of Canada publishes its {年}年 schedule for policy interest rate announcements and other major publications』で一括公表する慣行が2012年から継続していることをWebSearchで確認（canada.ca archiveに2013〜2015年分の同種リリースあり）。実際に2026年分（2025-08-06公表）・2027年分（2026-07-27公表）のプレスリリース本文を実測取得し（scripts/phase1/source-recon-g.mjs）、2026年全8回・2027年全8回の日程を直接確認。2027年分リリースは『reconfirmed』として2026年9〜12月分も再掲しており、2026年分リリースとの重複確認（2026-09-02・10-28・12-09が両リリースで一致）によりダブルチェック済み。全会合とも09:45(ET)発表・Monetary Policy Reportは1/4/7/10月の発表回に同時発表という記載も両リリースで一致。annual_schedule_config型へ格上げし、既存のweekly_scrape抽出（scripts/checkers/extractors/boc-policy-rate.js・test/extractors-boc-policy-rate.test.js）はFRB/ECB/BOE等と同様、スケジュール導出・将来の再検証用のオフラインツールとして温存する（harness.mjsの実行時抽出からは外す）",
+      "residual_monitor_weeks": 4,
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-08-15",
+      "confirmed_by": "Claude Code（bankofcanada.ca公式プレスリリース2件の本文実測、しょうさん指摘のBOC年次一括公表慣行を確認）",
+      "confirmed_source_url": [
+        "https://www.bankofcanada.ca/2025/08/bank-canada-publishes-2026-schedule-policy-interest-rate-announcements-other-major-publications/",
+        "https://www.bankofcanada.ca/2026/07/bank-canada-publishes-2027-schedule-policy-interest-rate-announcements-other-major-publications/"
+      ],
+      "schedule": [
+        { "date": "2026-01-28", "kind": "policy_rate" },
+        { "date": "2026-01-28", "kind": "quarterly_report" },
+        { "date": "2026-03-18", "kind": "policy_rate" },
+        { "date": "2026-04-29", "kind": "policy_rate" },
+        { "date": "2026-04-29", "kind": "quarterly_report" },
+        { "date": "2026-06-10", "kind": "policy_rate" },
+        { "date": "2026-07-15", "kind": "policy_rate" },
+        { "date": "2026-07-15", "kind": "quarterly_report" },
+        { "date": "2026-09-02", "kind": "policy_rate", "note": "2026年分・2027年分の両プレスリリースで一致確認済み" },
+        { "date": "2026-10-28", "kind": "policy_rate", "note": "2026年分・2027年分の両プレスリリースで一致確認済み" },
+        { "date": "2026-10-28", "kind": "quarterly_report" },
+        { "date": "2026-12-09", "kind": "policy_rate", "note": "2026年分・2027年分の両プレスリリースで一致確認済み" },
+        { "date": "2027-01-27", "kind": "policy_rate" },
+        { "date": "2027-01-27", "kind": "quarterly_report" },
+        { "date": "2027-03-03", "kind": "policy_rate" },
+        { "date": "2027-04-28", "kind": "policy_rate" },
+        { "date": "2027-04-28", "kind": "quarterly_report" },
+        { "date": "2027-06-02", "kind": "policy_rate" },
+        { "date": "2027-07-21", "kind": "policy_rate" },
+        { "date": "2027-07-21", "kind": "quarterly_report" },
+        { "date": "2027-09-08", "kind": "policy_rate" },
+        { "date": "2027-10-27", "kind": "policy_rate" },
+        { "date": "2027-10-27", "kind": "quarterly_report" },
+        { "date": "2027-12-08", "kind": "policy_rate" }
+      ]
+    },
+    {
+      "id": "rbnz_policy_rate",
+      "name_ja": "RBNZ（OCR政策金利カレンダー）",
+      "status": "active",
+      "country": "NZ",
+      "kinds": [
+        "policy_rate"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "automated_fetch": false,
+        "manual_verify_url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028",
+        "note": "2026-08-15訂正: 旧URL（...until-february-2027）は廃止・404（しょうさん一次ソース直接確認）。新URL（本欄）が最新の公式ページ（2026-02-19公表）。2027年から年7→8回体制に増加し、旧2027年2月分程日程は1週間前倒しに変更された。robots.txt自体がHTTP403（インフラ側ブロック）である点は新URLでも変わらず（2026-08-15、開発コンテナ・GitHub Actionsランナー双方で実測・再現、scripts/phase1/source-recon-e.mjs）。ISMと同じ「人間が年1回、公式ページを目視して確定する」annual_schedule_config方式を継続する"
+      },
+      "announce_time_by_kind": {
+        "policy_rate": {
+          "local_time": "14:00",
+          "tz": "Pacific/Auckland",
+          "note": "時刻は慣行値。公式ページ本文には発表時刻の明記が無い（Claude Code実測: robots.txt 403で照合不可／しょうさん実測: 直近MPSページ[2026年5月分]を直接確認したが本文に時刻表記自体が無いことを確認、2026-08-15）。第三者複数ソース（WebSearch経由、市場解説記事）で『announced to financial markets at 2pm (NZT)』を確認し裏付けとする。docs/open-questions.md O3参照（決定・クローズ済み）。初回発生週（2026年9/2週）は月曜のFF事後突合runで実際の発表時刻を自動検知する。tz=Pacific/Auckland指定によりNZST/NZDT切替は実行時にIANAデータで自動判定される（scripts/lib/tz-convert.js）ため、時刻はNZDT/NZSTを問わず常に14:00の壁時計時刻でよい"
+        }
+      },
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt取得自体がHTTP 403でインフラ側ブロックと判明（BLS・S&P Global・aph.gov.auと同種、scripts/phase1/source-recon-d.mjs） | 2026-08-15追記: しょうさんがClaude Chat経由で一次ソースを直接取得し、旧URL（until-february-2027）が廃止・404済みであることと、正しい新URL・全12回分の日程を確認・転記。Claude Code側でも新URLへのアクセスを再実測したが、robots.txt自体が403のため引き続き自動取得は不可（旧URLと同じインフラ側ブロック。scripts/phase1/source-recon-e.mjs）。日程はしょうさんの一次ソース直接確認により確定（ISM/annual-schedule-maintenance.md記載の手順どおり）。発表時刻14:00 NZTはWebSearchで複数の裏付け（fxstreet等の市場解説記事が『announced to financial markets at 2pm (NZT)』と明記）を確認 | 2026-08-15クローズ（O3）: しょうさんが直近MPSページ（2026年5月分）を直接確認し、公式ページ本文に時刻表記自体が無いことを確認（Claude Code実測と整合）。14:00を慣行値として採用し、月曜のFF事後突合runでの自動検知（初回発生週=2026年9/2週）を検証経路として受容。docs/open-questions.md O3・docs/annual-schedule-maintenance.md参照",
+      "residual_monitor_weeks": 4,
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-08-15",
+      "confirmed_by": "しょうさん（一次ソース直接確認、Claude Chat経由）",
+      "confirmed_source_url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028",
+      "schedule": [
+        { "date": "2026-09-02", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
+        { "date": "2026-10-28", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)" },
+        { "date": "2026-12-09", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
+        { "date": "2027-02-10", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)。2027年から年7→8回体制へ増加に伴い、旧ページの2027年2月分程日程から1週間前倒し" },
+        { "date": "2027-03-17", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
+        { "date": "2027-05-05", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)" },
+        { "date": "2027-06-16", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
+        { "date": "2027-08-04", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)" },
+        { "date": "2027-09-15", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
+        { "date": "2027-10-27", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)" },
+        { "date": "2027-12-08", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
+        { "date": "2028-02-09", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)" }
+      ]
+    },
+    {
+      "id": "snb_policy_rate",
+      "name_ja": "SNB（Time schedule・金融政策評価カレンダー）",
+      "status": "active",
+      "country": "CH",
+      "kinds": [
+        "policy_rate",
+        "press_conference",
+        "opinions_summary"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "event_schedule",
+            "url": "https://www.snb.ch/en/services-events/digital-services/event-schedule"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "policy_rate": {
+          "local_time": "09:30",
+          "tz": "Europe/Zurich",
+          "note": "Monetary policy assessment (press release)。2026-08-15実測でevent-scheduleページ本文の6件全て09:30と確認済み"
+        },
+        "press_conference": {
+          "local_time": "10:00",
+          "tz": "Europe/Zurich",
+          "note": "Monetary policy assessment (introductory remarks, news conference)。政策金利発表と同日・別時刻の発表枠"
+        },
+        "opinions_summary": {
+          "local_time": "09:30",
+          "tz": "Europe/Zurich",
+          "note": "Summary of monetary policy discussion。日銀『主な意見』(opinions_summary)相当としてしょうさん指示により分類。掲載可否・重要度はimportance-rules.jsonの規則に従う（現行は他kindと同じopinions_summary=★★★）"
+        }
+      },
+      "notes": "2026-08-15訂正: しょうさんが一次ソースを直接取得し『一括先行公表なし』という前回判断が誤りだったと判明。SNB公式『Time schedule』ページ（本URL）に金融政策評価・Summary of monetary policy discussionを含む全日程が掲載されている。同ページは各イベントに個別iCalendarファイル（snb.ch/public/ical/event/en/{uuid}.ics）を提供しており、実測（scripts/phase1/source-recon-e.mjs）で94件のICSリンクを発見、サンプル3件とも有効なVCALENDAR形式（X-WR-TIMEZONE:Europe/Zurich・REFRESH-INTERVAL:PT6H）と確認済み＝公式のマシンリーダブル経路であることを裏付け。ただしICS個別取得は94件と週次には非効率かつUUID→イベントの対応がDOM順とずれる構造（実測で確認、scripts/phase1/source-recon-f.mjs）のため、本抽出はICSと同一の公式データソースであるevent-scheduleページ本文の平文リスト（『DD.MM.YYYY HH:MM タイトル』形式）を直接パースする方式を採用した（scripts/checkers/extractors/snb-policy-rate.js）。しょうさん転記の6回分の金融政策評価日程（2026/9/24・12/10、2027/3/18・6/24・9/23・12/16）と5回分のSummary of monetary policy discussion（2026/10/22、2027/1/7・4/15・7/22・10/21）を実測データで完全一致確認（scripts/phase1/source-recon-f.mjs）。schedule_status/annual_schedule_config方式は不採用とし、他の月次ローリング公表ソース（BOC等）と同じweekly_scrape型へ変更した（このページ自体が常に将来分を掲載し続けるため年次確定の手動運用が不要）",
+      "residual_monitor_weeks": 4
+    }
+  ]
+}

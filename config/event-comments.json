@@ -1,0 +1,22 @@
+{
+  "_comment": "イベント種別→定型コメント辞書。辞書未登録はコメント省略（生成AIによる自動作文は禁止）。文言追加はしょうさん承認後。kindはconfig/importance-rules.jsonのkind_definitionsと一致させる（2026-08-14: employmentをemployment_situation/employment_indicatorへ分割、opinions_summaryを新設）",
+  "comments": {
+    "policy_rate":          "政策判断と声明の文言を確認します。",
+    "press_conference":     "今後の政策方針に関する発言内容を確認します。",
+    "testimony":            "議会での発言内容と質疑応答を確認します。",
+    "official_speech":      "発言内容と市場の反応を確認します。",
+    "opinions_summary":     "政策判断や委員の議論を確認します。",
+    "minutes_summary":      "政策判断や委員の議論を確認します。",
+    "quarterly_report":     "インフレ・成長見通しの修正内容を確認します。",
+    "cpi":                  "物価動向と金融政策見通しへの影響を確認します。",
+    "ppi":                  "川上の物価動向を確認します。",
+    "employment_situation": "雇用情勢と賃金動向を確認します。",
+    "employment_indicator": "雇用情勢の先行指標として動向を確認します。",
+    "gdp":                  "景気動向を確認します。",
+    "retail_sales":         "消費動向を確認します。",
+    "pmi_ism":              "景況感を確認します。",
+    "bond_auction":         "応札状況と落札利回りを確認します。",
+    "trade_balance":        "貿易収支の動向を確認します。",
+    "sentiment":            "消費者・企業マインドの変化を確認します。"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "run_observation": false,
+  "run_coverage_gap_check": true,
+  "note": "coverage-gap-check-currency-fix"
+}

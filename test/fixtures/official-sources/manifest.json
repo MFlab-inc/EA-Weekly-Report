@@ -1,0 +1,19 @@
+{
+  "collectedAt": "2026-08-15T01:36:51.589Z",
+  "sources": [
+    {
+      "id": "snb_policy_rate",
+      "files": [
+        {
+          "label": "event_schedule",
+          "url": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+          "saved": true,
+          "path": "test/fixtures/official-sources/snb_policy_rate/event_schedule.html",
+          "status": 200,
+          "bytes": 151117,
+          "contentType": "text/html;charset=UTF-8"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+# 観測モード用の一時ワークフロー（2026-08-15、しょうさん指示）
+#
+# 目的: 本番想定時刻（土曜08:06 JST）に、実際の対象週（実行時点の翌週）で
+# scripts/checkers/harness.mjs（既存の公式ソースチェッカー）がどこまで動くかを観測する。
+# 実配信は期待しない（配信は従来どおりManusで行う）。検証スクリプト（task #13）・
+# PUBLISH_READYゲートは未実装のため、その部分はこのワークフローの範囲外。
+#
+# 制約（しょうさん指示）:
+# - output/ へのコミットは行わない（phase1-out/はgitignore対象。artifactにのみ保存）
+# - workflows-draft/weekly.yml は .github/workflows/ へ移設しない（本番ワークフローには触れない）
+# - 実行方式はphase0-measure.yml/phase1-reconと同じ「一時ワークフロー＋ブランチ上でのpush
+#   トリガー」方式（workflow_dispatchはデフォルトブランチ登録が必要なため不採用）
+# - アクセスマナー（robots.txt順守・1500ms間隔・必要最小回数）はharness.mjs側の既存実装を
+#   そのまま使うため自動的に維持される
+#
+# 起動方式: 開発ブランチへの `.observation-trigger` 変更pushで起動する
+#
+# 本ワークフローは観測目的の一時ファイルのため、目的達成後に削除する想定。
+name: observation-mode
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths: ['.observation-trigger']
+permissions:
+  contents: read
+concurrency:
+  group: observation-mode
+  cancel-in-progress: false
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: npm ci (pdf-parse等の依存関係)
+        run: npm ci
+      - name: Resolve config from .observation-trigger
+        id: cfg
+        run: |
+          node -e '
+            const fs = require("fs");
+            let cfg = {};
+            try { cfg = JSON.parse(fs.readFileSync(".observation-trigger", "utf8")); } catch (e) {}
+            const out = [
+              "run_observation=" + (cfg.run_observation === false ? "false" : "true"),
+              "run_coverage_gap_check=" + (cfg.run_coverage_gap_check === true ? "true" : "false"),
+            ].join("\n") + "\n";
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, out);
+          '
+      - name: Observation run (real target week, real access)
+        if: steps.cfg.outputs.run_observation == 'true'
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: node scripts/phase1/observation-run.mjs
+        continue-on-error: true
+      - name: Coverage gap check (FF feed vs registry, task follow-up 2026-08-15)
+        if: steps.cfg.outputs.run_coverage_gap_check == 'true'
+        run: node scripts/phase1/coverage-gap-check.mjs
+        continue-on-error: true
+      - name: Upload observation output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observation-mode-output
+          path: phase1-out
+          retention-days: 7
+          if-no-files-found: warn
