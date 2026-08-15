@@ -85,26 +85,33 @@ task #13（検証スクリプト5本の移植＋新設3検査）、しょうさ�
 
 ## 既知の簡略化（今後の課題）
 
-- `name_ja`の規則生成命名（SPEC §4.2、`scripts/lib/naming.js`、しょうさん指示2026-08-15で新設・
-  既刊2週の実表記をground truthとして`test/naming.test.js`で検証済み）は、`policy_rate`・
-  `quarterly_report`・`press_conference`の3kindについて`scripts/lib/build-ledger.js`の
-  `resolveRuleGeneratedName()`経由で台帳生成時に解決される（`officialsConfig`引数で
-  `config/officials.json`を渡した場合。8中銀すべてに対応、`verified:false`は役職のみで命名する
-  既存フォールバックを維持）。残り4kindは候補パイプラインに必要な文脈情報がまだ無いため、
-  引き続き`FALLBACK_KIND_LABEL`（kind→簡易日本語ラベル）で暫定対応する
-  （`name_resolution: "rule_generated"`として台帳上も「これは最終形の命名ではない」と分かるようにしている）:
-  - `opinions_summary`/`minutes_summary`（BOJ）: 会合期間文字列（periodJa、例「7月30・31日開催分」）が
-    候補パイプラインに未実装。テンプレート自体（`naming.bojOpinionsName`/`bojMinutesName`）は
-    実装・ground truthとの一致テスト済み
-  - `official_speech`: 発言者名（例「Cook」）から`config/officials.json`の該当者を照合する処理が
-    未実装（task #17でFRB理事個人を登録後に対応）
-  - `bond_auction`: 抽出済みの`tenorJa`/`issueYearMonthJa`（`scripts/checkers/extractors/mof.js`・
-    `us-treasury.js`が抽出）が候補パイプラインまで届いていない。テンプレート自体
-    （`naming.bondAuctionNameJp`/`bondAuctionNameUs`）は実装・ground truthとの一致テスト済み
+- `name_ja`の規則生成命名（SPEC §4.2、`scripts/lib/naming.js`）は、しょうさん指示2026-08-15で
+  文脈情報（periodJa・tenorJa・speakerLastName）の配線まで完了し、8kindすべてが
+  `scripts/lib/build-ledger.js`の`resolveRuleGeneratedName()`経由で台帳生成時に解決される
+  （`officialsConfig`引数で`config/officials.json`を渡した場合）:
+  - `policy_rate`/`quarterly_report`/`press_conference`: 8中銀すべてに対応
+  - `opinions_summary`/`minutes_summary`（BOJ限定）: `scripts/lib/boj-meeting-schedule.js`が
+    `jp_boj`の`policy_rate`日程から会合開催日レンジを機械的に導出し、periodJaを付与する
+    （既刊2週の実例・`test/boj-meeting-schedule.test.js`で検証済み）
+  - `bond_auction`: `scripts/checkers/extractors/mof.js`・`us-treasury.js`が抽出する`tenorJa`が
+    `resolve-candidate.js`経由で台帳まで届く。発行年月は入札日の年月から導出
+  - `official_speech`: `naming.resolveOfficialBySurname`で`speakerLastName`を照合するが、
+    2026-08-15時点`config/officials.json`にFRB理事個人（議長以外）が未登録（task #17）のため、
+    実運用では常にverified:falseの役職のみ命名になる（機構自体は配線済み・休眠状態）
   - `testimony`: `config/manual-events.json`由来の候補は運用者が`display_name`を直接指定するため
     （`docs/manual-events-guide.md`参照）、`candidate.displayName`が常に優先され本関数は使われない
+  - 全kindとも`test/regen-sample-weeks.test.js`（既刊2週の実データ経路再生成テスト）で
+    end-to-endの動作を確認済み
+- `annual_schedule_config`型ソース（`us_ism`・`ca_ivey`・`ca_statcan`等）由来の候補で、
+  SPEC §4.2の規則生成kind以外（`pmi_ism`・`trade_balance`・`employment_situation`等、
+  `config/event-names.json`辞書照合対象）は、`scripts/phase1/observation-run.mjs`の
+  `resolveAnnualDictionaryName()`が解決する（2026-08-15新設。country×kindで一意に決まらない場合
+  [例: US `pmi_ism`=ISM製造業/非製造業の2エントリ]は`schedule`エントリの`subtype`で絞り込む）
 - `bundle_id`（同一発表枠のグルーピング）は台帳生成時点では未計算（常にnull）。design-mock_v1.2.htmlの
-  「発表枠」概念（例: RBA政策金利＋声明＋SOMPを1枠として停止バーを連結する）は現状レンダラー側
-  （`scripts/render/build-report-data.js`の`windowGroups`）が個別に担っており、台帳との統合は未実施
+  「発表枠」概念（例: RBA政策金利＋声明＋SOMPを1枠として停止バーを連結する）は
+  `scripts/render/ledger-to-week-input.js`が1イベント=1windowGroup（束ねなし）として扱っている
+  （しょうさん指示2026-08-15・次タスクとして別途対応。束ねルール案は
+  「同一国×同一source_id×同一日×発表時刻90分以内」で既刊2週のRBA3件クラスタ・CPI2件クラスタ・
+  PPI2件クラスタと一致することを検証済み）
 - `sources[].http_status`は現状常にnull（harness.mjsが個別ソースのHTTPステータスをresult最上位に
   集約していないため）。今後の精緻化候補

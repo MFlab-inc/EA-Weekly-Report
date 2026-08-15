@@ -14,7 +14,7 @@ import { buildObservationSummary, USER_AGENT } from './phase1/observation-run.mj
 
 export async function collect({ sourcesConfig, importanceRules, eventNames, manualEventsConfig, targetWeek, fetchImpl = fetch, apiKey, robotsChecker }) {
   const report = await runChecks({ sourcesConfig, importanceRules, eventNames, targetWeek, fetchImpl, apiKey, robotsChecker });
-  const summary = buildObservationSummary(report, sourcesConfig, importanceRules, manualEventsConfig);
+  const summary = buildObservationSummary(report, sourcesConfig, importanceRules, manualEventsConfig, eventNames);
   return { targetWeek, report, candidates: summary.candidates };
 }
 

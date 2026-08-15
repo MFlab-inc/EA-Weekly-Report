@@ -54,6 +54,23 @@ function utcToJstParts(utcDate) {
   };
 }
 
+// UTC Date → 指定IANAタイムゾーンの{date:'YYYY-MM-DD', time:'HH:MM'}（utcToJstPartsの汎用版）。
+// utcInstantしか持たないソース（ABS・ONS等）の台帳time_local/tz（現地表記の監査用記録）を、
+// 設定済みの発表元タイムゾーン（announce_time_by_kind.*.tz）から復元するために使う
+function utcToZonedParts(utcInstant, ianaZone) {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: ianaZone,
+    hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  });
+  const parts = dtf.formatToParts(utcInstant).reduce((acc, p) => {
+    if (p.type !== 'literal') acc[p.type] = p.value;
+    return acc;
+  }, {});
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
+}
+
 // 公式ソースの現地壁時計時刻（年月日時分＋IANAタイムゾーン名）をJSTの日付・時刻へ変換する。
 // 例: zonedWallTimeToJst(2026, 3, 10, 8, 30, 'America/New_York') // DST中のET 08:30 → JST
 function zonedWallTimeToJst(y, mo, d, h, mi, ianaZone) {
@@ -65,5 +82,6 @@ module.exports = {
   offsetMinutesAt,
   zonedWallTimeToUtc,
   utcToJstParts,
+  utcToZonedParts,
   zonedWallTimeToJst,
 };

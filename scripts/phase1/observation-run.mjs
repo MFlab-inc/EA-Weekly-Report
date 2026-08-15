@@ -46,18 +46,47 @@ function resolveBojPeriodJa(entry, source) {
     : naming.formatMinutesPeriod(range.meetingStart, range.meetingEnd);
 }
 
+// SPEC §4.2の規則生成命名kind一覧（scripts/lib/build-ledger.jsのresolveRuleGeneratedNameが担当する
+// kind群と一致させる）。これ以外のkind（pmi_ism・trade_balance・employment_situation等、
+// config/event-names.json辞書照合対象）はresolveAnnualDictionaryNameで解決する
+const RULE_GENERATED_KINDS = new Set([
+  'policy_rate', 'press_conference', 'testimony', 'opinions_summary',
+  'minutes_summary', 'quarterly_report', 'official_speech', 'bond_auction',
+]);
+
+// annual_schedule_config型のschedule entry（{date, kind, subtype?, note?}）には抽出元の生テキストが
+// 無いため、resolveCandidateEventのようなキーワード部分一致（config/event-names.jsonのmatch）は
+// 使えない。country×kindでevent-names.jsonエントリが一意に決まる場合はそのまま使い、複数候補がある
+// 場合（例: US pmi_ism=ISM製造業/非製造業の2エントリ）はentry.subtypeで絞り込む
+// （2026-08-15新設。displayNameを常にnullで返す設計[task #27]にした結果、annual_schedule_config由来の
+// 辞書照合kindの名称が一切解決されなくなっていたための修正）
+function resolveAnnualDictionaryName(entry, source, eventNames) {
+  if (RULE_GENERATED_KINDS.has(entry.kind)) return null; // naming.js側（build-ledger.js）の担当
+  const candidates = (eventNames || []).filter((e) => e.country === source.country && e.kind === entry.kind);
+  if (candidates.length === 1) return candidates[0].display_name;
+  if (candidates.length > 1 && entry.subtype) {
+    // 現状ISM（us_ism）のみがsubtypeを持つ。match keywordの先頭が「kind種別+subtype」で
+    // 始まるものを選ぶ（部分一致だと「non-manufacturing」が「manufacturing」を誤って含んでしまうため
+    // startsWithで位置まで見る）
+    const hit = candidates.find((e) => (e.match || []).some((k) => k.toLowerCase().startsWith(`ism ${entry.subtype}`)));
+    if (hit) return hit.display_name;
+  }
+  return null;
+}
+
 // annual_schedule_config型のmatchedEntries（{date, kind, note?}）を、他ソース由来のthisWeek
 // 候補と同じ形（date/time/kind/country/importance/displayName）へ変換する。
-// 表示名は解決しない（scripts/lib/build-ledger.jsのresolveRuleGeneratedName()がnaming.js経由で
-// 解決する。displayName:nullのままにしておくことでそちらへ処理を委ねる）
-export function annualEntryToCandidate(entry, source, importanceRules) {
+// SPEC §4.2の規則生成命名kind（policy_rate等）は解決しない（scripts/lib/build-ledger.jsの
+// resolveRuleGeneratedName()がnaming.js経由で解決する。displayName:nullのままにしておくことで
+// そちらへ処理を委ねる）。辞書照合kindはresolveAnnualDictionaryName（上記）で解決する
+export function annualEntryToCandidate(entry, source, importanceRules, eventNames) {
   const at = source.announce_time_by_kind?.[entry.kind];
   const base = {
     date: entry.date,
     kind: entry.kind,
     country: source.country,
     importance: resolveImportance(entry.kind, source.country, importanceRules),
-    displayName: null,
+    displayName: resolveAnnualDictionaryName(entry, source, eventNames),
     periodJa: resolveBojPeriodJa(entry, source),
     sourceId: source.id,
     note: entry.note,
@@ -76,8 +105,10 @@ export function annualEntryToCandidate(entry, source, importanceRules) {
 
 // report（runChecks()の戻り値）から候補イベントの統合一覧・★★★の停止目安（簡易版）を組み立てる。
 // manualEventsConfig（config/manual-events.json）を渡すと、対象週に該当する手動登録イベント
-// （RBA証言等の突発イベント。scripts/lib/manual-events.js）も他ソースと同列の候補として取り込む
-export function buildObservationSummary(report, sourcesConfig, importanceRules, manualEventsConfig) {
+// （RBA証言等の突発イベント。scripts/lib/manual-events.js）も他ソースと同列の候補として取り込む。
+// eventNames（config/event-names.json.entries）はannual_schedule_config由来の辞書照合kind
+// （pmi_ism等）の名称解決に使う（省略可。省略時はresolveAnnualDictionaryNameが常にnullを返す）
+export function buildObservationSummary(report, sourcesConfig, importanceRules, manualEventsConfig, eventNames) {
   const candidates = [];
   for (const r of report.results) {
     if (r.skipped) continue;
@@ -86,7 +117,7 @@ export function buildObservationSummary(report, sourcesConfig, importanceRules, 
     }
     if (Array.isArray(r.matchedEntries)) {
       const source = sourcesConfig.sources.find((s) => s.id === r.id);
-      for (const e of r.matchedEntries) candidates.push(annualEntryToCandidate(e, source, importanceRules));
+      for (const e of r.matchedEntries) candidates.push(annualEntryToCandidate(e, source, importanceRules, eventNames));
     }
   }
   if (manualEventsConfig) {
@@ -198,7 +229,7 @@ async function main() {
     robotsChecker,
   });
 
-  const summary = buildObservationSummary(report, sourcesConfig, importanceRules, manualEventsConfig);
+  const summary = buildObservationSummary(report, sourcesConfig, importanceRules, manualEventsConfig, eventNames);
 
   mkdirSync('phase1-out', { recursive: true });
   writeFileSync('phase1-out/observation-summary.json', JSON.stringify(summary, null, 2));

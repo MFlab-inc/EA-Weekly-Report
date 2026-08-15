@@ -3,7 +3,7 @@
 // （JST日時・日本語正規名・重要度）を組み立てる（SPEC §4.2・§4.3）。
 // utcInstantが取れるソース（ABS・ONS等）はDST判定不要で直接JST変換できるため優先して使う。
 // date+localTime（現地時間表記）しか取れないソース（Census等）はtz-convert.jsでDST対応変換する。
-const { zonedWallTimeToJst, utcToJstParts } = require('./tz-convert');
+const { zonedWallTimeToJst, utcToJstParts, utcToZonedParts } = require('./tz-convert');
 const { findEventName } = require('./match-event-name');
 const { resolveImportance } = require('./importance');
 const { TIME_EXEMPT_KINDS } = require('./validate-official-sources');
@@ -39,6 +39,17 @@ function resolveCandidateEvent(row, ctx) {
   } else {
     return { ok: false, reason: `時刻情報が不足（utcInstantまたはdate+localTime+tzが必要）: title="${row.title}"` };
   }
+  // 台帳のtime_local/tzは「両方nullか両方非null」が不変条件（scripts/lib/validate-ledger.js）。
+  // utcInstantしか持たないソース（ABS・ONS等）はrow.date/row.localTimeを持たないため、
+  // ctx.tz（発表元の設定済みタイムゾーン）が分かっていればそこから現地表記を復元する
+  // （tzだけ設定されlocalTimeがnullのまま、という不整合を避ける）
+  let localDate = row.date || null;
+  let localTime = row.localTime || null;
+  if (row.utcInstant && !localTime && ctx.tz) {
+    const zoned = utcToZonedParts(new Date(row.utcInstant), ctx.tz);
+    localDate = zoned.date;
+    localTime = zoned.time;
+  }
   return {
     ok: true,
     date: jst.date,
@@ -49,8 +60,8 @@ function resolveCandidateEvent(row, ctx) {
     importance: resolveImportance(ctx.kind, ctx.country, ctx.importanceRules),
     rawTitle: row.title,
     // 台帳（data/ledger/）のsource_evidence・date_local/time_local/tz用に、変換前の現地情報も保持する
-    localDate: row.date || null,
-    localTime: row.localTime || null,
+    localDate,
+    localTime,
     tz: ctx.tz || null,
     utcInstant: row.utcInstant || null,
     // SPEC §4.2の規則生成命名（scripts/lib/build-ledger.jsのresolveRuleGeneratedName）向けの
@@ -86,6 +97,12 @@ function resolveKindCandidates(dateStr, ctx) {
     return [{ ok: false, reason: `時刻情報が不足（tz/localTimeが必要）: date=${dateStr}` }];
   }
   const jst = zonedWallTimeToJst(y, mo, d, h, mi, ctx.tz);
+  // 台帳のsource_evidence用: FRED release_idが分かっていれば明記する（ctx.releaseId、
+  // harness.mjsのcheckFredSourceが呼び出し時に渡す。2026-08-15、build-ledger.jsの
+  // source_evidence必須検証[空ならHOLD]に対応するため追加）
+  const sourceEvidence = ctx.releaseId != null
+    ? `FRED release_id=${ctx.releaseId}（release_date=${dateStr}）`
+    : `release_date=${dateStr}`;
   return entries.map((nameEntry) => ({
     ok: true,
     date: jst.date,
@@ -94,6 +111,12 @@ function resolveKindCandidates(dateStr, ctx) {
     country: ctx.country,
     displayName: nameEntry.display_name,
     importance: resolveImportance(ctx.kind, ctx.country, ctx.importanceRules),
+    rawTitle: nameEntry.display_name,
+    sourceEvidence,
+    localDate: dateStr,
+    localTime: ctx.localTime || null,
+    tz: ctx.tz || null,
+    utcInstant: null,
   }));
 }
 

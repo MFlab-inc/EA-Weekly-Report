@@ -201,6 +201,7 @@ export async function checkFredSource(source, targetWeek, { fetchImpl = fetch, a
         tz: timeCfg?.tz,
         localTime: timeCfg?.local_time,
         matchHint: rel.match_hint,
+        releaseId: rel.release_id,
         eventNames,
         importanceRules,
       });
