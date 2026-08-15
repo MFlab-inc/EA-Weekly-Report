@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
+const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
 const { validateLedger } = require('../scripts/lib/validate-ledger');
 
 const officials = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'officials.json'), 'utf8')).officials;
@@ -204,6 +204,111 @@ test('buildLedger: officialsConfigを渡すと規則生成命名（naming.js）�
   });
   assert.equal(ledger.events[0].name_ja, 'ブロックRBA総裁の記者会見');
   assert.equal(ledger.events[0].name_resolution, 'rule_generated');
+  const r = validateLedger(ledger);
+  assert.equal(r.ok, true);
+});
+
+// task #34: 発表枠の束ね（bundle_id）。しょうさん確定ルール2026-08-15
+// 「同一国×同一source_id×同一日×発表時刻90分以内」を既刊2週の実例で検証する
+function ledgerEvent(overrides) {
+  return {
+    event_id: overrides.event_id,
+    country: overrides.country,
+    source_id: overrides.source_id,
+    date_jst: overrides.date_jst,
+    datetime_jst: overrides.datetime_jst,
+    bundle_id: null,
+    ...overrides,
+  };
+}
+
+test('computeBundleIds: RBA3件クラスタ（13:30政策金利+13:30四半期報告+14:30会見）が既刊どおり1束になる', () => {
+  const events = [
+    ledgerEvent({ event_id: 'au-policy_rate-2026-08-11', country: 'AU', source_id: 'au_rba', date_jst: '2026-08-11', datetime_jst: '2026-08-11T13:30:00+09:00' }),
+    ledgerEvent({ event_id: 'au-quarterly_report-2026-08-11', country: 'AU', source_id: 'au_rba', date_jst: '2026-08-11', datetime_jst: '2026-08-11T13:30:00+09:00' }),
+    ledgerEvent({ event_id: 'au-press_conference-2026-08-11', country: 'AU', source_id: 'au_rba', date_jst: '2026-08-11', datetime_jst: '2026-08-11T14:30:00+09:00' }),
+  ];
+  const result = computeBundleIds(events);
+  const bundleIds = new Set(result.map((e) => e.bundle_id));
+  assert.equal(bundleIds.size, 1, '3件とも同一bundle_idのはず');
+  assert.notEqual([...bundleIds][0], null);
+  assert.equal(result[0].bundle_id, 'au-policy_rate-2026-08-11', '先頭（最も早い時刻）のevent_idがbundle_idになる');
+});
+
+test('computeBundleIds: CPI+コアCPI（同日同時刻・同一source）が1束、PPI+コアPPIは別の束になる', () => {
+  const events = [
+    ledgerEvent({ event_id: 'us-cpi-2026-08-12', country: 'US', source_id: 'us_bls_fred', date_jst: '2026-08-12', datetime_jst: '2026-08-12T21:30:00+09:00' }),
+    ledgerEvent({ event_id: 'us-cpi-2026-08-12-2', country: 'US', source_id: 'us_bls_fred', date_jst: '2026-08-12', datetime_jst: '2026-08-12T21:30:00+09:00' }),
+    ledgerEvent({ event_id: 'us-ppi-2026-08-13', country: 'US', source_id: 'us_bls_fred', date_jst: '2026-08-13', datetime_jst: '2026-08-13T21:30:00+09:00' }),
+    ledgerEvent({ event_id: 'us-ppi-2026-08-13-2', country: 'US', source_id: 'us_bls_fred', date_jst: '2026-08-13', datetime_jst: '2026-08-13T21:30:00+09:00' }),
+  ];
+  const result = computeBundleIds(events);
+  const cpiIds = new Set(result.slice(0, 2).map((e) => e.bundle_id));
+  const ppiIds = new Set(result.slice(2, 4).map((e) => e.bundle_id));
+  assert.equal(cpiIds.size, 1);
+  assert.equal(ppiIds.size, 1);
+  assert.notDeepEqual(cpiIds, ppiIds, '日付が異なるCPIとPPIは別の束になるはず（同一日制約）');
+});
+
+test('computeBundleIds: 同一時刻でも国・sourceが異なれば束ねない（CA/US雇用統計、同日21:30）', () => {
+  const events = [
+    ledgerEvent({ event_id: 'ca-employment_situation-2026-08-07', country: 'CA', source_id: 'ca_statcan', date_jst: '2026-08-07', datetime_jst: '2026-08-07T21:30:00+09:00' }),
+    ledgerEvent({ event_id: 'us-employment_situation-2026-08-07', country: 'US', source_id: 'us_bls_fred', date_jst: '2026-08-07', datetime_jst: '2026-08-07T21:30:00+09:00' }),
+  ];
+  const result = computeBundleIds(events);
+  assert.equal(result[0].bundle_id, null);
+  assert.equal(result[1].bundle_id, null);
+});
+
+test('computeBundleIds: 単独イベント（束ね相手なし）はbundle_id:null、時刻未公表イベントも対象外', () => {
+  const events = [
+    ledgerEvent({ event_id: 'jp-opinions_summary-2026-08-10', country: 'JP', source_id: 'jp_boj', date_jst: '2026-08-10', datetime_jst: '2026-08-10T08:50:00+09:00' }),
+    ledgerEvent({ event_id: 'jp-bond_auction-2026-08-04', country: 'JP', source_id: 'jp_mof', date_jst: '2026-08-04', datetime_jst: null }),
+  ];
+  const result = computeBundleIds(events);
+  assert.equal(result[0].bundle_id, null);
+  assert.equal(result[1].bundle_id, null);
+});
+
+test('computeBundleIds: 90分を超える間隔は束ねない（91分ギャップ）、90分ちょうどは束ねる', () => {
+  const exact90 = computeBundleIds([
+    ledgerEvent({ event_id: 'a', country: 'AU', source_id: 'x', date_jst: '2026-08-11', datetime_jst: '2026-08-11T10:00:00+09:00' }),
+    ledgerEvent({ event_id: 'b', country: 'AU', source_id: 'x', date_jst: '2026-08-11', datetime_jst: '2026-08-11T11:30:00+09:00' }),
+  ]);
+  assert.equal(exact90[0].bundle_id, 'a');
+  assert.equal(exact90[1].bundle_id, 'a');
+
+  const over90 = computeBundleIds([
+    ledgerEvent({ event_id: 'a', country: 'AU', source_id: 'x', date_jst: '2026-08-11', datetime_jst: '2026-08-11T10:00:00+09:00' }),
+    ledgerEvent({ event_id: 'b', country: 'AU', source_id: 'x', date_jst: '2026-08-11', datetime_jst: '2026-08-11T11:31:00+09:00' }),
+  ]);
+  assert.equal(over90[0].bundle_id, null);
+  assert.equal(over90[1].bundle_id, null);
+});
+
+test('buildLedger: RBA3件クラスタがbuildLedger()経由でも同一bundle_idになる', () => {
+  const report = syntheticReport({
+    results: [
+      {
+        id: 'au_rba', ok: true, skipped: false,
+        thisWeek: [
+          { date: '2026-08-11', time: '13:30', kind: 'policy_rate', country: 'AU', importance: 3, displayName: 'RBA政策金利＆声明発表', sourceEvidence: 'test' },
+          { date: '2026-08-11', time: '13:30', kind: 'quarterly_report', country: 'AU', importance: 3, displayName: 'RBA四半期金融政策報告', sourceEvidence: 'test' },
+          { date: '2026-08-11', time: '14:30', kind: 'press_conference', country: 'AU', importance: 3, displayName: 'ブロックRBA総裁の記者会見', sourceEvidence: 'test' },
+        ],
+      },
+    ],
+  });
+  const sourcesConfig = syntheticSourcesConfig();
+  const candidates = report.results[0].thisWeek.map((c) => ({ ...c, sourceId: 'au_rba' }));
+  const ledger = buildLedger({
+    report, sourcesConfig, manualEventsConfig: { entries: [] }, candidates,
+    expectedCoverageResult: { required: [], missing: [] }, recurringChecksStatus: [],
+    pipelineVersion: 'test-pipeline-1', generatedAt: '2026-08-15T08:06:00+09:00',
+  });
+  const bundleIds = new Set(ledger.events.map((e) => e.bundle_id));
+  assert.equal(bundleIds.size, 1);
+  assert.notEqual([...bundleIds][0], null);
   const r = validateLedger(ledger);
   assert.equal(r.ok, true);
 });

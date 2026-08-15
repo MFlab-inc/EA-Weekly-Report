@@ -101,6 +101,30 @@ test('candidatesForTargetWeek: 対象週内のentriesのみ候補化する', () 
   assert.deepEqual(candidates.map((c) => c.date), ['2026-08-14']);
 });
 
+test('candidatesForTargetWeek: 過去日のentry（既に発生済みの実績）は将来の対象週に混入しない', () => {
+  // 実運用を想定: rba-testimony-2026-08-14（既に発生済み）が残ったまま、
+  // ずっと先の対象週（例: 2026-09-07週）でcandidatesForTargetWeekを呼んでも
+  // 混入してはいけない（しょうさん指示2026-08-15）
+  const config = {
+    entries: [baseEntry({ id: 'rba-testimony-2026-08-14', date: '2026-08-14' })],
+  };
+  const futureWeek = candidatesForTargetWeek(config, '2026-09-07', '2026-09-11');
+  assert.deepEqual(futureWeek, []);
+  // 同じconfigでも、実際にその週が対象週になれば候補化される（date範囲の下限一致も含む）
+  const sameWeek = candidatesForTargetWeek(config, '2026-08-10', '2026-08-14');
+  assert.equal(sameWeek.length, 1);
+});
+
+test('candidatesForTargetWeek: 対象週の前後1日でも境界外は候補化されない', () => {
+  const config = {
+    entries: [
+      baseEntry({ id: 'before', date: '2026-08-09', local_time: undefined, tz: undefined }),
+      baseEntry({ id: 'after', date: '2026-08-15', local_time: undefined, tz: undefined }),
+    ],
+  };
+  assert.deepEqual(candidatesForTargetWeek(config, '2026-08-10', '2026-08-14'), []);
+});
+
 test('candidatesForTargetWeek: configがnull/entries無しでも空配列を返す', () => {
   assert.deepEqual(candidatesForTargetWeek(null, '2026-08-10', '2026-08-16'), []);
   assert.deepEqual(candidatesForTargetWeek({}, '2026-08-10', '2026-08-16'), []);

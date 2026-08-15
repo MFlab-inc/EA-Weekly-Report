@@ -168,6 +168,47 @@ function candidateToLedgerEvent(candidate, usedIds, officials) {
   };
 }
 
+function minutesBetween(isoA, isoB) {
+  return Math.round((new Date(isoB).getTime() - new Date(isoA).getTime()) / 60000);
+}
+
+// 発表枠の束ね（bundle_id、SPEC §5「発表枠は枠内最初の発表時刻を基準に計算。再開確認は
+// 枠内最後のイベント終了後から」・task #34、しょうさん確定ルール2026-08-15）:
+// 「同一国×同一source_id×同一日（date_jst）×発表時刻が90分以内」を同一bundleとする。
+// 90分判定は隣接イベント間の間隔（time順にソートし、直前のイベントとの差）で連鎖的に判定する
+// （固定の基準時刻からの絶対窓ではなく、間隔ベースのクラスタリング。既刊2週で検証した既存の
+// クラスタ[RBA13:30+13:30+14:30・CPI/PPI同時刻2件]はいずれの解釈でも同じ結果になるため実害はない）。
+// 時刻未公表（datetime_jst:null）のイベントは束ねの対象外（bundle_id:null=単独のまま）。
+// importanceは問わない（bundle自体はimportance非依存。windowGroups生成側
+// [scripts/render/ledger-to-week-input.js]でimportance=3のみに絞る）。
+// bundle_idはクラスタ内で時刻が最も早いイベントのevent_idを使う（一意・追跡可能なグループID）
+function computeBundleIds(events) {
+  const groups = new Map(); // `${country}|${source_id}|${date_jst}` -> events[]
+  for (const e of events) {
+    if (!e.datetime_jst) continue;
+    const key = `${e.country}|${e.source_id}|${e.date_jst}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(e);
+  }
+  const bundleIdByEventId = new Map();
+  for (const group of groups.values()) {
+    const sorted = [...group].sort((a, b) => a.datetime_jst.localeCompare(b.datetime_jst));
+    let clusterStart = 0;
+    for (let i = 1; i <= sorted.length; i++) {
+      const gap = i < sorted.length ? minutesBetween(sorted[i - 1].datetime_jst, sorted[i].datetime_jst) : Infinity;
+      if (i === sorted.length || gap > 90) {
+        const cluster = sorted.slice(clusterStart, i);
+        if (cluster.length > 1) {
+          const bundleId = cluster[0].event_id;
+          for (const ev of cluster) bundleIdByEventId.set(ev.event_id, bundleId);
+        }
+        clusterStart = i;
+      }
+    }
+  }
+  return events.map((e) => (bundleIdByEventId.has(e.event_id) ? { ...e, bundle_id: bundleIdByEventId.get(e.event_id) } : e));
+}
+
 // report.results（runChecks()の戻り値）から{country,kind,importance,...}候補一覧を集める。
 // annualEntryToCandidateはscripts/phase1/observation-run.mjs（ESM）にあるため、呼び出し側から
 // 変換済み候補配列として渡す設計にする（build-ledger.js自体はCJSに保つ。他scripts/lib/*.jsと同じ規約）
@@ -198,7 +239,8 @@ function buildSourcesSection(report, sourcesConfig, generatedAt) {
 // 呼び出し側で除外済みの前提（0=非掲載は台帳に載せない、というスキーマ規約のため）
 function buildEventsSection(candidates, officials) {
   const usedIds = new Set();
-  return candidates.map((c) => candidateToLedgerEvent(c, usedIds, officials));
+  const events = candidates.map((c) => candidateToLedgerEvent(c, usedIds, officials));
+  return computeBundleIds(events);
 }
 
 function buildManualSourceEntry(manualEventsConfig, targetWeekStart, targetWeekEnd, generatedAt) {
@@ -281,6 +323,7 @@ module.exports = {
   buildLedger,
   candidateToLedgerEvent,
   resolveRuleGeneratedName,
+  computeBundleIds,
   makeEventId,
   minutesToJstIso,
   CURRENCY_BY_COUNTRY,

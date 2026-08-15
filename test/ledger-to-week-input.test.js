@@ -39,17 +39,36 @@ test('buildDays: 対象週5日分（月〜金）を、イベントが無い日�
   assert.ok(days.every((d) => d.events.length === 0 && d.windowGroups.length === 0));
 });
 
-test('buildDays: RBA3件クラスタは束ねず1イベント=1windowGroupとして扱う（しょうさん指示2026-08-15、束ねは次タスク）', () => {
+test('buildDays: bundle_idが同じRBA3件クラスタは1windowGroupに束ねられる（task #34、しょうさん確定ルール2026-08-15）', () => {
+  // bundle_idはscripts/lib/build-ledger.jsのcomputeBundleIds()が事前に付与している前提
+  // （このアダプタ自体はbundle_idの値を見てグルーピングするだけで、束ねルール自体の計算はしない）
   const ledger = baseLedger([
-    { event_id: 'au-policy_rate-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T13:30:00+09:00', country: 'AU', currency: 'AUD', kind: 'policy_rate', name_ja: 'RBA政策金利＆声明発表', importance: 3 },
-    { event_id: 'au-quarterly_report-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T13:30:00+09:00', country: 'AU', currency: 'AUD', kind: 'quarterly_report', name_ja: 'RBA四半期金融政策報告', importance: 3 },
-    { event_id: 'au-press_conference-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T14:30:00+09:00', country: 'AU', currency: 'AUD', kind: 'press_conference', name_ja: 'ブロックRBA総裁の記者会見', importance: 3 },
+    { event_id: 'au-policy_rate-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T13:30:00+09:00', country: 'AU', currency: 'AUD', kind: 'policy_rate', name_ja: 'RBA政策金利＆声明発表', importance: 3, bundle_id: 'au-policy_rate-2026-08-11' },
+    { event_id: 'au-quarterly_report-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T13:30:00+09:00', country: 'AU', currency: 'AUD', kind: 'quarterly_report', name_ja: 'RBA四半期金融政策報告', importance: 3, bundle_id: 'au-policy_rate-2026-08-11' },
+    { event_id: 'au-press_conference-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T14:30:00+09:00', country: 'AU', currency: 'AUD', kind: 'press_conference', name_ja: 'ブロックRBA総裁の記者会見', importance: 3, bundle_id: 'au-policy_rate-2026-08-11' },
   ]);
   const days = buildDays(ledger, undefined);
   const day11 = days.find((d) => d.date === '2026-08-11');
-  assert.equal(day11.events.length, 3);
-  assert.equal(day11.windowGroups.length, 3, '束ね未実装のため3件とも別windowとして生成される');
-  assert.deepEqual(day11.windowGroups.map((g) => g.firstTime), ['13:30', '13:30', '14:30']);
+  assert.equal(day11.events.length, 3, 'イベントカード自体は3枚のまま（束ねは停止バーのwindowGroupsのみ）');
+  assert.equal(day11.windowGroups.length, 1, '3件とも同一bundle_idのため1windowGroupにまとまる');
+  const group = day11.windowGroups[0];
+  assert.equal(group.firstTime, '13:30');
+  assert.equal(group.lastTime, '14:30');
+  assert.deepEqual(group.labelItems, [
+    { time: '13:30', text: 'RBA政策金利＆声明発表・RBA四半期金融政策報告' },
+    { time: '14:30', text: 'ブロックRBA総裁の記者会見' },
+  ]);
+  assert.equal(group.bundleLastEventLabel, 'ブロックRBA総裁の記者会見', 'firstTime!==lastTimeのため最終イベントラベルが付く');
+});
+
+test('buildDays: bundle_id未設定（null）のイベントは1イベント=1windowGroupのまま（束ね対象外）', () => {
+  const ledger = baseLedger([
+    { event_id: 'jp-opinions_summary-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T08:50:00+09:00', country: 'JP', currency: 'JPY', kind: 'opinions_summary', name_ja: '日銀金融政策決定会合における主な意見の公表', importance: 3, bundle_id: null },
+  ]);
+  const days = buildDays(ledger, undefined);
+  const day11 = days.find((d) => d.date === '2026-08-11');
+  assert.equal(day11.windowGroups.length, 1);
+  assert.equal(day11.windowGroups[0].bundleLastEventLabel, undefined, '単一時刻のためbundleLastEventLabelは付かない');
 });
 
 test('buildDays: time_status=unpublished（datetime_jst:null）はevents[].time:null・windowGroups対象外', () => {

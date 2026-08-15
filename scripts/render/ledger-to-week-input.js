@@ -3,14 +3,18 @@
 // 変換するアダプタ（task #13後継の実データ接続、しょうさん指示2026-08-15）。
 //
 // 既知の非対応事項（docs/ledger-schema.md「既知の簡略化」参照）:
-// - heroSummary/heroPills（ヒーロー要約文）は事実列挙とはいえ「その週の特に注目すべき2〜4件を選ぶ」
-//   という編集判断を伴うため機械生成しない。呼び出し側がnarrative引数として別途指定する
-// - 発表枠の束ね（bundle_id、SPEC §5「同時刻・同発表主体の関連イベントを1枠に」）は未実装
-//   （しょうさん指示2026-08-15・次タスクとして別途登録）。1イベント=1windowGroupとして扱う
-//   （scripts/phase1/observation-run.mjsの簡易版と同じ設計）
+// - heroSummary/heroPills（ヒーロー要約文）はnarrative引数（呼び出し側が用意）を使う
 // - comment（定型コメント）はconfig/event-comments.jsonのkind別辞書（しょうさん承認済み・
 //   生成AIによる自動作文ではない）による自動付与。既刊の一部イベントは辞書の汎用文言より
 //   具体的な手動コメントを使っていたため、既刊テキストとの完全一致は保証しない
+// - windowGroupsの各labelItemsテキストは台帳のname_ja（フル正式名）をそのまま使う。
+//   既刊の停止バー注記は視覚的なコンパクトさのため手動で短縮表記（例:「RBA政策金利＆声明・
+//   四半期金融政策報告」「総裁記者会見」）を使っていたが、本アダプタはそのような省略辞書を
+//   持たないため、フル名称同士を「・」で連結する（内容は同じだが表記がやや長い）
+//
+// 発表枠の束ね（bundle_id、SPEC §5「同時刻・同発表主体の関連イベントを1枠に」・task #34）は
+// scripts/lib/build-ledger.jsのcomputeBundleIds()が算出したbundle_idに基づき、
+// windowGroupsForDay()でグルーピングする（しょうさん確定ルール2026-08-15実装済み）
 const { parseYmd, addDays, formatYmd, formatMd, weekdayJa } = require('../lib/dates');
 
 // ISO国コード→国名ピル表示（日本語）。config/country-currency-map.jsonのJA表記慣行と一致させる
@@ -49,21 +53,52 @@ function eventToWeekInputEvent(ev, eventComments) {
   };
 }
 
-// 台帳イベント→windowGroups（1イベント=1window、束ねなし。SPEC §5の対象はimportance=3のみ）
+// 同一時刻の複数イベントは「・」区切りで1つのlabelItemテキストにまとめる（既刊実例の構造踏襲。
+// ただし既刊は視覚的コンパクトさのため短縮表記を使っており、本アダプタはフル名称を使う点が異なる
+// ＝ファイル先頭コメント参照）
+function labelTextFor(eventsAtSameTime) {
+  return eventsAtSameTime.map((e) => e.name_ja).join('・');
+}
+
+// 台帳イベント→windowGroups（SPEC §5の対象はimportance=3のみ）。bundle_idが同じイベント群は
+// 1つのwindowGroupにまとめる（発表枠の束ね、task #34）。「枠内最初の発表時刻を基準」
+// （firstTime）「再開確認は枠内最後のイベント終了後から」（lastTime・bundleLastEventLabel）は
+// html-renderer.js側の既存ロジック（haltDayCard・annotationHtmlOf）がそのまま解釈する
 function windowGroupsForDay(dayEvents) {
-  return dayEvents
-    .filter((ev) => ev.importance === 3 && ev.datetime_jst)
-    .map((ev) => {
-      const time = timeFromDatetimeJst(ev.datetime_jst);
-      return {
-        firstTime: time,
-        lastTime: time,
-        countryJa: countryJaOf(ev.country),
-        currency: ev.currency,
-        labelItems: [{ time, text: ev.name_ja }],
-      };
-    })
-    .sort((a, b) => a.firstTime.localeCompare(b.firstTime));
+  const timed3 = dayEvents.filter((ev) => ev.importance === 3 && ev.datetime_jst);
+  const byBundle = new Map();
+  for (const ev of timed3) {
+    const key = ev.bundle_id || `solo:${ev.event_id}`;
+    if (!byBundle.has(key)) byBundle.set(key, []);
+    byBundle.get(key).push(ev);
+  }
+  const groups = [];
+  for (const bundleEvents of byBundle.values()) {
+    const sorted = [...bundleEvents].sort((a, b) => timeFromDatetimeJst(a.datetime_jst).localeCompare(timeFromDatetimeJst(b.datetime_jst)));
+    const firstTime = timeFromDatetimeJst(sorted[0].datetime_jst);
+    const lastTime = timeFromDatetimeJst(sorted[sorted.length - 1].datetime_jst);
+    const byTime = new Map();
+    for (const ev of sorted) {
+      const t = timeFromDatetimeJst(ev.datetime_jst);
+      if (!byTime.has(t)) byTime.set(t, []);
+      byTime.get(t).push(ev);
+    }
+    const labelItems = [...byTime.entries()].map(([time, evs]) => ({ time, text: labelTextFor(evs) }));
+    const group = {
+      firstTime,
+      lastTime,
+      countryJa: countryJaOf(sorted[0].country),
+      currency: sorted[0].currency,
+      labelItems,
+    };
+    // 枠内で発表時刻が複数（束ねにより異なる時刻のイベントが混在）の場合のみ、
+    // 「再開確認は枠内最後のイベント終了後から」の注記対象になる（既刊実例と同じ条件分岐）
+    if (lastTime !== firstTime) {
+      group.bundleLastEventLabel = labelTextFor(byTime.get(lastTime));
+    }
+    groups.push(group);
+  }
+  return groups.sort((a, b) => a.firstTime.localeCompare(b.firstTime));
 }
 
 // ledger.meta.target_week_start起点の対象週5日分（月〜金）をすべて生成する（SPEC §6.3「日別カード×5」。
@@ -110,6 +145,7 @@ function ledgerToWeekInput(ledger, narrative, eventComments) {
 module.exports = {
   ledgerToWeekInput,
   buildDays,
+  windowGroupsForDay,
   commentFor,
   timeFromDatetimeJst,
   countryJaOf,
