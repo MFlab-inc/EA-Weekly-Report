@@ -93,6 +93,22 @@ export function auditEventSets(html, ledger) {
   return errors;
 }
 
+// 対象週5日分（月〜金）の日付一覧。SPEC §6.3「日別カード×5」により、レンダラー
+// （scripts/render/ledger-to-week-input.jsのbuildDays()）はイベントが1件も無い日も
+// 空の日付グループ（data-ea-date-event-count="0"）として出力する。この関数はbuildDays()と
+// 同じ生成規則（target_week_start起点の5日）で「HTMLに存在すべき日付グループ集合」を求める
+// （task #38実ネットワーク検証2026-08-15で発見: 以前はイベントがある日付のみを期待値としており、
+// 全日程にイベントが無い週で常にDATE_GROUP_UNEXPECTED/EXTRAの誤検知が起きていた）
+function expectedWeekDates(ledger) {
+  const dates = [];
+  let d = ledger.meta.target_week_start;
+  for (let i = 0; i < 5; i++) {
+    dates.push(d);
+    d = addDaysToYmd(d, 1);
+  }
+  return dates;
+}
+
 export function auditDateGroups(html, ledger) {
   const errors = [];
   const expected = expectedDisplayEvents(ledger);
@@ -101,7 +117,7 @@ export function auditDateGroups(html, ledger) {
     if (!expectedByDate.has(e.date_jst)) expectedByDate.set(e.date_jst, []);
     expectedByDate.get(e.date_jst).push(e);
   }
-  const expectedDates = [...expectedByDate.keys()].sort();
+  const weekDates = expectedWeekDates(ledger);
 
   const groupDates = [];
   let m;
@@ -113,11 +129,11 @@ export function auditDateGroups(html, ledger) {
     if (Number(countAttr) !== cardIds.length) {
       errors.push(`DATE_GROUP_COUNT_MISMATCH: ${groupDate} のdata-ea-date-event-count(${countAttr})が実カード数(${cardIds.length})と不一致です`);
     }
-    if (!expectedByDate.has(groupDate)) {
-      errors.push(`DATE_GROUP_UNEXPECTED: 台帳に該当日程が無い日付グループがあります: ${groupDate}`);
+    if (!weekDates.includes(groupDate)) {
+      errors.push(`DATE_GROUP_UNEXPECTED: 対象週5日に含まれない日付グループがあります: ${groupDate}`);
       continue;
     }
-    const expectedIdsForDate = new Set(expectedByDate.get(groupDate).map((e) => e.event_id));
+    const expectedIdsForDate = new Set((expectedByDate.get(groupDate) || []).map((e) => e.event_id));
     for (const id of cardIds) {
       if (!expectedIdsForDate.has(id)) {
         errors.push(`DATE_GROUP_EVENT_DATE_MISMATCH: ${id} の日付グループ(${groupDate})が台帳のdate_jstと一致しません`);
@@ -128,10 +144,10 @@ export function auditDateGroups(html, ledger) {
   if (JSON.stringify(groupDates) !== JSON.stringify([...groupDates].sort())) {
     errors.push('DATE_GROUP_ORDER: 日付グループがJST日付昇順ではありません');
   }
-  const missingDates = expectedDates.filter((d) => !groupDates.includes(d));
-  const extraDates = groupDates.filter((d) => !expectedDates.includes(d));
-  if (missingDates.length) errors.push(`DATE_GROUP_MISSING: 台帳にある掲載対象日がHTMLの日付グループにありません: ${missingDates.join(', ')}`);
-  if (extraDates.length) errors.push(`DATE_GROUP_EXTRA: HTMLに台帳が想定しない日付グループがあります: ${extraDates.join(', ')}`);
+  const missingDates = weekDates.filter((d) => !groupDates.includes(d));
+  const extraDates = groupDates.filter((d) => !weekDates.includes(d));
+  if (missingDates.length) errors.push(`DATE_GROUP_MISSING: 対象週の日付がHTMLの日付グループにありません: ${missingDates.join(', ')}`);
+  if (extraDates.length) errors.push(`DATE_GROUP_EXTRA: HTMLに対象週外の日付グループがあります: ${extraDates.join(', ')}`);
   return errors;
 }
 

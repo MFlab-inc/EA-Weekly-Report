@@ -130,3 +130,11 @@ task #13（検証スクリプト5本の移植＋新設3検査）、しょうさ�
 `nowJstIso()`（+09:00オフセット・ミリ秒なし）を新設して置き換え、`scripts/check/gate.mjs`の
 `checked_at_jst`（同じく`new Date().toISOString()`でUTCを格納していた命名ミス）も合わせて修正した
 （`test/tz-convert.test.js`に回帰テスト追加）。
+
+同じ実ネットワーク検証で2件目の実バグも発覚: `scripts/check/ledger-html-audit.mjs`の
+`auditDateGroups()`が「台帳にイベントがある日付」のみを期待値集合としており、対象週5日のうち
+2日以上でイベントが0件になる週（実際に2026-08-17週で発生: 入札3件のみで月・金がいずれも0件）で
+`DATE_GROUP_UNEXPECTED`/`DATE_GROUP_EXTRA`を誤検知してHOLDになっていた。SPEC §6.3「日別カード×5」
+どおり、レンダラー（`ledger-to-week-input.js`の`buildDays()`）はイベント0件の日も空の日付グループを
+出力する仕様であり、監査側の期待値もそれに合わせて「対象週5日全て」に修正した
+（`test/ledger-html-audit.test.js`・`test/gate.test.js`のフィクスチャも実レンダラーの出力形に合わせて修正）。

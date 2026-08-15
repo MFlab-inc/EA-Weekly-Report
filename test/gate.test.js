@@ -39,12 +39,27 @@ function baseLedger() {
   };
 }
 
+// SPEC §6.3「日別カード×5」・task #38実ネットワーク検証2026-08-15で発見: 実レンダラーは
+// イベントが1件も無い日（8/17・8/19〜8/21）も空の日付グループとして出力するため、
+// ledger-html-audit.mjsのauditDateGroups()もそれを期待値とする。フィクスチャは5グループ全てを含める
 function baseHtml() {
   return `<div data-ea-report-meta="ea-weekly-20260817" data-ea-layout-version="ea-only-v4" data-ea-target-start="2026-08-17" data-ea-section-count="4" data-ea-reader-time-term="日本時間" data-ea-halt-guidance="pre4to12h">
   <div>対象週（日本時間） 8月17日（月）〜 8月21日（金）</div>
+  <div class="ea-date-group" data-ea-date="2026-08-17" data-ea-date-event-count="0">
+    <div>8月17日（月）</div>
+  </div>
   <div class="ea-date-group" data-ea-date="2026-08-18" data-ea-date-event-count="1">
     <div>8月18日（火）</div>
     <div class="ea-event-card" data-ea-event-id="au-rba-rate-2026-08-18" data-ea-event-importance="3">RBA政策金利＆声明発表</div>
+  </div>
+  <div class="ea-date-group" data-ea-date="2026-08-19" data-ea-date-event-count="0">
+    <div>8月19日（水）</div>
+  </div>
+  <div class="ea-date-group" data-ea-date="2026-08-20" data-ea-date-event-count="0">
+    <div>8月20日（木）</div>
+  </div>
+  <div class="ea-date-group" data-ea-date="2026-08-21" data-ea-date-event-count="0">
+    <div>8月21日（金）</div>
   </div>
   <div style="text-align:left;">
     テスト用免責文言テスト用出典文言
