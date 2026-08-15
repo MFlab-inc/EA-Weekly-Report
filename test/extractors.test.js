@@ -54,6 +54,31 @@ test('extractOnsReleases: 実fixtureのJSONを正しくparseできる（GDP関�
   assert.equal(gdpMonthly.utcInstant, '2026-09-11T06:00:00.000Z');
 });
 
+// task #47（2026-08-15、8/17週フルパイプライン実ネットワーク検証で発見した実バグ）の回帰テスト:
+// ONSは本体リリースと同一瞬間に付随的な「{タイトル} time series」リリースを別途返すため、
+// フィルタしないと同一イベントが重複して抽出されてしまう（実際にレポート上でCPIが2件重複表示された）
+test('extractOnsReleases: "{タイトル} time series"の付随リリースは本体と同一瞬間でも重複除外される（GDP fixture）', () => {
+  const r = extractOnsReleases(fx('gb_ons', 'releases_api_upcoming_gdp.json'));
+  assert.equal(r.ok, true);
+  const timeSeriesRows = r.rows.filter((row) => / time series$/i.test(row.title));
+  assert.equal(timeSeriesRows.length, 0, 'time series付随リリースが除外されていない');
+  // 本体（"time series"接尾辞なし）は引き続き残ること
+  assert.ok(r.rows.some((row) => row.title === 'GDP monthly estimate, UK: July 2026'));
+  assert.ok(r.rows.some((row) => row.title === 'GDP quarterly national accounts, UK: April to June 2026'));
+});
+
+test('extractOnsReleases: CPI実fixture（task #47ライブ検証で実測）でも本体と"time series"付随リリースの重複が解消される', () => {
+  const r = extractOnsReleases(fx('gb_ons', 'releases_api_upcoming_cpi.json'));
+  assert.equal(r.ok, true);
+  const cpiJuly = r.rows.filter((row) => /^Consumer price inflation, UK: July 2026/.test(row.title));
+  assert.equal(cpiJuly.length, 1, '2026-08-19発表分のCPIが重複除外されず複数残っている');
+  assert.equal(cpiJuly[0].title, 'Consumer price inflation, UK: July 2026');
+  assert.equal(cpiJuly[0].utcInstant, '2026-08-19T06:00:00.000Z');
+  // 別リリース（CPI(H) import intensity）はtitleがmatch対象外のため元々混入しない。ここではtime series
+  // 除外の副作用でこちらまで消えていないことを確認する
+  assert.ok(r.rows.some((row) => /^Contributions to the 12-month rate of CPI\(H\)/.test(row.title)));
+});
+
 test('extractOnsReleases: releases配列が無いJSONは構造的失敗を返す', () => {
   const r = extractOnsReleases(JSON.stringify({ foo: 'bar' }));
   assert.equal(r.ok, false);
