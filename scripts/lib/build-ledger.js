@@ -6,6 +6,7 @@
 // docs/ledger-schema.md参照）。
 const { parseYmd, addDays, formatYmd } = require('./dates');
 const { computeHaltWindow } = require('./halt-schedule');
+const naming = require('./naming');
 
 // ISO国コード→通貨コード（レンダラー用のconfig/country-currency-map.jsonは日本語国名キーのため
 // 台帳用に別途保持する。台帳のcountryはISOコードで統一するため）
@@ -15,7 +16,7 @@ const CURRENCY_BY_COUNTRY = {
 };
 
 // 表示名が未解決（辞書照合を経由しないSPEC §4.2の規則生成kind）の場合の暫定日本語ラベル。
-// naming.jsによる正式な命名テンプレート（「{人名}{役職}の記者会見」等）統合までの暫定措置
+// resolveRuleGeneratedName()（下記）が対応できないkind向けの最終フォールバック
 // （name_resolution="rule_generated"として明示するため、これが最終形ではないことは台帳上も分かる）
 const FALLBACK_KIND_LABEL = {
   policy_rate: '政策金利発表',
@@ -27,6 +28,29 @@ const FALLBACK_KIND_LABEL = {
   official_speech: '要人発言',
   bond_auction: '国債入札',
 };
+
+// SPEC §4.2の規則生成命名テンプレート（scripts/lib/naming.js）による解決を試みる。2026-08-15時点で
+// candidateパイプラインを通じて必要な文脈情報が揃っているkindのみ対応する:
+// - policy_rate/quarterly_report: candidate.country（naming.BANK_ABBR_BY_COUNTRY）のみで解決可能
+// - press_conference: officials（country×role_type=central_bank_governor）で解決可能
+// 未対応（呼び出し側でFALLBACK_KIND_LABELへフォールバックする。docs/ledger-schema.md
+// 「既知の簡略化」参照）:
+// - opinions_summary/minutes_summary: 会合期間文字列（periodJa）が候補パイプラインに未実装
+// - official_speech: 発言者→officials.json照合が未実装（task #17、FRB理事個人未登録）
+// - bond_auction: 年限/発行年月（tenorJa/issueYearMonthJa）が候補パイプラインに未実装
+// - testimony: manual-events.json由来の候補は常にcandidate.displayNameを持つため、
+//   本関数を経由する前にcandidateToLedgerEvent側で優先採用される（対象外）
+function resolveRuleGeneratedName(candidate, officials) {
+  const bankAbbr = naming.BANK_ABBR_BY_COUNTRY[candidate.country];
+  if (!bankAbbr) return null;
+  if (candidate.kind === 'policy_rate') return naming.policyRateName(bankAbbr);
+  if (candidate.kind === 'quarterly_report') return naming.quarterlyReportName(bankAbbr);
+  if (candidate.kind === 'press_conference') {
+    const official = naming.resolveGovernor(officials, candidate.country);
+    return official ? naming.pressConferenceName(official, official.role_ja) : null;
+  }
+  return null;
+}
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -65,11 +89,16 @@ function makeEventId(candidate, usedIds) {
 
 // 1件の候補（resolveCandidateEvent/annualEntryToCandidate/manualEntryToCandidateいずれかの出力。
 // date/time/kind/country/importance/displayName/sourceId/sourceEvidence/localDate/localTime/tz
-// を持つ共通形）を台帳イベントへ変換する。importance未設定・0（非掲載）は呼び出し側でフィルタ済みの前提
-function candidateToLedgerEvent(candidate, usedIds) {
+// を持つ共通形）を台帳イベントへ変換する。importance未設定・0（非掲載）は呼び出し側でフィルタ済みの前提。
+// officials: config/officials.jsonのofficials配列（省略可。省略時はresolveRuleGeneratedNameが
+// 常にnullを返しFALLBACK_KIND_LABELへ落ちる＝既存呼び出し元との後方互換を保つ）
+function candidateToLedgerEvent(candidate, usedIds, officials) {
   const timeStatus = candidate.time ? 'published' : 'unpublished';
   const datetimeJst = candidate.time ? `${candidate.date}T${candidate.time}:00+09:00` : null;
-  const nameJa = candidate.displayName || FALLBACK_KIND_LABEL[candidate.kind] || `[${candidate.kind}]`;
+  const nameJa = candidate.displayName
+    || resolveRuleGeneratedName(candidate, officials)
+    || FALLBACK_KIND_LABEL[candidate.kind]
+    || `[${candidate.kind}]`;
 
   let haltStart = null;
   let haltEnd = null;
@@ -129,9 +158,9 @@ function buildSourcesSection(report, sourcesConfig, generatedAt) {
 
 // candidates: buildObservationSummary()と同じ形の候補配列（manual含む）。importance 0/nullは
 // 呼び出し側で除外済みの前提（0=非掲載は台帳に載せない、というスキーマ規約のため）
-function buildEventsSection(candidates) {
+function buildEventsSection(candidates, officials) {
   const usedIds = new Set();
-  return candidates.map((c) => candidateToLedgerEvent(c, usedIds));
+  return candidates.map((c) => candidateToLedgerEvent(c, usedIds, officials));
 }
 
 function buildManualSourceEntry(manualEventsConfig, targetWeekStart, targetWeekEnd, generatedAt) {
@@ -162,6 +191,9 @@ function buildMetaMessages(report) {
 
 // メインの組み立て関数。
 // candidates: 対象週の全候補（manual含む・importance 0/null除外済み）
+// officialsConfig: config/officials.jsonのパース済みオブジェクト（省略可。SPEC §4.2の規則生成命名
+//   テンプレートのうちpolicy_rate/quarterly_report/press_conferenceの解決に使う。省略時はこれらも
+//   FALLBACK_KIND_LABELへフォールバックする）
 // recurringChecksStatus: [{name, applies_this_week, found}]（呼び出し側でimportanceRules.recurring_checks
 //   とmatchesRecurringRule/report.resultsのfoundKindsから組み立てる。ESM依存関数を含むため
 //   build-ledger.js自体には持たせず、呼び出し側[scripts/phase1/以下]で計算して渡す）
@@ -169,6 +201,7 @@ function buildLedger({
   report,
   sourcesConfig,
   manualEventsConfig,
+  officialsConfig,
   candidates,
   expectedCoverageResult,
   recurringChecksStatus,
@@ -181,7 +214,7 @@ function buildLedger({
   const sources = buildSourcesSection(report, sourcesConfig, generatedAt);
   sources.push(buildManualSourceEntry(manualEventsConfig, report.targetWeek.start, report.targetWeek.end, generatedAt));
 
-  const events = buildEventsSection(candidates);
+  const events = buildEventsSection(candidates, officialsConfig?.officials);
 
   return {
     meta: {
@@ -209,6 +242,7 @@ function buildLedger({
 module.exports = {
   buildLedger,
   candidateToLedgerEvent,
+  resolveRuleGeneratedName,
   makeEventId,
   minutesToJstIso,
   CURRENCY_BY_COUNTRY,

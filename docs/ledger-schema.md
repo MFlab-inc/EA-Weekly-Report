@@ -85,10 +85,24 @@ task #13（検証スクリプト5本の移植＋新設3検査）、しょうさ�
 
 ## 既知の簡略化（今後の課題）
 
-- `name_ja`の解決はまだ`config/event-names.json`辞書照合（`name_resolution: "dictionary"`）に限られ、
-  SPEC §4.2の規則生成命名（「{人名}{役職}の記者会見」等、`config/officials.json`参照）は未実装。
-  現状は`scripts/lib/build-ledger.js`の`FALLBACK_KIND_LABEL`（kind→簡易日本語ラベル）で暫定対応し、
-  `name_resolution: "rule_generated"`として台帳上も「これは最終形の命名ではない」と分かるようにしている
+- `name_ja`の規則生成命名（SPEC §4.2、`scripts/lib/naming.js`、しょうさん指示2026-08-15で新設・
+  既刊2週の実表記をground truthとして`test/naming.test.js`で検証済み）は、`policy_rate`・
+  `quarterly_report`・`press_conference`の3kindについて`scripts/lib/build-ledger.js`の
+  `resolveRuleGeneratedName()`経由で台帳生成時に解決される（`officialsConfig`引数で
+  `config/officials.json`を渡した場合。8中銀すべてに対応、`verified:false`は役職のみで命名する
+  既存フォールバックを維持）。残り4kindは候補パイプラインに必要な文脈情報がまだ無いため、
+  引き続き`FALLBACK_KIND_LABEL`（kind→簡易日本語ラベル）で暫定対応する
+  （`name_resolution: "rule_generated"`として台帳上も「これは最終形の命名ではない」と分かるようにしている）:
+  - `opinions_summary`/`minutes_summary`（BOJ）: 会合期間文字列（periodJa、例「7月30・31日開催分」）が
+    候補パイプラインに未実装。テンプレート自体（`naming.bojOpinionsName`/`bojMinutesName`）は
+    実装・ground truthとの一致テスト済み
+  - `official_speech`: 発言者名（例「Cook」）から`config/officials.json`の該当者を照合する処理が
+    未実装（task #17でFRB理事個人を登録後に対応）
+  - `bond_auction`: 抽出済みの`tenorJa`/`issueYearMonthJa`（`scripts/checkers/extractors/mof.js`・
+    `us-treasury.js`が抽出）が候補パイプラインまで届いていない。テンプレート自体
+    （`naming.bondAuctionNameJp`/`bondAuctionNameUs`）は実装・ground truthとの一致テスト済み
+  - `testimony`: `config/manual-events.json`由来の候補は運用者が`display_name`を直接指定するため
+    （`docs/manual-events-guide.md`参照）、`candidate.displayName`が常に優先され本関数は使われない
 - `bundle_id`（同一発表枠のグルーピング）は台帳生成時点では未計算（常にnull）。design-mock_v1.2.htmlの
   「発表枠」概念（例: RBA政策金利＋声明＋SOMPを1枠として停止バーを連結する）は現状レンダラー側
   （`scripts/render/build-report-data.js`の`windowGroups`）が個別に担っており、台帳との統合は未実施

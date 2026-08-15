@@ -107,5 +107,8 @@ node scripts/check/gate.mjs \
   レンダラーが台帳形式の入力を受け取れるようにする変更）はPhase 2（weekly.yml移設）の範囲として
   未着手。現状のレンダラー（`scripts/render/generate.mjs`）は引き続き手書きの`week-data-*.js`を
   読む
-- `name_ja`の規則生成命名（SPEC §4.2テンプレート）・`bundle_id`計算は`docs/ledger-schema.md`
-  「既知の簡略化」参照
+- `name_ja`の規則生成命名（SPEC §4.2テンプレート、`scripts/lib/naming.js`）は
+  `policy_rate`/`quarterly_report`/`press_conference`の3kindのみ台帳生成時に解決される
+  （8中銀対応・既刊2週の実表記で検証済み）。残り4kind（BOJ主な意見・議事要旨／要人発言／国債入札／
+  議会証言）は候補パイプラインの文脈情報不足または運用者直接指定により対象外。詳細・残課題は
+  `docs/ledger-schema.md`「既知の簡略化」参照。`bundle_id`計算も同ドキュメント参照
