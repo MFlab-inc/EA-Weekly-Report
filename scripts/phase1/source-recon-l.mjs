@@ -80,6 +80,20 @@ async function fetchLogText(id, url, robotsChecker, keywords, opts) {
   log(`  BODY EXCERPT (先頭4000字): ${body.slice(0, 4000)}`);
 }
 
+// リンクテキストに近傍マッチするaタグのhref属性を抽出する（task #53、しょうさん指示:
+// ifo.de/en/eventsの「Calendar Event Release Date details」ラベルの実URLを特定するため。
+// stripTagsは全タグを除去するためhref抽出には使えず、生HTML上でaタグを直接走査する）
+function extractAnchorsNear(rawHtml, linkTextPattern) {
+  const anchors = [];
+  const re = /<a\b[^>]*\shref\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while ((m = re.exec(rawHtml))) {
+    const linkText = stripTags(m[2]);
+    if (linkTextPattern.test(linkText)) anchors.push({ href: m[1], text: linkText });
+  }
+  return anchors;
+}
+
 (async () => {
   mkdirSync(OUT_DIR, { recursive: true });
   section(`phase1 source-recon-l start ${new Date().toISOString()}`);
@@ -138,12 +152,16 @@ async function fetchLogText(id, url, robotsChecker, keywords, opts) {
   );
   // task #53（しょうさん指摘: de_ifo.pressの本文にリンクとして言及されていた
   // 「Calendar of Events and Release Dates」の実URLが未確認のため、有力候補を実測する）
-  await fetchLogText(
-    'de_ifo.events',
-    'https://www.ifo.de/en/events',
-    robotsChecker,
-    ['[Bb]usiness [Cc]limate', '[Rr]elease', '2026', '[Cc]alendar']
-  );
+  const ifoEventsHtml = await fetchAndLog('de_ifo.events', 'https://www.ifo.de/en/events', robotsChecker);
+  if (ifoEventsHtml) {
+    const body = stripTags(ifoEventsHtml);
+    log(`  BODY LENGTH (stripped): ${body.length}字`);
+    const hits = extractAround(body, ['[Bb]usiness [Cc]limate', '[Rr]elease', '2026', '[Cc]alendar']);
+    log(`  KEYWORD HITS (${hits.length}件): ${JSON.stringify(hits, null, 2)}`);
+    log(`  BODY EXCERPT (先頭4000字): ${body.slice(0, 4000)}`);
+    const calendarAnchors = extractAnchorsNear(ifoEventsHtml, /calendar|release date/i);
+    log(`  CALENDAR-RELATED ANCHORS (${calendarAnchors.length}件): ${JSON.stringify(calendarAnchors, null, 2)}`);
+  }
 
   // ===== DE country追加: HCOB PMI =====
   await fetchLogText(
