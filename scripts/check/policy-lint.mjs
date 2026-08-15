@@ -6,6 +6,18 @@
 // scripts/checkers/*.js と同様、軽量な正規表現ベースのHTML走査で実装する（外部HTMLパーサ非依存）。
 import { readFileSync } from 'node:fs';
 import { argv, exit } from 'node:process';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+// scripts/render/ledger-to-week-input.jsの国名ピル辞書をデフォルトの検査対象コード一覧として使う
+// （lintLeakedCountryCodesのデフォルト引数。呼び出し側から明示的に別辞書を渡すことも可能）。
+// NZのみ意図的に「NZ」のまま日本語化しない既刊実例（validate-country-currency-coverage.jsの
+// DEFAULT_RAW_CODE_ALLOWLISTと同じ理由）のため、値がコード自身と一致する国は検査対象から除外する
+// （含めると正常な「NZ雇用統計」等の表記まで誤検出してしまう）
+const { COUNTRY_JA_BY_ISO } = require('../render/ledger-to-week-input.js');
+const DEFAULT_LEAK_CHECK_CODES = Object.entries(COUNTRY_JA_BY_ISO)
+  .filter(([code, ja]) => ja !== code)
+  .map(([code]) => code);
 
 const FORBIDDEN_TAGS = ['html', 'head', 'body', 'script', 'style', 'form', 'input', 'button', 'iframe', 'object', 'embed', 'link', 'meta', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
@@ -63,6 +75,28 @@ export function lintDisclaimerPresence(text, reportPolicy) {
   }
   if (!reportPolicy.footer_source_statement || !text.includes(reportPolicy.footer_source_statement)) {
     errors.push('FOOTER_SOURCE_STATEMENT_MISSING: 出典表記（footer_source_statement）がHTMLに見つかりません');
+  }
+  return errors;
+}
+
+// 読者可視テキストへ生のISOコード（DE・GB等）が漏れていないかを検査する（task #54、
+// しょうさん指摘2026-08-15: DE国追加時にCOUNTRY_JA_BY_ISOへの登録漏れで国名ピル・
+// ヒーロー文言が「DE」のまま漏れ、「DEDE」と二重表示された事故の再発防止）。ポリシー上、
+// 読者向けは日本語国名のみが正当（国コードはHTML属性値やdata-ea-*には出て良いが、
+// タグを除去した後の可視テキストには出てはならない）。単語境界一致のため、通貨コード
+// （JPY・USD等の3文字）とは衝突しない（\bJP\bは"JPY"の途中には一致しない）。
+// 既知の限界: 単語境界チェックのため、リーク値の直後に区切り文字なしで別のラテン文字列が
+// 続く場合（例: 修正漏れの「DE」+「ZEW景況感指数」＝"DEZEW..."）は内部に境界が無く検出できない。
+// この完全な取りこぼしはscripts/lib/validate-country-currency-coverage.jsのrawCodeLeakチェック
+// （辞書の値自体が生コードのままでないかを直接検証、text走査に依存しない）で捕捉する設計とし、
+// 本lintはあくまで実運用上の大半のケース（ピル同士の隣接・「・」区切り等）を捉える二段目の
+// 安全網と位置付ける
+export function lintLeakedCountryCodes(text, countryCodes) {
+  const errors = [];
+  for (const code of countryCodes || []) {
+    const re = new RegExp(`\\b${code}\\b`);
+    const m = re.exec(text);
+    if (m) errors.push(`LEAKED_COUNTRY_CODE: 読者可視テキストに生のISO国コード「${code}」が漏れています（日本語国名で表示すること。COUNTRY_JA_BY_ISO/CURRENCY_BY_COUNTRYへの登録漏れの可能性）`);
   }
   return errors;
 }
@@ -131,7 +165,7 @@ export async function checkLinkReachability(hrefs, { fetchImpl = fetch, timeoutM
   return warnings;
 }
 
-export function runStaticLint(html, { reportPolicy, btcGuide }) {
+export function runStaticLint(html, { reportPolicy, btcGuide, countryCodes = DEFAULT_LEAK_CHECK_CODES }) {
   const text = stripTags(html).replace(/\s+/g, ' ').trim();
   const errors = [
     ...lintForbiddenTags(html),
@@ -139,6 +173,7 @@ export function runStaticLint(html, { reportPolicy, btcGuide }) {
     ...lintForbiddenSections(text, reportPolicy.forbidden_sections),
     ...lintDisclaimerPresence(text, reportPolicy),
     ...lintLinkDomains(extractHrefs(html), btcGuide.allowed_domains),
+    ...lintLeakedCountryCodes(text, countryCodes),
   ];
   return errors;
 }

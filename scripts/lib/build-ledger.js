@@ -9,10 +9,15 @@ const { computeHaltWindow } = require('./halt-schedule');
 const naming = require('./naming');
 
 // ISO国コード→通貨コード（レンダラー用のconfig/country-currency-map.jsonは日本語国名キーのため
-// 台帳用に別途保持する。台帳のcountryはISOコードで統一するため）
+// 台帳用に別途保持する。台帳のcountryはISOコードで統一するため）。
+// 2026-08-15追記（task #54、しょうさん指摘: DE国追加時にこのdictへの追加漏れで通貨ピルが
+// 「DE」と誤表示された）: scripts/render/ledger-to-week-input.jsのCOUNTRY_JA_BY_ISOと合わせて
+// 2つ存在する並行dictで、config/official-sources.jsonへ新規登場した国を追加するたびに両方へ
+// 手動追加する必要がある。追加漏れはscripts/lib/validate-country-currency-coverage.js
+// （test/validate-country-currency-coverage.test.jsの実configゲート）で検出される
 const CURRENCY_BY_COUNTRY = {
   JP: 'JPY', US: 'USD', GB: 'GBP', AU: 'AUD', EU: 'EUR',
-  NZ: 'NZD', CA: 'CAD', CH: 'CHF', CN: 'CNY',
+  NZ: 'NZD', CA: 'CAD', CH: 'CHF', CN: 'CNY', DE: 'EUR',
 };
 
 // 表示名が未解決（辞書照合を経由しないSPEC §4.2の規則生成kind）の場合の暫定日本語ラベル。

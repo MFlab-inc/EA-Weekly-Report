@@ -18,10 +18,18 @@
 const { parseYmd, addDays, formatYmd, formatMd, weekdayJa } = require('../lib/dates');
 
 // ISO国コード→国名ピル表示（日本語）。config/country-currency-map.jsonのJA表記慣行と一致させる
-// （NZ表記のみ「ニュージーランド」ではなく「NZ」のまま。既刊実例・country-currency-map.json準拠）
+// （NZ表記のみ「ニュージーランド」ではなく「NZ」のまま。既刊実例・country-currency-map.json準拠）。
+// 2026-08-15追記（task #54、しょうさん指摘: DE国追加時にこのdictへの追加漏れで国名ピル・
+// ヒーロー文言が「DE」のまま漏れ、通貨ピルの取りこぼしと合わさって「DEDE」と二重表示された）:
+// フォールバック（29行目）はISOコード未登録時に生のコードをそのまま返すため、登録漏れが
+// 読者可視テキストへ直接漏れる設計になっている。scripts/lib/build-ledger.jsのCURRENCY_BY_COUNTRY
+// と合わせて2つ存在する並行dictで、新規国を追加するたびに両方へ手動追加する必要がある。
+// 追加漏れはscripts/lib/validate-country-currency-coverage.js（実configゲート）と
+// scripts/check/policy-lint.mjsのlintLeakedCountryCodes（レンダリング後の可視テキスト検査）の
+// 2段構えで検出される
 const COUNTRY_JA_BY_ISO = {
   JP: '日本', US: '米国', GB: '英国', AU: '豪州', EU: 'ユーロ圏',
-  NZ: 'NZ', CA: 'カナダ', CH: 'スイス', CN: '中国',
+  NZ: 'NZ', CA: 'カナダ', CH: 'スイス', CN: '中国', DE: 'ドイツ',
 };
 
 function countryJaOf(isoCountry) {
