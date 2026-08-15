@@ -45,8 +45,12 @@ function manualEntryToCandidate(entry) {
     country: entry.country,
     importance: entry.importance,
     displayName: entry.display_name,
-    sourceId: 'manual_events',
+    sourceId: 'manual',
     note: entry.source_note,
+    sourceEvidence: entry.source_note,
+    localDate: entry.date,
+    localTime: entry.local_time || null,
+    tz: entry.tz || null,
   };
   if (entry.local_time && entry.tz) {
     const [y, mo, d] = entry.date.split('-').map(Number);

@@ -114,7 +114,7 @@ test('buildObservationSummary: manualEventsConfigの対象週内entriesを他ソ
   };
   const summary = buildObservationSummary(report, { sources: [] }, {}, manualEventsConfig);
   assert.equal(summary.candidateCount, 1);
-  assert.equal(summary.candidates[0].sourceId, 'manual_events');
+  assert.equal(summary.candidates[0].sourceId, 'manual');
   assert.equal(summary.candidates[0].displayName, 'ブロックRBA総裁：下院経済委員会への出席');
   assert.ok(!summary.candidates.some((c) => c.displayName?.includes('含まれてはいけない')));
 });

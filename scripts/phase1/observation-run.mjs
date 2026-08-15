@@ -38,6 +38,11 @@ export function annualEntryToCandidate(entry, source, importanceRules) {
     displayName: `[${entry.kind}]（名称未解決・task #12の命名ロジック統合待ち）`,
     sourceId: source.id,
     note: entry.note,
+    // 台帳のsource_evidence用: 年次確定スケジュールのnoteが無ければ確定記録自体を根拠として使う
+    sourceEvidence: entry.note || `${source.name_ja} 年次確定スケジュール（confirmed_at=${source.confirmed_at || '未確定'}, confirmed_by=${source.confirmed_by || '未確定'}）`,
+    localDate: entry.date,
+    localTime: at?.local_time || null,
+    tz: at?.tz || null,
   };
   if (!at) return { ...base, time: null, timeNote: 'announce_time_by_kind未設定' };
   const [y, mo, d] = entry.date.split('-').map(Number);

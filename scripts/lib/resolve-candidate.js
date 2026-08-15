@@ -48,6 +48,11 @@ function resolveCandidateEvent(row, ctx) {
     displayName,
     importance: resolveImportance(ctx.kind, ctx.country, ctx.importanceRules),
     rawTitle: row.title,
+    // 台帳（data/ledger/）のsource_evidence・date_local/time_local/tz用に、変換前の現地情報も保持する
+    localDate: row.date || null,
+    localTime: row.localTime || null,
+    tz: ctx.tz || null,
+    utcInstant: row.utcInstant || null,
   };
 }
 

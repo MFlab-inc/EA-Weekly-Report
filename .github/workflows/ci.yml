@@ -1,8 +1,12 @@
-# テスト専用CI（2026-08-15、しょうさん指示）。npm testのみを実行する軽量ワークフロー。
-# 配信用ワークフロー（weekly.yml）の移設は別件（未実施・workflows-draft/のまま）であり、
-# 本ワークフローはそれとは無関係にpush/PRで常時実行してよい（ネットワークアクセス不要な
-# 純粋関数テストのみで構成されているため。テスト自体が外部サイトへ実アクセスするような
-# ケースはfetchImplモックで代替済み）。Secrets不使用・成果物のコミットも行わない。
+# テスト専用CI（2026-08-15新設、2026-08-15再定義でPlaywright検証を統合）。
+# npm test（純粋関数・ロジックのユニットテスト）＋Playwrightを使うモバイル多幅レイアウト検証まで
+# 実行する。配信用ワークフロー（weekly.yml）の移設は別件（未実施・workflows-draft/のまま）であり、
+# 本ワークフローはそれとは無関係にpush/PRで常時実行してよい。
+# ネットワークアクセスは「テスト自体の挙動」としては発生しない設計を維持している
+# （外部サイトへの実アクセスが必要な箇所はfetchImplモックで代替済み。policy-lintのリンク到達性
+# チェックはWARNING止まりで判定に影響しない）。npm ci・Playwrightブラウザのインストールは
+# CIインフラのセットアップであり「テストの挙動」ではないため対象外（npm ciのnpmレジストリ
+# アクセスと同種）。Secrets不使用・成果物のコミットも行わない。
 name: ci
 on:
   push:
@@ -15,7 +19,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,4 +27,6 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Install Playwright Chromium (モバイル多幅レイアウト検証に使用)
+        run: npx playwright install --with-deps chromium
       - run: npm test

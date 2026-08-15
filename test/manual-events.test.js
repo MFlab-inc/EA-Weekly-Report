@@ -76,7 +76,7 @@ test('manualEntryToCandidate: local_time+tzをJSTへ変換し辞書照合を経�
   assert.equal(c.country, 'AU');
   assert.equal(c.importance, 3);
   assert.equal(c.displayName, 'ブロックRBA総裁：下院経済委員会への出席');
-  assert.equal(c.sourceId, 'manual_events');
+  assert.equal(c.sourceId, 'manual');
 });
 
 test('manualEntryToCandidate: local_time/tz省略時はtime:null（bond_auction等と同じtime-exempt扱い）', () => {

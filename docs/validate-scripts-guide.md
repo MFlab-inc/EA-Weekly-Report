@@ -1,73 +1,111 @@
-# 検証スクリプト（scripts/validate/・scripts/check/policy-lint.mjs）ガイド
+# 検証・ゲートスクリプト（scripts/check/・scripts/lib/）ガイド
 
-task #13の成果物。SPEC.md §8「検証ゲート」の実装（移植5本＋新設3本）。`docs/ledger-schema.md`
-（v4向けに改訂した根拠台帳スキーマ）とセットで参照すること。
+task #13の成果物。SPEC.md §8「検証ゲート」の実装。しょうさん指示（2026-08-15）による再定義後の
+最終構成。`docs/ledger-schema.md`（根拠台帳スキーマ）とセットで参照すること。
+
+## 経緯（旧Python版5本移植 → 全面刷新）
+
+最初の実装では`reference/`のPython検証5本（validate_ledger/validate_report/
+validate_daily_event_layout/validate_mobile_header/publish_gate）をそのまま`scripts/validate/`へ
+移植したが、しょうさんのレビューで「旧5本のうち3本（validate_report.py・
+validate_daily_event_layout.py・validate_ledger.py）は、存在しない属性・廃止するスキーマを前提と
+しており移植の意味がない」との判断があり、**Python版は全て廃止**した。台帳スキーマも新設
+（`docs/ledger-schema.md`参照）。現在の構成はすべてNode.jsで完結する。
 
 ## 構成
 
-| ファイル | 種別 | 役割 |
-|---|---|---|
-| `scripts/validate/validate_ledger.py` | 移植 | 根拠台帳JSONの自己整合性検査（schema_version・日付整合・JST変換再計算・重複ID・open_issuesのフェールクローズ） |
-| `scripts/validate/validate_report.py` | 移植 | HTML×台帳照合（禁止タグ・作成日/対象週の日付整合・event-id/importance集合突合・外部リンク形式） |
-| `scripts/validate/validate_daily_event_layout.py` | 移植 | 「対象週の注目イベント」セクションの日付別カード監査（`.ea-date-group`/`.ea-event-card`の件数・ID・重要度・日付グループ順序） |
-| `scripts/validate/validate_mobile_header.py` | 移植 | モバイル5幅（320/360/375/390/414px）でのPlaywright検証。横スクロール検出＋ヘッダー主要テキストのビューポート内収まり確認 |
-| `scripts/validate/publish_gate.py` | 移植 | 上記4本＋policy-lint.mjsをオーケストレーションし、PUBLISH_READY/HOLDを判定・記録する |
-| `scripts/check/policy-lint.mjs` | 新設 | 禁止語・禁止セクション・免責/出典文言の存在・外部リンクの許可ドメインホワイトリスト照合・到達性チェック（Node、`npm test`でユニットテスト済み） |
+| ファイル | 役割 |
+|---|---|
+| `scripts/lib/validate-ledger.js` | 根拠台帳（`data/ledger/*.json`）のスキーマ検証。純粋関数 |
+| `scripts/lib/build-ledger.js` | 収集結果（harness.mjsの`runChecks()`＋manual-events）から台帳を生成 |
+| `scripts/check/ledger-html-audit.mjs` | 台帳×HTML突合検査（1対1対応・ルート属性・日付グループ整合） |
+| `scripts/check/policy-lint.mjs` | 禁止語・禁止セクション・免責/出典文言の存在・外部リンクの許可ドメイン照合＋到達性 |
+| `scripts/check/mobile-layout-check.mjs` | モバイル5幅（320/360/375/390/414px）での横スクロール検出（Playwright） |
+| `scripts/check/gate.mjs` | 上記全てをオーケストレーションしPUBLISH_READY/HOLDを判定・記録 |
 
-移植5本の期待HTML構造をv4（`templates/design-mock_v1.2.html`）へ更新した詳細・削除したフィールド
-（market_prices/market_holidays・値オブジェクト等）の理由は`docs/ledger-schema.md`参照。
+## モバイル検証のPython→Node置き換えについて
 
-## セットアップ（Python）
+しょうさんの当初の指示は「Playwrightが必要なのでPython環境を構築。requirements.txtを追加し、
+ci.ymlでインストール〜実行まで通す」だったが、実装時にNode.js版`playwright`パッケージ
+（`chromium.launch()`等）で全く同等の検証ができ、かつ検証パイプライン全体を単一ランタイム
+（Node.js）に統一できることを確認したため、**Python環境の追加は行わず、Node版Playwrightへ
+置き換えた**。この判断により:
 
-```bash
-pip install -r scripts/validate/requirements.txt
-```
+- CI（`.github/workflows/ci.yml`）はNode.jsのセットアップのみで完結する（Python 3.x環境・pip・
+  requirements.txtのインストールが不要）
+- `npm test`一本で全検証（台帳スキーマ・台帳×HTML突合・ポリシーlint・モバイル多幅レイアウト）が
+  実行できる
 
-`validate_mobile_header.py`はPlaywright用のChromiumバイナリを必要とする。このセッションの環境では
-`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`にプリインストール済みのため`playwright install`は不要
-（`--chromium`引数の既定値`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`を使用）。
-別環境では`playwright install chromium`または`--chromium`引数でパスを指定すること。
+しょうさんが実際にPython環境を維持したい理由（既存の他ツールとの統一等）があれば、その旨を
+伝えていただければPython版へ戻すことも可能（変更コストは小さい）。
 
-## 手動実測結果（2026-08-15、実装時点）
+### Playwrightブラウザパスの環境差異
 
-`test/fixtures/validate/`にv4レイアウト向けの新規fixture（pass/hold各1組）を作成し、以下を確認済み:
+この開発コンテナは`PLAYWRIGHT_BROWSERS_PATH`配下に固定バージョンのChromiumを同梱しているが、
+`npm install`したplaywrightパッケージのバージョンとブラウザリビジョンが噛み合わないことを実測で
+確認した（2026-08-15）。`/opt/pw-browsers/chromium`（バージョン非依存のシンボリックリンク）が
+存在すればそれを使い、存在しない環境（GitHub Actions等）では`npx playwright install --with-deps
+chromium`でインストールした既定のブラウザを使う設計にした（`scripts/check/mobile-layout-check.mjs`
+の`DEFAULT_CHROMIUM_PATH`）。`PLAYWRIGHT_CHROMIUM_PATH`環境変数で明示的に上書きすることもできる。
 
-- `pass_ledger.json` + `pass_report.html`: 4本の検証スクリプト（ledger/report/daily_event_layout/mobile_header）
-  ＋policy-lint.mjsとも判定「配信可」・exit 0
-- `hold_report.html`（同一ledgerに対し、script混入・曜日不一致・イベント欠落・重要度不一致・
-  禁止語混入・許可外ドメインリンク・免責文言欠落を意図的に混入）: 4本＋policy-lintとも判定
-  「配信保留」・非0 exit（フェールクローズが機能することを確認）
-- `scripts/validate/publish_gate.py`をこの2組に対して実行し、pass→`PUBLISH_READY`（exit 0）、
-  hold→`HOLD`（exit 2）を確認（`--skip-link-reachability`使用。理由は下記）
-- `output/ea-weekly-20260810.html`（実際のレンダラー出力）に対し`validate_mobile_header.py`を実行し、
-  5幅すべてで横スクロール無し・主要ヘッダーテキストがビューポート内に収まることを確認
-
-### リンク到達性チェックはWARNING扱い（HOLDしない）
+## リンク到達性チェックはWARNING扱い（HOLDしない）
 
 実測でcoinpost.jp（`config/btc-weekend-guide.json`のallowed_domains収録サイト）が、UA明示済みの
 機械的なHEAD/GETリクエストに対しHTTP 403を返すことを確認した（ボット対策とみられる。ブラウザで
 開けば正常に閲覧できる可能性が高い）。週次配信のたびにこの種の誤検知でHOLDになる実害の方が大きいと
-判断し、到達性チェック（`checkLinkReachability`）はWARNING止まりとした。一方、許可ドメインホワイト
-リスト照合（`lintLinkDomains`。類似ドメイン事故防止、rebuild-plan §13.4注意2）は実害が大きいためERROR
-（HOLD対象）のまま維持した。
+判断し、到達性チェック（`policy-lint.mjs`の`checkLinkReachability`）はWARNING止まりとした。一方、
+許可ドメインホワイトリスト照合（`lintLinkDomains`。類似ドメイン事故防止、rebuild-plan §13.4注意2）は
+実害が大きいためERROR（HOLD対象）のまま維持した。
 
-## npm test（CI）に含まれるもの・含まれないもの
+## 3検査（SPEC.md §8「新設」）の実装箇所
 
-- **含まれる**: `test/policy-lint.test.js`（`scripts/check/policy-lint.mjs`の純粋関数のユニットテスト。
-  `checkLinkReachability`はfetchImplを注入しネットワークアクセス無しで検証）
-- **含まれない**: `scripts/validate/*.py`（Python・bs4・Playwright依存）の自動テスト。
-  `.github/workflows/ci.yml`は「npm testのみを実行する軽量ワークフロー」としょうさんから明示的に
-  スコープ指定されており（ネットワークアクセスなし・Secrets不使用）、Python依存のインストール
-  （`pip install`はネットワークアクセスを要する）はこのスコープ外と判断し、追加していない。
-  上記「手動実測結果」がこのセッションでの動作確認の記録である。
+| 検査 | 実装箇所 |
+|---|---|
+| 鮮度検証（§3.1） | `scripts/checkers/harness.mjs`の`runChecks()`＋`scripts/lib/fail-closed.js`（既存・task #8〜#11で実装済み）。結果は`scripts/lib/build-ledger.js`が台帳の`meta.outcome`/`meta.holds`へ反映し、`gate.mjs`が`ledger_outcome`検査として読む |
+| クロス突合・定例欠落（§3.3） | 同上（`residualWarnings`・`recurringMissingWarnings`、既存・テスト済み）。`meta.warnings`へ反映（非ブロッキング。既存設計どおりWARNのみでHOLDにはしない） |
+| ポリシーlint＋リンク検査 | `scripts/check/policy-lint.mjs`（新設） |
 
-**残課題（要相談）**: 本番運用（週次自動生成）ではこれらのPythonスクリプトを実際に実行する必要がある。
-実行経路の選択肢:
-1. `workflows-draft/weekly.yml`をPhase 2で有効化する際に、その中でPython依存をセットアップする
-   （同ワークフローは元々`actions/setup-python@v5`を用意済みで、依存インストールはTODOのまま）
-2. `.github/workflows/ci.yml`とは別に、Python検証専用のCIワークフローを新設する（この場合
-   pip install等でネットワークアクセスが発生するため、しょうさんの「ネットワークアクセスなし」
-   指定はci.yml限定の話だったのか、Python検証にも及ぶのかの確認が必要）
+鮮度検証・クロス突合/定例欠落は、収集段（harness.mjs）で既に実装・テスト済みのロジックを台帳生成時に
+そのまま集約する設計とした（別スクリプトとして重複実装しない）。
 
-現時点では1（Phase 2でのweekly.yml配線時に対応）を既定路線と考えているが、Phase 2着手前に
-Python検証の動作をCI上で先行確認したい場合はしょうさんの判断を仰ぐ。
+## 必須テスト（フェールクローズの実証）
+
+しょうさん指示の意図的に壊したデータでHOLDになることを確認するテスト一覧と実装箇所:
+
+| 壊し方 | 検出箇所 | テスト |
+|---|---|---|
+| 台帳から1件抜く（HTMLに台帳未登録イベントが残る） | `ledger-html-audit.mjs`（HTML_EVENT_UNKNOWN） | `test/ledger-html-audit.test.js` |
+| HTMLに台帳外イベントを混ぜる | 同上 | 同上 |
+| 出典（source_evidence）を空にする | `validate-ledger.js`（台帳生成時点でHOLD） | `test/validate-ledger.test.js`・`test/gate.test.js` |
+| 対象週と違う日付を混ぜる | `ledger-html-audit.mjs`（DATE_OUT_OF_TARGET_WEEK） | `test/ledger-html-audit.test.js` |
+| 禁止語を入れる | `policy-lint.mjs`（FORBIDDEN_READER_TERM） | `test/policy-lint.test.js`・`test/gate.test.js` |
+| リンクを許可外ドメインにする | `policy-lint.mjs`（LINK_DOMAIN_NOT_ALLOWLISTED） | 同上 |
+| 横スクロールが出る幅指定を入れる | `mobile-layout-check.mjs`（HORIZONTAL_SCROLL） | `test/mobile-layout-check.test.js` |
+
+いずれも`npm test`（CI）に含まれ、全件PASSがコミット条件（HANDOFF.md §7）。
+
+## ゲートの使い方（CLI）
+
+```bash
+node scripts/check/gate.mjs \
+  --ledger data/ledger/2026-08-17.json \
+  --html output/ea-weekly-20260817.html \
+  --result gate-result.json
+```
+
+`--skip-mobile`（Playwright起動を省略）・`--skip-link-reachability`（外部ネットワークアクセスを
+省略）はローカル動作確認・オフライン環境向けのオプション。本番週次runでは省略しないこと。
+
+## 既知の残課題
+
+- **collect→normalizeの実データ接続は部分的**。`scripts/lib/build-ledger.js`は
+  `scripts/checkers/harness.mjs`の`runChecks()`結果（＋`config/manual-events.json`）を受け取れる
+  形に作ってあり、`scripts/lib/resolve-candidate.js`・`scripts/phase1/observation-run.mjs`の
+  `annualEntryToCandidate`・`scripts/lib/manual-events.js`の`manualEntryToCandidate`はいずれも
+  台帳生成に必要な情報（`localDate`/`localTime`/`tz`/`sourceEvidence`）を返すよう拡張済み。
+  ただし実際に週次run全体（`workflows-draft/weekly.yml`のcollect→build-ledger→renderの配線、
+  レンダラーが台帳形式の入力を受け取れるようにする変更）はPhase 2（weekly.yml移設）の範囲として
+  未着手。現状のレンダラー（`scripts/render/generate.mjs`）は引き続き手書きの`week-data-*.js`を
+  読む
+- `name_ja`の規則生成命名（SPEC §4.2テンプレート）・`bundle_id`計算は`docs/ledger-schema.md`
+  「既知の簡略化」参照
