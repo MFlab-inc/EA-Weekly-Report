@@ -188,5 +188,15 @@ function extractAnchorsNear(rawHtml, linkTextPattern) {
     ['[Nn]ext release', '[Vv]olume of retail trade']
   );
 
+  // ===== task #53（しょうさん指示: EU/GB/DEフラッシュPMIの規則精度を「英国祝日調整済み
+  // 営業日カウント」仮説で検証するため、GOV.UK公式の祝日データを実測する。静的JSON・
+  // 政府公式ソースで利用規約上の懸念なし） =====
+  await fetchLogText(
+    'gb_govuk.bank_holidays',
+    'https://www.gov.uk/bank-holidays.json',
+    robotsChecker,
+    ['england-and-wales', '2025', '2026']
+  );
+
   section(`phase1 source-recon-l end ${new Date().toISOString()}`);
 })();
