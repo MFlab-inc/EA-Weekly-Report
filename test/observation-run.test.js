@@ -346,6 +346,66 @@ test('annualEntryToCandidate: ユーロ圏フラッシュPMI（EU pmi_ism）が�
   assert.equal(c.displayName, 'ユーロ圏フラッシュPMI');
 });
 
+// task #41-4（しょうさん承認済み国×kindマトリクス、着手順4・最後）の回帰テスト:
+// NZ CPI/GDP・AU GDP・CN 3件を実装した。これでtask #41完了条件（国×kindマトリクス全件充足）を満たす
+test('annualEntryToCandidate: 消費者物価指数（CPI）（NZ cpi）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'nz_stats_cpi');
+  const importanceRules = { importance_by_kind: { cpi: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'cpi' && e.date === '2026-07-21');
+  assert.ok(entry, '2026-07-21のCPI scheduleエントリが見つからない（2026年6月期）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '消費者物価指数（CPI）');
+  assert.equal(c.time, '07:45'); // 10:45 NZST(2026-07-21は冬時間、UTC+12) → 同日07:45 JST
+  assert.equal(c.date, '2026-07-21');
+});
+
+test('annualEntryToCandidate: GDP（NZ gdp）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'nz_stats_gdp');
+  const importanceRules = { importance_by_kind: { gdp: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'gdp' && e.date === '2026-06-18');
+  assert.ok(entry, '2026-06-18のGDP scheduleエントリが見つからない（2026年3月期）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'GDP');
+});
+
+test('classifyRowKind経由: GDP（AU gdp）がau_absの新規kindsエントリとevent-names.jsonのmatchで分類できる', async () => {
+  // au_absはweekly_scrape型のためhardcoded scheduleではなくclassifyRowKind（harness.mjs）の
+  // match keyword経由で分類される。ここではevent-names.jsonのmatch定義自体を直接検証する
+  const auGdpEntry = realEventNames.find((e) => e.country === 'AU' && e.kind === 'gdp');
+  assert.ok(auGdpEntry, 'AU:gdpのevent-names.jsonエントリが見つからない');
+  assert.ok(
+    auGdpEntry.match.some((k) => 'australian national accounts: national income, expenditure and product'.includes(k.toLowerCase())),
+    'ABS公式タイトルがmatchキーワードに一致しない'
+  );
+  const auAbsSource = realSourcesConfig.sources.find((s) => s.id === 'au_abs');
+  assert.ok(auAbsSource.kinds.includes('gdp'), 'au_abs.kindsにgdpが登録されていない');
+});
+
+test('annualEntryToCandidate: 鉱工業生産指数・小売売上高・GDP（CN）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'cn_nbs_data');
+  const importanceRules = { importance_by_kind: { industrial_production: 3, retail_sales: 3, gdp: 3 } };
+
+  const ipEntry = source.schedule.find((e) => e.kind === 'industrial_production' && e.date === '2026-04-16');
+  assert.ok(ipEntry, '2026-04-16の鉱工業生産scheduleエントリが見つからない（2026年3月分）');
+  const ipCandidate = annualEntryToCandidate(ipEntry, source, importanceRules, realEventNames);
+  assert.equal(ipCandidate.displayName, '鉱工業生産指数');
+
+  const rsEntry = source.schedule.find((e) => e.kind === 'retail_sales' && e.date === '2026-04-16');
+  const rsCandidate = annualEntryToCandidate(rsEntry, source, importanceRules, realEventNames);
+  assert.equal(rsCandidate.displayName, '小売売上高');
+
+  const gdpEntry = source.schedule.find((e) => e.kind === 'gdp' && e.date === '2026-04-16');
+  const gdpCandidate = annualEntryToCandidate(gdpEntry, source, importanceRules, realEventNames);
+  assert.equal(gdpCandidate.displayName, 'GDP');
+  // 2026-01-19（Q4/通年GDP・12月分IP/小売）・2026-03-16（1-2月統合分IP/小売）等、同日3イベントが
+  // 想定どおり収録されていることも確認する
+  const jan19Entries = source.schedule.filter((e) => e.date === '2026-01-19');
+  assert.deepEqual(jan19Entries.map((e) => e.kind).sort(), ['gdp', 'industrial_production', 'retail_sales']);
+});
+
 test('renderText: outcome・候補一覧・停止目安を含むテキストを生成する（例外を投げない）', async () => {
   const { buildObservationSummary, renderText } = await import('../scripts/phase1/observation-run.mjs');
   const report = {

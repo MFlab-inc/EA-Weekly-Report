@@ -87,52 +87,18 @@ test('validateExpectedCoverage: 実config — 8/8中銀すべてpolicy_rate担�
 // config/expected-coverage.jsonのadditional_requiredへ追加し（しょうさん承認2026-08-15）、
 // 担当ソースが無い組み合わせをコミット時点（npm test）で検出できるようにした。
 //
-// 【スナップショット方式（しょうさん承認2026-08-15）】CIを恒常的に赤くすると他の本物の
-// 失敗が埋もれるため、現在の既知の欠損リストを明示的に列挙する方式を採用。この方式でも
-// 「想定外の新規欠落」「既存カバレッジの後退」は即座に検知できる（missingがこの配列と
-// 一致しなくなるため）。以下の各行は「なぜ未対応か・担当予定ソース・task #41内の着手順」を
-// 併記し、放置された欠損と作業待ちの欠損を区別できるようにしている。
-//
-// 【task #41完了条件（しょうさん指示2026-08-15）】task #41が完了しstillMissingが空になったら、
-// 以下のassert.deepEqualを`assert.deepEqual(r.missing, [])`の厳格版へ切り替えること
-test('validateExpectedCoverage: 実config — 国×kind必須マトリクス（しょうさん承認2026-08-15）の充足状況', () => {
+// 【スナップショット方式からの切替（task #41完了、2026-08-15）】導入当初はCIを恒常的に赤くしない
+// ためのスナップショット方式（既知の欠損リストを明示列挙）を採用していたが、task #41（中銀議事要旨
+// 4件→日本3件→Eurostat/フラッシュPMI4件→NZ/AU GDP/CN 3件の順で新規ソースを実装、各段階の詳細は
+// git履歴参照）が完了し国×kindマトリクスが全件充足したため、しょうさん指示（2026-08-15、
+// 「全件解消したらassert.deepEqual(r.missing, [])の厳格版へ切り替えること」）どおり
+// 厳格版へ切り替えた。以後、担当ソースの欠落（新規追加忘れ・既存ソースの後退）は即座にこのテストで
+// 検知される
+test('validateExpectedCoverage: 実config — 国×kind必須マトリクス（しょうさん承認2026-08-15）が全件充足している（task #41完了）', () => {
   const sourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
   const officials = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'officials.json'), 'utf8'));
   const expectedCoverageConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'expected-coverage.json'), 'utf8'));
   const r = validateExpectedCoverage(sourcesConfig, officials, expectedCoverageConfig);
-  const stillMissing = r.missing.map((m) => `${m.country}:${m.kind}`).sort();
-  const expectedStillMissing = [
-    // --- task #41-1（中銀議事要旨4件。既存ソースへの追記で対応可能。着手順1・最優先）は完了 ---
-    // US:minutes_summary（FOMC議事録）・AU:minutes_summary（RBA議事要旨）・EU:minutes_summary
-    // （ECB議事要旨）・CA:minutes_summary（BOC議事要旨）は実装済み（2026-08-15、既存
-    // us_frb_policy_rate/au_rba/ecb_policy_rate/boc_policy_rateへschedule追加）のため4件とも
-    // ここから削除した。EU/CAはFOMC/RBAと異なり固定オフセット計算ではなく各中銀が単発告知する
-    // 実日付をWebSearch経由で個別収録（source_verified:false同等。次回本番runでのライブ検証対象）
-    // --- task #41-2（日本3件。着手順2）は完了 ---
-    // JP:cpi（総務省統計局、19日を含む週の金曜08:30固定ルール、通年13回算出）・
-    // JP:gdp（内閣府/ESRI、1次/2次速報、WebSearch経由で6件確認。うち2026-08-17分1次速報が
-    // 8/17週の欠損事例そのもの）・JP:trade_balance（財務省税関、2026年分は2件のみ確認できたが
-    // うち2026-08-20分＝7月分が8/17週の欠損事例そのもの）は実装済み（2026-08-15、いずれも新規
-    // annual_schedule_config型ソースとして追加）のため3件ともここから削除した。いずれも
-    // WebSearch経由確認（source_verified:false同等）。次回本番runでのライブ検証が必要
-    // --- task #41-3（Eurostat・フラッシュPMI。着手順3）は完了 ---
-    // EU:cpi（eurostat_hicp、速報値2026年8ヶ月分）・EU:gdp（eurostat_gdp、2026年上半期4件）・
-    // EU:pmi_ism（eu_flash_pmi）・GB:pmi_ism（gb_flash_pmi、既存gb_construction_pmiとはsubtype
-    // で区別）は実装済み（2026-08-15）のため4件ともここから削除した。フラッシュPMIはS&P Globalが
-    // 向こう1〜2ヶ月分しか事前公表しないため2026年1-7月分のみ収録（8月以降はresidual_monitor_weeks
-    // による警告で毎月の手動更新を促す運用）。いずれもWebSearch経由確認（source_verified:false
-    // 同等）。次回本番runでのライブ検証が必要
-    // --- task #41-4（NZ・AU GDP・CN 3件。着手順4・最後） ---
-    'NZ:cpi', // 未調査。Stats NZの担当ページ実測が必要
-    'NZ:gdp', // 未調査。同上
-    'AU:gdp', // ABS実fixture窓に未出現。ABS正式名『Australian National Accounts』のライブ確認待ち
-    'CN:industrial_production', // NBS（国家統計局）担当。新設kind、新規ソース未実装
-    'CN:retail_sales', // NBS担当。新規ソース未実装
-    'CN:gdp', // NBS担当（四半期GDP）。新規ソース未実装
-  ].sort();
-  assert.deepEqual(
-    stillMissing,
-    expectedStillMissing,
-    'task #41の進捗と食い違う場合は、このリストを実際のmissingへ更新すること（新規に閉じた項目を削除・想定外の新規欠落があれば要調査）。全件解消したらassert.deepEqual(r.missing, [])の厳格版へ切り替えること（task #41完了条件）'
-  );
+  assert.equal(r.ok, true, '国×kind必須マトリクスに新規の欠落がある（担当ソースの追加漏れ、または既存ソースの後退）');
+  assert.deepEqual(r.missing, []);
 });

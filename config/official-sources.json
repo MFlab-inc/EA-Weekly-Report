@@ -350,6 +350,73 @@
       "notes": "四半期リリース『Labour market statistics: {月} {年} quarter』（config/event-names.json照合済み）。四半期末から約5週間後に公表。【2026-08-14実測で判明】release-calendar/はSPA構造で静的取得不可（旧記録のとおり）。open data API（api.stats.govt.nz）は2024-08-30に閉鎖済みと判明し(a)API系統は不可。年次PDFカレンダーも(b)で探索したが発見できなかった。一方、各四半期の情報公開ページ自体（例: labour-market-statistics-june-2026-quarter）が本文に次回リリース予定日を埋め込み公表している（Stats NZ自身の公式コンテンツ）ことを発見し、これを抽出対象とする方式へ変更した。extractors/nz-statsnz.jsで抽出し、前四半期ページ（2026年3月期・ground truth検証用に別途取得）が『June 2026 quarter will be released on 5 August 2026』を埋め込んでいることを確認、ground truthのnz_labour_q2_20260805（2026年6月期）と完全一致した。現在のtargets（2026年6月期ページ）は次サイクルの2026年9月期＝2026-11-04を正しく抽出できることも確認済み。ページURLの四半期ごとの手動更新が必要（next_release_maintenance参照）"
     },
     {
+      "id": "nz_stats_cpi",
+      "name_ja": "ニュージーランド統計局（Stats NZ・CPI）",
+      "status": "draft_schedule",
+      "country": "NZ",
+      "kinds": [
+        "cpi"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "release_calendar",
+            "url": "https://www.stats.govt.nz/release-calendar/"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "cpi": {
+          "local_time": "10:45",
+          "tz": "Pacific/Auckland",
+          "note": "公式ページで直接確認できず、FXStreet等のGMT表記からの逆算（慣行値、中程度の確度）。nz_statsnz（雇用統計）と同一時刻帯で運用上一貫性がある"
+        }
+      },
+      "notes": "task #41-4（2026-08-15、しょうさん承認済み国×kindマトリクス）: NZ CPI（四半期リリース。他国の多くが月次なのに対しNZは四半期のみ）。nz_statsnz（雇用統計）と同様、Stats NZは年次一括の事前公表カレンダーを持たない（open data API廃止・年次PDF未発見、nz_statsnz notes参照）。将来的にはnz_statsnzと同じnext_release_pointer方式（各四半期ページが次回リリース日を本文に埋め込む）への統合が望ましいが、抽出コードの拡張（extractors/nz-statsnz.jsをCPI/GDPページ構造にも対応させる）が必要なため、task #41-4では暫定的に2026年分の実発表日をWebSearch経由で個別収録した（2ソース以上で相互裏付けが取れた3件のみ。9月期分は単一情報源のみで未確定のため収録していない）",
+      "schedule": [
+        { "date": "2026-01-23", "kind": "cpi", "note": "2025年12月期。2ソースで裏付け済み" },
+        { "date": "2026-04-21", "kind": "cpi", "note": "2026年3月期。2ソースで裏付け済み" },
+        { "date": "2026-07-21", "kind": "cpi", "note": "2026年6月期。2ソースで裏付け済み（実績値4.1%前年比とも一致）" }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
+      "id": "nz_stats_gdp",
+      "name_ja": "ニュージーランド統計局（Stats NZ・GDP）",
+      "status": "draft_schedule",
+      "country": "NZ",
+      "kinds": [
+        "gdp"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "release_calendar",
+            "url": "https://www.stats.govt.nz/release-calendar/"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "gdp": {
+          "local_time": "10:45",
+          "tz": "Pacific/Auckland",
+          "note": "nz_stats_cpiと同一の逆算根拠（慣行値、中程度の確度）"
+        }
+      },
+      "notes": "task #41-4（2026-08-15、しょうさん承認済み国×kindマトリクス）: NZ GDP（四半期リリース）。nz_stats_cpiと同じ理由で暫定annual_schedule_config方式とした。2026年分のうち2ソースで裏付けが取れた2件のみ収録（2026年6月期分・9月期分は単一情報源または未発見のため収録していない。推測で埋めていない）",
+      "schedule": [
+        { "date": "2026-03-19", "kind": "gdp", "note": "2025年12月期。2ソースで裏付け済み" },
+        { "date": "2026-06-18", "kind": "gdp", "note": "2026年3月期。2ソースで裏付け済み（実績値0.8%成長とも一致）" }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
       "id": "ca_statcan",
       "name_ja": "カナダ統計局（Statistics Canada）",
       "status": "active",
@@ -647,7 +714,8 @@
       "kinds": [
         "trade_balance",
         "cpi",
-        "employment_situation"
+        "employment_situation",
+        "gdp"
       ],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
@@ -672,9 +740,13 @@
         "employment_situation": {
           "local_time": "11:30",
           "tz": "Australia/Sydney"
+        },
+        "gdp": {
+          "local_time": "11:30",
+          "tz": "Australia/Sydney"
         }
       },
-      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: future-releases-calendarは元々ABSの全リリースを汎用抽出しており（抽出コード変更不要）、trade_balance以外はkinds未登録だったため取りこぼしていた。実fixtureで実在確認済みのCPI・雇用統計（Labour Force）をkindsへ追加。雇用統計は8/17週（2026-08-20発表）でまさに欠損していた事例。時刻は貿易収支と同じ11:30 Sydney（実fixtureのutcInstantでも01:30Z=11:30 AESTと確認済み）"
+      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: future-releases-calendarは元々ABSの全リリースを汎用抽出しており（抽出コード変更不要）、trade_balance以外はkinds未登録だったため取りこぼしていた。実fixtureで実在確認済みのCPI・雇用統計（Labour Force）をkindsへ追加。雇用統計は8/17週（2026-08-20発表）でまさに欠損していた事例。時刻は貿易収支と同じ11:30 Sydney（実fixtureのutcInstantでも01:30Z=11:30 AESTと確認済み） | 2026-08-15追記（task #41-4、しょうさん承認済み国×kindマトリクス）: GDP（Australian National Accounts: National Income, Expenditure and Product）を追加。future_releases_calendarは元々ABSの全リリースを汎用抽出する設計のため、抽出コード変更不要でkinds追加のみで対応可能（trade_balance/CPI追加時と同じ理由）。2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済みだが、hardcodeはしていない（本ソースはweekly_scrape型のため、live fetch時にfuture_releases_calendarの実ページ内容が対象週分を含んでいれば自動的に検出される。ローリング6ヶ月窓のため、対象週の6ヶ月以上先の発表分はresidual監視の対象外）。時刻11:30 Sydneyは他ABSリリースと同一の標準枠として複数ソースで確認"
     },
     {
       "id": "us_ism",
@@ -1187,6 +1259,53 @@
       },
       "announce_time_by_kind": {},
       "notes": "優先度B3。2026-08-14実測: 公表元S&P Globalのpmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（BLSと同様のインフラ側ブロックの疑い。UA偽装による回避は行わない方針）。冠スポンサーのRatingDog自身のサイト（ratingdog.cn）も試したが、Monaco Editor/Viteバンドルを含む本格的なSPA構造で日程データは静的HTMLに含まれないと判明（us_adp・Stats NZと同種の構造的ブロッカー）。follow-up調査対象（task #15と合わせて管理）"
+    },
+    {
+      "id": "cn_nbs_data",
+      "name_ja": "中国国家統計局（NBS・月次/四半期主要統計）",
+      "status": "draft_schedule",
+      "country": "CN",
+      "kinds": [
+        "industrial_production",
+        "retail_sales",
+        "gdp"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "release_calendar_en",
+            "url": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/"
+          }
+        ],
+        "note": "2026年通年の公表日程表（『2026年国家统计局主要统计信息发布日程表』、stats.gov.cn/xxgk/sjfb/fbrcb/202512/t20251224_1962137.html、2025-12-24公表）の存在をWebSearch経由で確認したが、直接フェッチ不可のため本文内容は未取得（task #41-4調査agent報告）。次回本番run以降、このURLの直接確認を優先すること"
+      },
+      "announce_time_by_kind": {
+        "industrial_production": { "local_time": "10:00", "tz": "Asia/Shanghai", "note": "公式ページで直接確認できず、GMT表記からの逆算（慣行値、中程度の確度）" },
+        "retail_sales": { "local_time": "10:00", "tz": "Asia/Shanghai", "note": "industrial_productionと同時発表" },
+        "gdp": { "local_time": "10:00", "tz": "Asia/Shanghai", "note": "該当月はindustrial_production/retail_salesと同時発表" }
+      },
+      "notes": "task #41-4（2026-08-15、しょうさん承認済み国×kindマトリクス）: 鉱工業生産・小売売上高（月次、毎月同日に統合発表）・GDP（四半期、1/4/7/10月に月次データと同日発表）。NBSは毎年12月に翌年分の発表日程表を一括公表する運用（2026年分は2025-12-24公表）が存在することをWebSearch経由で確認したが、当該ページ自体は直接フェッチ不可だったため、個別の実発表ページURL（日付が埋め込まれたもの）から2026年1-7月分（既に発表済みの6回）のみを実績照合の上で収録した。2026年8月分以降は同時点で未発表・未確認のため収録していない（推測で埋めていない）。1-2月分は春節（旧正月）の影響で毎年1本化されて発表される（1月単独データは存在しない）運用が確認できたためJan-Feb統合分として1件のみ収録。公表時刻はいずれもGMT表記からの逆算のみで公式ページ直接確認ができておらず中程度の確度（次回本番runでのライブ検証が必要）",
+      "schedule": [
+        { "date": "2026-01-19", "kind": "gdp", "note": "2025年10-12月期・通年GDP" },
+        { "date": "2026-01-19", "kind": "industrial_production", "note": "2025年12月分" },
+        { "date": "2026-01-19", "kind": "retail_sales", "note": "2025年12月分" },
+        { "date": "2026-03-16", "kind": "industrial_production", "note": "2026年1-2月統合分（春節の影響で1月単独データは無い）" },
+        { "date": "2026-03-16", "kind": "retail_sales", "note": "2026年1-2月統合分" },
+        { "date": "2026-04-16", "kind": "gdp", "note": "2026年1-3月期GDP" },
+        { "date": "2026-04-16", "kind": "industrial_production", "note": "2026年3月分" },
+        { "date": "2026-04-16", "kind": "retail_sales", "note": "2026年3月分" },
+        { "date": "2026-05-18", "kind": "industrial_production", "note": "2026年4月分" },
+        { "date": "2026-05-18", "kind": "retail_sales", "note": "2026年4月分" },
+        { "date": "2026-06-16", "kind": "industrial_production", "note": "2026年5月分" },
+        { "date": "2026-06-16", "kind": "retail_sales", "note": "2026年5月分" },
+        { "date": "2026-07-16", "kind": "gdp", "note": "2026年4-6月期・上半期GDP。実発表日は7/15-16のいずれか（情報源で表記揺れ、GDP解説記事は7/16付）" },
+        { "date": "2026-07-16", "kind": "industrial_production", "note": "2026年6月分" },
+        { "date": "2026-07-16", "kind": "retail_sales", "note": "2026年6月分" }
+      ],
+      "residual_monitor_weeks": 4
     },
     {
       "id": "gb_construction_pmi",

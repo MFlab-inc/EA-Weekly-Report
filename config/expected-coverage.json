@@ -72,7 +72,7 @@
     {
       "country": "AU",
       "kind": "gdp",
-      "note": "しょうさん承認2026-08-15。au_absの実fixture窓には未出現（ABS正式名『Australian National Accounts』要ライブ確認、task #41）"
+      "note": "しょうさん承認2026-08-15。task #41-4で実装済み（au_absのkindsへgdp追加。ABS正式名『Australian National Accounts』。既存weekly_scrape機構のためhardcodeなしのlive fetchで対応、ライブ検証は次回本番run）"
     },
     {
       "country": "AU",
@@ -87,12 +87,12 @@
     {
       "country": "NZ",
       "kind": "cpi",
-      "note": "しょうさん承認2026-08-15。task #41で実装予定"
+      "note": "しょうさん承認2026-08-15。task #41-4で実装済み（nz_stats_cpi、2026年3件・四半期リリース）"
     },
     {
       "country": "NZ",
       "kind": "gdp",
-      "note": "しょうさん承認2026-08-15。task #41で実装予定"
+      "note": "しょうさん承認2026-08-15。task #41-4で実装済み（nz_stats_gdp、2026年2件・四半期リリース）"
     },
     {
       "country": "CA",
@@ -112,17 +112,17 @@
     {
       "country": "CN",
       "kind": "industrial_production",
-      "note": "しょうさん承認2026-08-15（AUD系ペアの停止判断に直結するため必須）。NBS（国家統計局）担当。task #16（S&P Global系PMIブロッカー）とは無関係の別トラック。新設kind（config/importance-rules.jsonのimportance_by_kindに追加済み）。task #41で実装予定"
+      "note": "しょうさん承認2026-08-15（AUD系ペアの停止判断に直結するため必須）。NBS（国家統計局）担当。task #16（S&P Global系PMIブロッカー）とは無関係の別トラック。新設kind（config/importance-rules.jsonのimportance_by_kindに追加済み）。task #41-4で実装済み（cn_nbs_data、2026年1-7月分6回）"
     },
     {
       "country": "CN",
       "kind": "retail_sales",
-      "note": "しょうさん承認2026-08-15。NBS担当。task #41で実装予定"
+      "note": "しょうさん承認2026-08-15。NBS担当。task #41-4で実装済み（cn_nbs_data）"
     },
     {
       "country": "CN",
       "kind": "gdp",
-      "note": "しょうさん承認2026-08-15（四半期GDP）。NBS担当。task #41で実装予定"
+      "note": "しょうさん承認2026-08-15（四半期GDP）。NBS担当。task #41-4で実装済み（cn_nbs_data、2026年1-7月分3回）"
     }
   ]
 }
