@@ -87,28 +87,46 @@ test('validateExpectedCoverage: 実config — 8/8中銀すべてpolicy_rate担�
 // config/expected-coverage.jsonのadditional_requiredへ追加し（しょうさん承認2026-08-15）、
 // 担当ソースが無い組み合わせをコミット時点（npm test）で検出できるようにした。
 //
-// 【意図的にこのテストは現在失敗する】task #41（新規ソース実装）が完了するまで、
-// 承認済みマトリクスのうち未実装の組み合わせがmissingに列挙され続ける。これはバグではなく、
-// 「実行時ではなくコミット時点で気づける形を維持する」というしょうさんの明示的な設計要求どおりの
-// 挙動である。task #41の進捗に応じてmissingの件数が減り、全件実装完了時にこのテストがパスする
+// 【スナップショット方式（しょうさん承認2026-08-15）】CIを恒常的に赤くすると他の本物の
+// 失敗が埋もれるため、現在の既知の欠損リストを明示的に列挙する方式を採用。この方式でも
+// 「想定外の新規欠落」「既存カバレッジの後退」は即座に検知できる（missingがこの配列と
+// 一致しなくなるため）。以下の各行は「なぜ未対応か・担当予定ソース・task #41内の着手順」を
+// 併記し、放置された欠損と作業待ちの欠損を区別できるようにしている。
+//
+// 【task #41完了条件（しょうさん指示2026-08-15）】task #41が完了しstillMissingが空になったら、
+// 以下のassert.deepEqualを`assert.deepEqual(r.missing, [])`の厳格版へ切り替えること
 test('validateExpectedCoverage: 実config — 国×kind必須マトリクス（しょうさん承認2026-08-15）の充足状況', () => {
   const sourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
   const officials = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'officials.json'), 'utf8'));
   const expectedCoverageConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'expected-coverage.json'), 'utf8'));
   const r = validateExpectedCoverage(sourcesConfig, officials, expectedCoverageConfig);
   const stillMissing = r.missing.map((m) => `${m.country}:${m.kind}`).sort();
+  const expectedStillMissing = [
+    // --- task #41-1（中銀議事要旨4件。既存ソースへの追記で対応可能。着手順1・最優先） ---
+    'US:minutes_summary', // FOMC議事録。既存us_frb_policy_rateへ追記（会合終了+21日固定オフセット）
+    'EU:minutes_summary', // ECB Accounts of the monetary policy meeting。既存ecb_policy_rateへ追記（次回日程を事前明示）
+    'AU:minutes_summary', // RBA議事要旨。既存au_rbaへ追記（会合2週間後固定オフセット）
+    'CA:minutes_summary', // BOC Summary of Governing Council Deliberations。既存boc_policy_rateへ追記（BOCが翌年分日程を毎年8月に事前公表）
+    // --- task #41-2（日本3件。新規annual_schedule_config候補として調査済み。着手順2） ---
+    'JP:cpi', // 総務省統計局。固定ルール（19日を含む週の金曜08:30）
+    'JP:gdp', // 内閣府/ESRI。stat-schedule.htmlでFY2026全4四半期の日程確認済み
+    'JP:trade_balance', // 財務省税関。calend.htmで年次スケジュール確認済み
+    // --- task #41-3（Eurostat・フラッシュPMI。着手順3） ---
+    'EU:cpi', // ユーロ圏HICP。Eurostat release-calendar ICSフィード（tier a、calendar_EN.ics）
+    'EU:gdp', // Eurostat。ICSフィードで対応可能
+    'EU:pmi_ism', // フラッシュPMI（HCOB/S&P Global）
+    'GB:pmi_ism', // フラッシュPMI（製造業/サービス業）。現行gb_construction_pmiは建設業PMIのみで対象外、別ソース必要
+    // --- task #41-4（NZ・AU GDP・CN 3件。着手順4・最後） ---
+    'NZ:cpi', // 未調査。Stats NZの担当ページ実測が必要
+    'NZ:gdp', // 未調査。同上
+    'AU:gdp', // ABS実fixture窓に未出現。ABS正式名『Australian National Accounts』のライブ確認待ち
+    'CN:industrial_production', // NBS（国家統計局）担当。新設kind、新規ソース未実装
+    'CN:retail_sales', // NBS担当。新規ソース未実装
+    'CN:gdp', // NBS担当（四半期GDP）。新規ソース未実装
+  ].sort();
   assert.deepEqual(
     stillMissing,
-    [
-      'AU:gdp', 'AU:minutes_summary',
-      'CA:minutes_summary',
-      'CN:gdp', 'CN:industrial_production', 'CN:retail_sales',
-      'EU:cpi', 'EU:gdp', 'EU:minutes_summary', 'EU:pmi_ism',
-      'GB:pmi_ism',
-      'JP:cpi', 'JP:gdp', 'JP:trade_balance',
-      'NZ:cpi', 'NZ:gdp',
-      'US:minutes_summary',
-    ].sort(),
-    'task #41の進捗と食い違う場合は、このリストを実際のmissingへ更新すること（新規に閉じた項目を削除・想定外の新規欠落があれば要調査）'
+    expectedStillMissing,
+    'task #41の進捗と食い違う場合は、このリストを実際のmissingへ更新すること（新規に閉じた項目を削除・想定外の新規欠落があれば要調査）。全件解消したらassert.deepEqual(r.missing, [])の厳格版へ切り替えること（task #41完了条件）'
   );
 });

@@ -120,6 +120,25 @@ node scripts/check/gate.mjs \
 `--skip-mobile`（Playwright起動を省略）・`--skip-link-reachability`（外部ネットワークアクセスを
 省略）はローカル動作確認・オフライン環境向けのオプション。本番週次runでは省略しないこと。
 
+## WebSearch経由の確認について（ライブフェッチ不可な発表元名の限界）
+
+一部の発表元（NZ Stats NZ、GB CPI、US GDP等）は、開発サンドボックスから当該サイトへ直接
+フェッチできないため、`event-names.json`の`match`/`display_name`をWebSearch経由の間接確認
+（検索エンジンにインデックスされたページ内容からの確認）だけで登録している
+（`source_verified`はfalse、`note`に確認方法を明記）。
+
+**この方式は過去に実バグの原因になった**: GB GDPの旧`match`キーワード（`gdp m/m`・
+`prelim gdp q/q`）はFF（Forex Factory）想定の表記であり、実際の担当ソースgb_ons（ONS
+releases API）の実タイトル『GDP first quarterly estimate, UK: {期間}』とは一致していなかった。
+これは実fixtureを取得して初めて発覚した（2026-08-15）。
+
+**したがって、WebSearch経由でしか確認できていない`match`/`display_name`は、実データ
+（本番run・fixture取得）でのライブ検証が完了するまで「未確定」として扱うこと。** 次回本番run
+で該当ソースの実レスポンスを確認し、`source_verified: true`へ更新する。もし実タイトルが
+WebSearch確認時の想定と食い違っていた場合は、GB GDPの前例と同様の実バグとして扱い、
+このセクションに追記して教訓として残すこと（「WebSearch確認だけで確定させない」という
+運用ルールの根拠を蓄積する）。
+
 ## 既知の残課題
 
 - **collect→normalizeの実データ接続は部分的**。`scripts/lib/build-ledger.js`は
