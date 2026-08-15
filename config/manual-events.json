@@ -1,0 +1,5 @@
+{
+  "_comment": "運用者（しょうさん）が単発イベントを手動登録するための受け皿（2026-08-15新設）。公式ソースチェッカーに担当ソースが無いため定例欠落WARNが恒常的に出続けるイベント（例: RBA総裁の下院経済委員会証言 #18）や、臨時会合・突発イベント等、公式ソースの自動収集ではカバーできない★★★候補の正規登録ルート。scripts/lib/manual-events.jsで検証・候補変換し、scripts/phase1/observation-run.mjsの候補生成に他ソースと同列で取り込まれる。各エントリは対象週に該当する場合のみ候補化される（date列がその週の範囲内）ため、掲載後にentriesへ残しておいても翌週以降は自動的に対象外になる（削除は任意・履歴として残してよい）",
+  "schema_note": "id: 一意な識別子（重複禁止） / date: 'YYYY-MM-DD'（現地日付ではなく発表の暦日） / local_time+tz: 現地時刻とIANAタイムゾーン（両方指定するか両方省略。省略時は時刻未定=bond_auction等と同じtime:null扱い） / country: ISO国コード（EU等の例外は既存official-sources.json慣行に合わせる） / kind: 任意（event-comments.jsonの定型コメント辞書と一致すればコメントが自動付与される。一致しなければコメント無し） / display_name: レポートに表示する日本語名を運用者が直接指定（辞書照合は行わない） / importance: 0/2/3のいずれかを運用者が直接指定 / source_note: 出典メモ（必須。公式ページURL等の確認根拠） / registered_by・registered_at: 登録者・登録日（必須・監査用）",
+  "entries": []
+}

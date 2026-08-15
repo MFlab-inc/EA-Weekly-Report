@@ -3,6 +3,7 @@
   "run_recon_b": false,
   "run_recon_c": false,
   "run_recon_d": false,
-  "run_recon_e": true,
+  "run_recon_e": false,
+  "run_recon_f": true,
   "collect_fixtures": false
 }
