@@ -123,6 +123,41 @@
       "country": "CN",
       "kind": "gdp",
       "note": "しょうさん承認2026-08-15（四半期GDP）。NBS担当。task #41-4で実装済み（cn_nbs_data、2026年1-7月分3回）"
+    },
+    {
+      "country": "GB",
+      "kind": "employment_situation",
+      "note": "しょうさん指摘2026-08-15（task #50/52、Manus突合: 当初『任意』分類が誤りだったとの訂正）。task #51で実装済み（gb_ons、query=Labour追加。8/18発表分が8/17週の欠損事例そのもの）"
+    },
+    {
+      "country": "GB",
+      "kind": "retail_sales",
+      "note": "しょうさん指摘2026-08-15（task #50/52、retail_salesを新規必須kindとして追加）。task #51で実装済み（gb_ons、query=Retail追加。8/21発表分が8/17週の欠損事例そのもの）"
+    },
+    {
+      "country": "CA",
+      "kind": "retail_sales",
+      "note": "しょうさん指摘2026-08-15（task #50/52、retail_salesを新規必須kindとして追加）。task #51で実装済み（ca_statcan、年次PDFのSUBJECT_HEADERS未マッピングが原因。8/21発表分が8/17週の欠損事例そのもの）"
+    },
+    {
+      "country": "US",
+      "kind": "retail_sales",
+      "note": "しょうさん指摘2026-08-15（task #50/52、retail_salesを新規必須kindとして追加。米小売売上高は既刊8/10週で★★★実績あり）。既存us_census（Advance Monthly Sales for Retail and Food Services）で充足済み（task #9・Phase 0から実装済み）"
+    },
+    {
+      "country": "AU",
+      "kind": "retail_sales",
+      "note": "しょうさん指摘2026-08-15（task #50/52、retail_salesを新規必須kindとして追加。一括監査で発覚した未マッピング事例）。task #50/51で実装済み（au_abs、Monthly Household Spending Indicator＝ABSの旧Retail Trade後継指標）"
+    },
+    {
+      "country": "DE",
+      "kind": "sentiment",
+      "note": "しょうさん承認2026-08-15（task #50/52、DE国追加。ドイツ製造業PMI・ZEW・Ifo等はEURペアで★★★級との指摘）。ZEW Indicator of Economic Sentimentをde_zewとして実装済み（2026-08-15ライブ検証、zew.de公式プレスリリースの年次一括公表を確認）。ドイツ製造業PMI（S&P Global。既存task #16ブロッカーと同一構造的制約）・Ifo Business Climate Index（実測継続中、次点候補）は未実装（task #52/53参照）"
     }
-  ]
+  ],
+  "_pending_not_yet_added": {
+    "_comment": "しょうさんの指摘（task #50/52）で必須化が承認されたが、担当ソースが未実装のため意図的にadditional_requiredへはまだ追加していない項目。実装完了後にここから昇格させること（fail-closed設計のため、担当ソース不在のままadditional_requiredへ追加するとCIが恒久的に赤くなる。task #41の中銀8/8件で採用したのと同じ『スナップショット→全件充足後に厳格化』の段階移行方針を踏襲）",
+    "JP retail_sales": "しょうさん承認2026-08-15。候補はMETI（経済産業省）だが2026-08-15ライブ検証でrobots.txt自体がHTTP 403で取得失敗のため慎重側に倒しSKIP確定（構造的ブロッカー。task #16のBLS/ISM/RatingDog等と同種）。代替経路（関連統計を公表する別省庁等）は未調査",
+    "EU retail_sales": "しょうさん承認2026-08-15。Eurostat個別リリースページの経路B（w/4-DDMMYYYY-ap、EU GDPのw/2-...と同型）を2026-08-15ライブ検証で確認済み（2026-08-06公表分ページで『Next release: 4 September 2026』を確認、HTTP 200）。経路自体は生きているが、EU GDPと同様の月次巡回実装（次回リリースURLの継続追跡）がまだ未着手のためsource未実装"
+  }
 }

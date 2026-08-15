@@ -37,7 +37,8 @@
   "country_overrides": [
     { "kind": "pmi_ism", "country": "US", "importance": 3, "reason": "ISM製造業/非製造業景況指数。既刊2週で★★★（Phase 0実測）", "downgrade_ok": true },
     { "kind": "trade_balance", "country": "AU", "importance": 3, "reason": "既刊8/3週で★★★。Q2決定により恒常ルールとして採用（AUD系EA運用実態に合致）", "downgrade_ok": true },
-    { "kind": "minutes_summary", "country": "US", "importance": 3, "reason": "FOMC議事録。Q2決定により日銀『主な意見』（opinions_summary）と同格の★★★として統一", "downgrade_ok": true }
+    { "kind": "minutes_summary", "country": "US", "importance": 3, "reason": "FOMC議事録。Q2決定により日銀『主な意見』（opinions_summary）と同格の★★★として統一", "downgrade_ok": true },
+    { "kind": "sentiment", "country": "DE", "importance": 3, "reason": "2026-08-15しょうさん指摘（Manus突合）: ZEW景況感指数はEURペアで★★★級の反応がある。sentiment kindの既定値（★★）から引き上げ", "downgrade_ok": true }
   ],
   "bundling_rule": "同一発表元・同一発表枠（同日・同時刻・同一指標の系列: 前月比/前年比/コア等）は1つの発表枠に束ね、枠の重要度は構成イベントの重要度の最大値を採る（例: 米雇用統計＝非農業部門雇用者数【★★★】＋平均時給【★★】→枠は★★★）",
   "recurring_checks": [

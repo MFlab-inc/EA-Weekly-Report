@@ -311,6 +311,21 @@ test('annualEntryToCandidate: 小売売上高（CA retail_sales）が実config�
   assert.equal(c.time, '21:30'); // 08:30 America/Toronto → 21:30 JST（既存4kindと同一のStatCan標準発表時刻）
 });
 
+// task #50/52（2026-08-15、しょうさんのDE国追加指摘）の回帰テスト: ZEW景況感指数（de_zew）が
+// 実configから名称解決でき、8/17週該当分（2026-08-18）のJST時刻が正しく計算できることを確認する
+test('annualEntryToCandidate: ZEW景況感指数（DE sentiment）が実configから名称解決できる（DE国追加・8/17週該当分）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'de_zew');
+  assert.ok(source, 'de_zewソースが見つからない');
+  const importanceRules = { importance_by_kind: { sentiment: 2 }, country_overrides: [{ kind: 'sentiment', country: 'DE', importance: 3 }] };
+  const entry = source.schedule.find((e) => e.date === '2026-08-18');
+  assert.ok(entry, '2026-08-18のZEW scheduleエントリが見つからない（8/17週該当分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'ZEW景況感指数');
+  assert.equal(c.time, '18:05'); // 11:05 Europe/Berlin（8月はCEST=UTC+2）→ 18:05 JST
+  assert.equal(c.importance, 3); // country_overridesでsentimentの既定値(★★)から引き上げ
+});
+
 // task #41-3（しょうさん承認済み国×kindマトリクス）の回帰テスト: Eurostat HICP・GDP速報値、
 // EU/GBフラッシュPMIを新規annual_schedule_config型ソースとして追加した
 test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）が実configから名称解決できる（時刻はしょうさん発見のECB statscal静的ページで確定）', async () => {

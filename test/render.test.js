@@ -123,11 +123,12 @@ test('既刊2週へのルール適用結果（実データ経路・既刊文言�
   const summary0803 = autoHeroSummary(ledger0803, reportPolicy);
   const pills0803 = autoHeroPills(ledger0803);
   // 既刊: 'ISM製造業・非製造業、NZ雇用統計、豪州貿易収支、カナダ・米雇用統計を確認する週'
-  // US/employment_situation（8/7 21:30・米雇用統計）とCA/employment_situation（同時刻・カナダ雇用統計）が
-  // 同時刻タイのため、候補配列内での出現順（US側が先。official-sources.jsonのsources配列順に由来）が
-  // 安定ソートで保持され、4件目はUSが採用されCAは対象外になった。国名前置はtask #47で追加（しょうさん
-  // 監査指摘: 国名が無いと「雇用統計」がNZ分か米国分か区別できない実バグがあった）
-  assert.equal(summary0803, '米国ISM製造業景況指数、NZ雇用統計、豪州貿易収支、米国雇用統計：非農業部門雇用者数・失業率・平均時給を確認する週');
+  // 2026-08-15追記（task #50/51、しょうさんのManus突合指摘の一括監査で発覚）: au_absにretail_sales
+  // （Monthly Household Spending Indicator）を追加したところ、8/4発表分（8/3週内）が新たに検出され
+  // 日付順で上位に入るようになったため、以下のアサーションを実際の出力へ更新した（AU retail_salesが
+  // 4件目の米国雇用統計を押し出した。これは同種の「登録済みソースのkind取りこぼし」バグが8/3週にも
+  // サイレントに存在していたことの副次的な確認でもある）
+  assert.equal(summary0803, '米国ISM製造業景況指数、豪州小売売上高＆【除自動車】、NZ雇用統計、豪州貿易収支を確認する週');
   // 既刊: ['ISM製造業 8/3', 'NZ雇用統計 8/5', '米雇用統計 8/7']
-  assert.deepEqual(pills0803, ['米国ISM製造業景況指数 8/3', 'NZ雇用統計 8/5', '米国ISM非製造業景況指数 8/5']);
+  assert.deepEqual(pills0803, ['米国ISM製造業景況指数 8/3', '豪州小売売上高＆【除自動車】 8/4', 'NZ雇用統計 8/5']);
 });
