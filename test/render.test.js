@@ -28,7 +28,7 @@ test('autoHeroSummary: ★★★を国+kindで重複除去し、発生順に最�
     ],
   };
   const summary = autoHeroSummary(ledger, reportPolicy);
-  assert.equal(summary, 'RBA政策金利＆声明発表、消費者物価指数（CPI）、生産者物価指数（PPI）、ブロックRBA総裁：下院経済委員会への出席を確認する週');
+  assert.equal(summary, '豪州RBA政策金利＆声明発表、米国消費者物価指数（CPI）、米国生産者物価指数（PPI）、豪州ブロックRBA総裁：下院経済委員会への出席を確認する週');
 });
 
 // task #41-3（2026-08-15）で発覚した実バグの回帰テスト: `(a.datetime_jst || '').localeCompare(...)`
@@ -46,8 +46,8 @@ test('autoHeroSummary: datetime_jst未公表（null）の★★★イベント�
     ],
   };
   const summary = autoHeroSummary(ledger, reportPolicy);
-  assert.equal(summary, '日銀金融政策決定会合における主な意見の公表、RBA政策金利＆声明発表を確認する週');
-  assert.doesNotMatch(summary, /^GDP【速報値】/, 'datetime_jst:nullのイベントが先頭に来てはならない');
+  assert.equal(summary, '日本日銀金融政策決定会合における主な意見の公表、豪州RBA政策金利＆声明発表を確認する週');
+  assert.doesNotMatch(summary, /^(EU)?GDP【速報値】/, 'datetime_jst:nullのイベントが先頭に来てはならない');
 });
 
 test('autoHeroSummary: ★★★が0件のときはreportPolicy.hero_summary_no_star3_text', async () => {
@@ -68,7 +68,24 @@ test('autoHeroPills: ★★★を日付順に最大3件、「{表示名} {M/D}�
     ],
   };
   const pills = autoHeroPills(ledger);
-  assert.deepEqual(pills, ['RBA政策金利＆声明発表 8/11', '消費者物価指数（CPI） 8/12', '生産者物価指数（PPI） 8/13']);
+  assert.deepEqual(pills, ['米国RBA政策金利＆声明発表 8/11', '米国消費者物価指数（CPI） 8/12', '米国生産者物価指数（PPI） 8/13']);
+});
+
+// task #47（2026-08-15、しょうさん監査指摘）: 表示名だけでは同一kind・別国のイベント
+// （例: カナダCPIと英国CPI）が区別できず「消費者物価指数（CPI）、消費者物価指数（CPI）」のように
+// 重複して見える実バグが8/17週の実ネットワーク検証で発覚した。国名前置により解消されることを確認する
+test('autoHeroSummary/autoHeroPills: 同一kind・別国のイベント（CA CPIとGB CPI）が国名前置で区別できる', async () => {
+  const { autoHeroSummary, autoHeroPills } = await import('../scripts/render.mjs');
+  const ledger = {
+    events: [
+      ledgerEvent({ country: 'CA', kind: 'cpi', name_ja: '消費者物価指数（CPI）', datetime_jst: '2026-08-17T21:30:00+09:00', date_jst: '2026-08-17' }),
+      ledgerEvent({ country: 'GB', kind: 'cpi', name_ja: '消費者物価指数（CPI）', datetime_jst: '2026-08-19T15:00:00+09:00', date_jst: '2026-08-19' }),
+    ],
+  };
+  const summary = autoHeroSummary(ledger, reportPolicy);
+  assert.equal(summary, 'カナダ消費者物価指数（CPI）、英国消費者物価指数（CPI）を確認する週');
+  const pills = autoHeroPills(ledger);
+  assert.deepEqual(pills, ['カナダ消費者物価指数（CPI） 8/17', '英国消費者物価指数（CPI） 8/19']);
 });
 
 test('buildNarrative: overrideが無ければ自動生成、overrideがあればそちらを優先', async () => {
@@ -76,7 +93,7 @@ test('buildNarrative: overrideが無ければ自動生成、overrideがあれば
   const ledger = { meta: { target_week_start: '2026-08-17' }, events: [ledgerEvent({ country: 'AU', kind: 'policy_rate', name_ja: 'RBA政策金利＆声明発表' })] };
   const auto = buildNarrative(ledger, reportPolicy, null, new Date('2026-08-15T00:00:00Z'));
   assert.equal(auto.reportMeta, 'ea-weekly-20260817');
-  assert.match(auto.heroSummary, /RBA政策金利＆声明発表を確認する週/);
+  assert.match(auto.heroSummary, /豪州RBA政策金利＆声明発表を確認する週/);
 
   const overridden = buildNarrative(ledger, reportPolicy, { heroSummary: '手動指定の要約', heroPills: ['手動ピル'] }, new Date('2026-08-15T00:00:00Z'));
   assert.equal(overridden.heroSummary, '手動指定の要約');
@@ -97,10 +114,10 @@ test('既刊2週へのルール適用結果（実データ経路・既刊文言�
   const summary0810 = autoHeroSummary(ledger0810, reportPolicy);
   const pills0810 = autoHeroPills(ledger0810);
   // 既刊: 'RBA政策判断、米CPI・PPI、英国GDP、米小売売上高を確認する週'
-  // 本ルール適用結果（アサーションで固定し、将来の変更を検知できるようにする）
-  assert.equal(summary0810, '日銀金融政策決定会合における主な意見の公表（7月30・31日開催分）、RBA政策金利＆声明発表、RBA四半期金融政策報告、ブロックRBA総裁の記者会見を確認する週');
+  // 本ルール適用結果（アサーションで固定し、将来の変更を検知できるようにする）。国名前置はtask #47で追加
+  assert.equal(summary0810, '日本日銀金融政策決定会合における主な意見の公表（7月30・31日開催分）、豪州RBA政策金利＆声明発表、豪州RBA四半期金融政策報告、豪州ブロックRBA総裁の記者会見を確認する週');
   // 既刊: ['RBA政策金利 8/11', '米CPI 8/12', '米小売売上高 8/14']
-  assert.deepEqual(pills0810, ['日銀金融政策決定会合における主な意見の公表（7月30・31日開催分） 8/10', 'RBA政策金利＆声明発表 8/11', 'RBA四半期金融政策報告 8/11']);
+  assert.deepEqual(pills0810, ['日本日銀金融政策決定会合における主な意見の公表（7月30・31日開催分） 8/10', '豪州RBA政策金利＆声明発表 8/11', '豪州RBA四半期金融政策報告 8/11']);
 
   const ledger0803 = await regenerateWeek(WEEK_20260803);
   const summary0803 = autoHeroSummary(ledger0803, reportPolicy);
@@ -108,8 +125,9 @@ test('既刊2週へのルール適用結果（実データ経路・既刊文言�
   // 既刊: 'ISM製造業・非製造業、NZ雇用統計、豪州貿易収支、カナダ・米雇用統計を確認する週'
   // US/employment_situation（8/7 21:30・米雇用統計）とCA/employment_situation（同時刻・カナダ雇用統計）が
   // 同時刻タイのため、候補配列内での出現順（US側が先。official-sources.jsonのsources配列順に由来）が
-  // 安定ソートで保持され、4件目はUSが採用されCAは対象外になった
-  assert.equal(summary0803, 'ISM製造業景況指数、雇用統計、貿易収支、雇用統計：非農業部門雇用者数・失業率・平均時給を確認する週');
+  // 安定ソートで保持され、4件目はUSが採用されCAは対象外になった。国名前置はtask #47で追加（しょうさん
+  // 監査指摘: 国名が無いと「雇用統計」がNZ分か米国分か区別できない実バグがあった）
+  assert.equal(summary0803, '米国ISM製造業景況指数、NZ雇用統計、豪州貿易収支、米国雇用統計：非農業部門雇用者数・失業率・平均時給を確認する週');
   // 既刊: ['ISM製造業 8/3', 'NZ雇用統計 8/5', '米雇用統計 8/7']
-  assert.deepEqual(pills0803, ['ISM製造業景況指数 8/3', '雇用統計 8/5', 'ISM非製造業景況指数 8/5']);
+  assert.deepEqual(pills0803, ['米国ISM製造業景況指数 8/3', 'NZ雇用統計 8/5', '米国ISM非製造業景況指数 8/5']);
 });

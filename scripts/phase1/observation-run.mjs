@@ -192,7 +192,12 @@ export function renderText(summary) {
   for (const [date, h] of Object.entries(summary.haltByDate)) {
     lines.push(`- ${date}: 窓${h.windowCount}件`);
     for (const w of h.windows) {
-      lines.push(`    停止開始目安 ${w.displayStart}–${w.displayEnd}${w.annotation ? `（${w.annotation}）` : ''}`);
+      // task #47実バグ修正: 窓が丸ごと前日に収まる場合、displayStart–displayEndは当日クランプ
+      // 済みで前日基準の負値が混ざるため誤読を招く（例: 00:00–23:00）。前日の実時刻を出す
+      const rangeText = w.entirelyPreviousDay
+        ? `前日${w.rawPreviousDayStart}–${w.rawPreviousDayEnd}`
+        : `${w.displayStart}–${w.displayEnd}`;
+      lines.push(`    停止開始目安 ${rangeText}${w.annotation ? `（${w.annotation}）` : ''}`);
     }
   }
   if (Object.keys(summary.haltByDate).length === 0) lines.push('（対象週に時刻判明済みの★★★候補なし）');

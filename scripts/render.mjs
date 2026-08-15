@@ -22,7 +22,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { buildReportData } = require('./render/build-report-data.js');
 const { renderReportHtml } = require('./render/html-renderer.js');
-const { ledgerToWeekInput } = require('./render/ledger-to-week-input.js');
+const { ledgerToWeekInput, countryJaOf } = require('./render/ledger-to-week-input.js');
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -35,6 +35,13 @@ function pad2(n) {
 // task #41-3で発覚: `(a.datetime_jst || '').localeCompare(...)`だと空文字列が実時刻より前方に
 // ソートされてしまい、時刻未確定のEU GDPが週内で最も早い発表であるかのように1位表示される実バグが
 // あった。「対象週内の発生順」という仕様の趣旨上、発生順が不明なイベントを先頭に置くのは誤り）
+//
+// 2026-08-15追記（task #47、しょうさん監査指摘）: 表示名のみだと同一kindの別国イベント
+// （例: カナダCPIと英国CPI）が「消費者物価指数（CPI）、消費者物価指数（CPI）」のように区別不能な
+// まま並んでしまう（8/17週の実ネットワーク検証で発覚）。カード側の国名ピルと同じ語彙
+// （ledger-to-week-input.jsのcountryJaOf・COUNTRY_JA_BY_ISO）を表示名の前に付けて解消する。
+// 特定の国・機関名だけ前置を省く例外は設けず、全件一律に前置する（一貫性優先。個別の慣用表記
+// が必要であれば運用でnarrative上書きを使う）
 export function autoHeroSummary(ledger, reportPolicy) {
   const star3 = ledger.events
     .filter((e) => e.importance === 3 && e.datetime_jst)
@@ -45,20 +52,21 @@ export function autoHeroSummary(ledger, reportPolicy) {
     const key = `${e.country}|${e.kind}`;
     if (seenCountryKind.has(key)) continue;
     seenCountryKind.add(key);
-    names.push(e.name_ja);
+    names.push(`${countryJaOf(e.country)}${e.name_ja}`);
     if (names.length === 4) break;
   }
   if (names.length === 0) return reportPolicy.hero_summary_no_star3_text;
   return `${names.join('、')}を確認する週`;
 }
 
-// ★★★を日付順に最大3件、「{表示名} {M/D}」形式（しょうさん確定仕様2026-08-15）
+// ★★★を日付順に最大3件、「{国名}{表示名} {M/D}」形式（しょうさん確定仕様2026-08-15、
+// 国名前置はtask #47で追加。autoHeroSummaryと同じ語彙・同じ「一律前置」方針）
 export function autoHeroPills(ledger) {
   return ledger.events
     .filter((e) => e.importance === 3 && e.datetime_jst)
     .sort((a, b) => a.datetime_jst.localeCompare(b.datetime_jst))
     .slice(0, 3)
-    .map((e) => `${e.name_ja} ${Number(e.date_jst.slice(5, 7))}/${Number(e.date_jst.slice(8, 10))}`);
+    .map((e) => `${countryJaOf(e.country)}${e.name_ja} ${Number(e.date_jst.slice(5, 7))}/${Number(e.date_jst.slice(8, 10))}`);
 }
 
 function autoCreatedDateJa(now) {

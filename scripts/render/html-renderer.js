@@ -35,6 +35,19 @@ function haltDayCard(day, reportPolicy) {
       .join('　');
   }
   function annotationHtmlOf(w, group) {
+    // 停止窓が丸ごと前日に収まるケース（task #47実バグ修正）: 範囲自体はrangeHtmlOfで
+    // 「前日 ◯曜HH:MM–HH:MM」と明示済みのため、ここでは月曜（前日=日曜）の場合のみ
+    // 「週明けの取引開始時点から」という実務上の注記を追加する（重複表記を避ける）
+    if (w.entirelyPreviousDay) {
+      if (w.isMondayWeekendCross) {
+        return `<span style="font-size:11.5px;color:#5b6f66;">（${esc(reportPolicy.halt_monday_entirely_prevday_note)}）</span>`;
+      }
+      if (group?.bundleLastEventLabel) {
+        const note = reportPolicy.halt_window_bundle_note.replace('{LAST_EVENT}', group.bundleLastEventLabel);
+        return `<span style="font-size:11.5px;color:#5b6f66;">（${esc(note)}）</span>`;
+      }
+      return '';
+    }
     if (w.crossesPreviousDay) {
       const note = w.isMondayWeekendCross
         ? reportPolicy.halt_monday_note.replace('{TIME}', w.rawPreviousDayStart)
@@ -48,6 +61,12 @@ function haltDayCard(day, reportPolicy) {
     return '';
   }
   function rangeHtmlOf(w) {
+    // 停止窓が丸ごと前日に収まるケース（task #47実バグ修正、8/17週フルパイプライン実ネットワーク
+    // 検証で発見）: 当日にクランプしたdisplayStart–displayEndをそのまま使うと「00:00–23:00」等の
+    // 不自然な表示（実質24時間停止に見える）になる。前日の実時刻をそのまま明示する
+    if (w.entirelyPreviousDay) {
+      return `<span style="color:#b45309;font-weight:700;">停止開始目安 前日 ${esc(w.previousDayLabel)}曜<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">${w.rawPreviousDayStart}–${w.rawPreviousDayEnd}</span></span>`;
+    }
     return `<span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">${w.displayStart}–${w.displayEnd}</span></span>`;
   }
 
@@ -63,6 +82,18 @@ function haltDayCard(day, reportPolicy) {
     return `${pillHtml}　${labelHtml}　${rangeHtml}${annotationHtml}`;
   });
   const bodyHtml = windowLines.length > 0 ? windowLines.join('<br>') : esc(reportPolicy.halt_no_star3_note);
+  // 翌日の発表枠のうち停止窓が丸ごとこの日に収まるもの（task #47実バグ修正）の帯をこの日の
+  // バーに描画した場合、なぜこの日にも帯があるのかを読者が理解できるよう注記を追加する
+  const borrowedNotesHtml = (day.halt.borrowedNotes || [])
+    .map((n) => {
+      const note = reportPolicy.halt_borrowed_bar_note
+        .replace('{TIME}', n.time)
+        .replace('{LABEL}', n.label)
+        .replace('{START}', n.start)
+        .replace('{END}', n.end);
+      return `<div style="font-size:11px;color:#5b6f66;margin-top:4px;">（${esc(note)}）</div>`;
+    })
+    .join('');
 
   return `    <div class="ea-halt-day" data-ea-date="${day.date}" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px 11px;margin-bottom:10px;">
       <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;">
@@ -73,7 +104,7 @@ function haltDayCard(day, reportPolicy) {
         ${bars}${triangles}
       </div>
       <div style="display:flex;justify-content:space-between;font-size:9.5px;color:#8aa097;font-family:'Roboto Mono',Consolas,Menlo,monospace;margin-bottom:8px;"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
-      <div style="font-size:12.5px;line-height:1.8;color:#2b3d35;">${bodyHtml}</div>
+      <div style="font-size:12.5px;line-height:1.8;color:#2b3d35;">${bodyHtml}</div>${borrowedNotesHtml}
     </div>
 `;
 }

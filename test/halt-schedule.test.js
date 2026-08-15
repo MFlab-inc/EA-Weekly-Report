@@ -107,6 +107,66 @@ test('unionIntervals: 入力順序に依存しない', () => {
   assert.equal(merged[0].end, 1050);
 });
 
+// task #47実バグ修正（2026-08-15、しょうさん指摘: 8/17週フルパイプライン実ネットワーク検証で
+// FOMC議事録8/20(木)03:00発表分の停止窓が丸ごと前日8/19(水)に収まり、修正前は
+// 「停止開始目安 00:00–23:00（前日 水曜15:00〜を含む）」という23時間停止の誤表示になっていた）。
+// entirelyPreviousDayフラグとprevious-day基準の時刻・分値が正しく計算されることを検証する
+test('entirelyPreviousDay: 03:00発表（FOMC議事録の実例、木曜）— 窓が丸ごと前日に収まる', () => {
+  const w = computeHaltWindow({ date: '2026-08-20', firstTime: '03:00' });
+  assert.equal(w.entirelyPreviousDay, true);
+  assert.equal(w.crossesPreviousDay, true);
+  assert.equal(w.previousDayLabel, '水');
+  assert.equal(w.isMondayWeekendCross, false);
+  assert.equal(w.rawPreviousDayStart, '15:00');
+  assert.equal(w.rawPreviousDayEnd, '23:00');
+  assert.equal(w.previousDayBarStartMin, 900); // 15:00
+  assert.equal(w.previousDayBarEndMin, 1380); // 23:00
+  assert.match(w.annotation, /前日 水曜15:00〜23:00/);
+  assert.doesNotMatch(w.annotation, /週明け/);
+  // displayStart/displayEndは当日クランプ値のままだが（後方互換のため残す）、
+  // 呼び出し側（build-report-data.js・html-renderer.js）はentirelyPreviousDayを見て
+  // これらの値を使わず前日の実時刻を使うことでバグを回避する（renderer.test.js参照）
+  assert.equal(w.displayStart, '00:00');
+  assert.equal(w.displayEnd, '23:00');
+});
+
+test('entirelyPreviousDay: 02:00発表（水曜、火曜へ跨る）', () => {
+  const w = computeHaltWindow({ date: '2026-08-19', firstTime: '02:00' });
+  assert.equal(w.entirelyPreviousDay, true);
+  assert.equal(w.previousDayLabel, '火');
+  assert.equal(w.rawPreviousDayStart, '14:00');
+  assert.equal(w.rawPreviousDayEnd, '22:00');
+  assert.equal(w.previousDayBarStartMin, 840);
+  assert.equal(w.previousDayBarEndMin, 1320);
+});
+
+test('entirelyPreviousDay: 月曜00:30発表（日曜へ跨る、週明け特例）', () => {
+  const w = computeHaltWindow({ date: '2026-08-17', firstTime: '00:30' });
+  assert.equal(w.entirelyPreviousDay, true);
+  assert.equal(w.previousDayLabel, '日');
+  assert.equal(w.isMondayWeekendCross, true);
+  assert.equal(w.rawPreviousDayStart, '12:30');
+  assert.equal(w.rawPreviousDayEnd, '20:30');
+  assert.equal(w.previousDayBarStartMin, 750);
+  assert.equal(w.previousDayBarEndMin, 1230);
+  assert.match(w.annotation, /前日 日曜12:30〜20:30/);
+  assert.match(w.annotation, /週明けの取引開始時点からの停止が目安/);
+});
+
+test('entirelyPreviousDay: 境界値04:00は窓の終わりがちょうど当日0時（entirelyPreviousDay扱い）', () => {
+  const w = computeHaltWindow({ date: '2026-08-20', firstTime: '04:00' });
+  assert.equal(w.endMin, 0);
+  assert.equal(w.entirelyPreviousDay, true);
+});
+
+test('entirelyPreviousDay: 境界値04:01は窓が1分だけ当日にかかる（entirelyPreviousDayではない、既存の部分跨ぎ扱い）', () => {
+  const w = computeHaltWindow({ date: '2026-08-20', firstTime: '04:01' });
+  assert.equal(w.endMin, 1);
+  assert.equal(w.entirelyPreviousDay, false);
+  assert.equal(w.crossesPreviousDay, true);
+  assert.equal(w.displayEnd, '00:01');
+});
+
 test('formatMinutes: 負数・24時超のラップ', () => {
   assert.equal(formatMinutes(-190), '20:50');
   assert.equal(formatMinutes(-1), '23:59');
