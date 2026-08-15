@@ -832,7 +832,7 @@
       ],
       "type": "annual_schedule_config",
       "recurring_check_refs": [],
-      "residual_monitor_weeks": 4,
+      "residual_monitor_weeks": 9,
       "schedule_status": "confirmed",
       "schedule": [
         {
@@ -1054,7 +1054,7 @@
           "note": "日銀の政策決定発表は他中銀と異なり公式な固定時刻の事前公表が無く、実際の発表は会合2日目の審議終了タイミング次第で前後する（実務上おおむね正午前後）。暫定値としてJST12:00を採用し、月曜の事後FF突合（SPEC §3.3・二層目のドリフト検知）で実際の発表時刻との乖離を継続監視する"
         }
       },
-      "notes": "毎年7月31日に翌年8回の会合日程を公表。主な意見=会合後6営業日目08:50、議事要旨=次回会合後3営業日目08:50。2026-08-14: mpm_index.htm（HTML）の方がPDFよりも構造的に安定して抽出できると判明したため、抽出対象をPDFからHTML(mpm_index)へ変更（scripts/checkers/extractors/boj.js）。実測fixtureからground truth 2件（2026-08-05議事要旨・2026-08-10主な意見）と完全一致を確認。2027年分も同ページに一部（会合日未確定分含む）掲載されていたため合わせて取り込んだ | 2026-08-15追加（task #19・coverage-gap-2026-08-15.md）: 列[1]「Date of MPM」（会合2日目）からpolicy_rateを追加抽出（scripts/checkers/extractors/boj.js）。2026・2027年とも年8回で既存のopinions_summary/minutes_summaryと会合回数が一致することを確認済み。発表時刻は固定時刻の公式公表が無いため暫定でJST12:00とし、月曜FF事後突合で継続検証する（announce_time_by_kind.policy_rate.note参照）"
+      "notes": "毎年7月31日に翌年8回の会合日程を公表。主な意見=会合後6営業日目08:50、議事要旨=次回会合後3営業日目08:50。2026-08-14: mpm_index.htm（HTML）の方がPDFよりも構造的に安定して抽出できると判明したため、抽出対象をPDFからHTML(mpm_index)へ変更（scripts/checkers/extractors/boj.js）。実測fixtureからground truth 2件（2026-08-05議事要旨・2026-08-10主な意見）と完全一致を確認。2027年分も同ページに一部（会合日未確定分含む）掲載されていたため合わせて取り込んだ | 2026-08-15追加（task #19・coverage-gap-2026-08-15.md）: 列[1]「Date of MPM」（会合2日目）からpolicy_rateを追加抽出（scripts/checkers/extractors/boj.js）。2026・2027年とも年8回で既存のopinions_summary/minutes_summaryと会合回数が一致することを確認済み。発表時刻は固定時刻の公式公表が無いため暫定でJST12:00とし、月曜FF事後突合で継続検証する（announce_time_by_kind.policy_rate.note参照） | 2026-08-15追記（task #49、しょうさん指示の残量監視WARN切り分け）: 8/17週で残量監視WARNが発生したが、scheduleは2027-12-27まで47件確定済みで日程データ自体は不足していない。BOJの会合間隔は最大54日（約7.7週）あり、既定のresidual_monitor_weeks=4では会合直後の週に必ず（誤）WARNが出る構造だった（新規データ欠落ではなく、しきい値がBOJの実際の会合頻度に対して短すぎたことが原因）。9週へ引き上げ、既存スケジュールの最大間隔でも誤検知しないようにした"
     },
     {
       "id": "us_treasury",
@@ -2034,7 +2034,7 @@
         ]
       },
       "announce_time_by_kind": {},
-      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏GDP速報値（Eurostat）。2段階公表（四半期末+30日でGDP単独の予備速報、+45日でGDP+雇用の統合速報）というEurostat公式の方法論ページ記載のルールをWebSearch経由で確認し、Eurostat自身のURL日付スタンプから2026年上半期分（Q1・Q2）の実発表日を確認した。Q3・Q4分はルールからの外挿のみで実URLでの照合ができなかったため収録していない（推測で埋めていない。task #41-3調査agent報告）。公表時刻はHICPと同様に確定できなかったためannounce_time_by_kind.gdpは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: eurostat_hicpと同一のrelease-calendarページを使用しており、同じくJavaScript動的読み込み（SPA構造）のため日程データへの到達不可（未検証のまま。詳細はeurostat_hicp notes参照）。2026-08-14発表分（8/10週で新規検出、docs/validate-scripts-guide.md「既刊レポートの位置づけ」参照）はこのライブ検証では裏付けできていない点に注意 | task #46（2026-08-15、しょうさん指示）: ECB statscal配下にGDP相当の静的ページが存在しないと確認済み（(b)Playwright導入は既存の構造的ブロッカーとの一貫性を欠くため不採用）。第三の経路として、Eurostat自身の静的経路A（QNA_release_calendar.pdf、年間骨格）・経路B（GDPニュースリリース本文のNext release記載、直近1件の確定日程）をライブ検証。経路AのTable 1に記載された2026年4回分の日付は既存の実URL確認済み4件（2026-04-30/05-13/07-30/08-14）と完全一致し、経路Aの信頼性が裏付けられた。これにより2026Q3分（10/30・11/13）・2026Q4分（2027-01-29・02-15）を新規追加。うち2026Q3分は経路B（2-14082026-ap本文の『Next release: 13 November 2026』、2-30072026-ap本文の『Next release: 30 October 2026』）でも独立に確認できたため高確度、2026Q4分は経路A（PDF）のみが根拠のためPDF自身のPROVISIONAL注記どおり中確度として区別する。時刻情報は経路A・Bのいずれにも記載がなかったため、推測を入れずannounce_time_by_kind.gdpは空のまま（time:nullで扱う。SPEC §5により★★★でも停止目安の対象外となるが、しょうさん確認済みの運用方針）",
+      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏GDP速報値（Eurostat）。2段階公表（四半期末+30日でGDP単独の予備速報、+45日でGDP+雇用の統合速報）というEurostat公式の方法論ページ記載のルールをWebSearch経由で確認し、Eurostat自身のURL日付スタンプから2026年上半期分（Q1・Q2）の実発表日を確認した。Q3・Q4分はルールからの外挿のみで実URLでの照合ができなかったため収録していない（推測で埋めていない。task #41-3調査agent報告）。公表時刻はHICPと同様に確定できなかったためannounce_time_by_kind.gdpは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: eurostat_hicpと同一のrelease-calendarページを使用しており、同じくJavaScript動的読み込み（SPA構造）のため日程データへの到達不可（未検証のまま。詳細はeurostat_hicp notes参照）。2026-08-14発表分（8/10週で新規検出、docs/validate-scripts-guide.md「既刊レポートの位置づけ」参照）はこのライブ検証では裏付けできていない点に注意 | task #46（2026-08-15、しょうさん指示）: ECB statscal配下にGDP相当の静的ページが存在しないと確認済み（(b)Playwright導入は既存の構造的ブロッカーとの一貫性を欠くため不採用）。第三の経路として、Eurostat自身の静的経路A（QNA_release_calendar.pdf、年間骨格）・経路B（GDPニュースリリース本文のNext release記載、直近1件の確定日程）をライブ検証。経路AのTable 1に記載された2026年4回分の日付は既存の実URL確認済み4件（2026-04-30/05-13/07-30/08-14）と完全一致し、経路Aの信頼性が裏付けられた。これにより2026Q3分（10/30・11/13）・2026Q4分（2027-01-29・02-15）を新規追加。うち2026Q3分は経路B（2-14082026-ap本文の『Next release: 13 November 2026』、2-30072026-ap本文の『Next release: 30 October 2026』）でも独立に確認できたため高確度、2026Q4分は経路A（PDF）のみが根拠のためPDF自身のPROVISIONAL注記どおり中確度として区別する。時刻情報は経路A・Bのいずれにも記載がなかったため、推測を入れずannounce_time_by_kind.gdpは空のまま（time:nullで扱う。SPEC §5により★★★でも停止目安の対象外となるが、しょうさん確認済みの運用方針） | 2026-08-15追記（task #49、しょうさん指示の残量監視WARN切り分け）: 8/17週で残量監視WARNが発生したが、scheduleは2027-02-15まで8件確定済みで日程データ自体は不足していない。EU GDPは予備速報・統合速報の2件が四半期末ごとに集中して発表される構造のため、各ペアの間隔（統合速報→次の予備速報）は最大78日（約11.1週）に達する。既定のresidual_monitor_weeks=4ではペア発表直後の週に必ず（誤）WARNが出る構造だった（jp_boj・boe_policy_rateと同種の「しきい値が実際の発表頻度に対して短すぎる」問題）。13週へ引き上げ、既存スケジュールの最大間隔でも誤検知しないようにした",
       "schedule": [
         { "date": "2026-04-30", "kind": "gdp", "note": "2026年1-3月期・予備速報（GDP単独、四半期末+30日）" },
         { "date": "2026-05-13", "kind": "gdp", "note": "2026年1-3月期・統合速報（GDP+雇用、四半期末+45日）" },
@@ -2045,7 +2045,7 @@
         { "date": "2027-01-29", "kind": "gdp", "note": "2026年10-12月期・予備速報（GDP単独）。task #46: 経路A(PDF)のみが根拠（PDF本文のPROVISIONAL注記どおり中確度、経路Bでの裏取り未実施）" },
         { "date": "2027-02-15", "kind": "gdp", "note": "2026年10-12月期・統合速報（GDP+雇用）。task #46: 経路A(PDF)のみが根拠（中確度、経路Bでの裏取り未実施）" }
       ],
-      "residual_monitor_weeks": 4
+      "residual_monitor_weeks": 13
     },
     {
       "id": "eu_flash_pmi",
@@ -2138,7 +2138,7 @@
           "tz": "Europe/London"
         }
       },
-      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt許可・HTTP 200・78KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。ページタイトルが『Monetary Policy Committee dates for 2026 and 2027』で専用の先行公表ページと確認。構造確認・抽出ルール実装は未着手 | 2026-08-15: annual_schedule_config化完了（scripts/checkers/extractors/boe-policy-rate.js実測）。schedule[]は2026・2027年分（各8回）を収録。既実施会合（2026-07-30）が抽出結果に含まれることを確認済み（検証基準a）。発表時刻12:00(UK時間)はBOE公式運用の規定時刻。press_conferenceは本ソースでは未収録（BOEは四半期のMonetary Policy Report発行月のみ会見を実施し全回ではないため、誤って毎回press_conferenceを立てるとFRB/ECBと異なり過大計上になる。個別実測が必要なため今回は対象外・kinds=policy_rateのみ）",
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt許可・HTTP 200・78KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。ページタイトルが『Monetary Policy Committee dates for 2026 and 2027』で専用の先行公表ページと確認。構造確認・抽出ルール実装は未着手 | 2026-08-15: annual_schedule_config化完了（scripts/checkers/extractors/boe-policy-rate.js実測）。schedule[]は2026・2027年分（各8回）を収録。既実施会合（2026-07-30）が抽出結果に含まれることを確認済み（検証基準a）。発表時刻12:00(UK時間)はBOE公式運用の規定時刻。press_conferenceは本ソースでは未収録（BOEは四半期のMonetary Policy Report発行月のみ会見を実施し全回ではないため、誤って毎回press_conferenceを立てるとFRB/ECBと異なり過大計上になる。個別実測が必要なため今回は対象外・kinds=policy_rateのみ） | 2026-08-15追記（task #49、しょうさん指示の残量監視WARN切り分け）: 8/17週で残量監視WARNが発生したが、scheduleは2027年分まで確定済みで日程データ自体は不足していない。BOE MPCの会合間隔は最大49日（7週）あり、既定のresidual_monitor_weeks=4では会合直後の週に必ず（誤）WARNが出る構造だった（jp_boj同様、新規データ欠落ではなくしきい値が実際の会合頻度に対して短すぎたことが原因）。8週へ引き上げ、既存スケジュールの最大間隔でも誤検知しないようにした",
       "schedule": [
         {
           "date": "2026-02-05",
@@ -2205,7 +2205,7 @@
           "kind": "policy_rate"
         }
       ],
-      "residual_monitor_weeks": 4
+      "residual_monitor_weeks": 8
     },
     {
       "id": "boc_policy_rate",
