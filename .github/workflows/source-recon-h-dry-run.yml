@@ -10,6 +10,7 @@ on:
     paths:
       - '.github/workflows/source-recon-h-dry-run.yml'
       - 'scripts/phase1/source-recon-h.mjs'
+      - 'scripts/phase1/source-recon-h2.mjs'
 permissions:
   contents: read
 jobs:
@@ -24,3 +25,5 @@ jobs:
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: node scripts/phase1/source-recon-h.mjs
+      - name: source-recon-h2
+        run: node scripts/phase1/source-recon-h2.mjs
