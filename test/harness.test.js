@@ -233,6 +233,31 @@ test('checkWeeklyScrapeSource: us_frb_speeches（RSS pubDateをutcInstantとし�
   assert.equal(cook.speakerLastName, 'Cook');
 });
 
+// gb_ons（ONS releases API）は release-type=type-upcoming 固定のため、過去週（既刊2週含む）の
+// 照合はAPIの構造上不可能（config/official-sources.jsonのgb_ons notes・docs/annual-schedule-
+// maintenance.md参照）。しょうさん指示2026-08-15: 「upcoming専用だから照合できない」を恒久的な
+// 検証免除にはせず、現行の実キャプチャ済みfixture（2026-08-14/15取得）に含まれる直近の実在リリース
+// で抽出ロジック自体を回帰テストする。当該リリース「GDP monthly estimate, UK: July 2026」の
+// タイトル形式（'GDP monthly estimate, UK: {Month} {Year}'）はWebSearchでons.gov.uk実在の
+// ブリテンシリーズ（例: gdpmonthlyestimateukapril2026等の実URL）と一致することを確認済み
+// （2026-08-15）。なお既刊ground truthの実イベント種別は「GDP first quarterly estimate」（四半期）
+// でありこのfixtureの「monthly estimate」とは別シリーズ（意図的にevent-names.jsonのmatch対象外。
+// 月次GDPを新たに追跡対象へ加える設計判断は本タスクの範囲外）。抽出関数（extractOnsReleases）が
+// 実データのJSON構造を正しくパースできることの確認が目的（辞書照合の訂正確認は
+// test/match-event-name.test.js が別途担う）
+test('ONS(gb_ons): 実キャプチャ済みfixture（release-type=type-upcoming）から実在の未来リリースを正しく抽出する（過去週照合不可の代替としての回帰テスト）', () => {
+  const { readFileSync } = require('node:fs');
+  const { join } = require('node:path');
+  const { extractOnsReleases } = require('../scripts/checkers/extractors/ons.js');
+  const json = readFileSync(join(__dirname, 'fixtures', 'official-sources', 'gb_ons', 'releases_api_upcoming_gdp.json'), 'utf8');
+  const r = extractOnsReleases(json);
+  assert.equal(r.ok, true);
+  const monthly = r.rows.find((row) => row.title === 'GDP monthly estimate, UK: July 2026');
+  assert.ok(monthly, 'GDP monthly estimate, UK: July 2026が抽出されるはず');
+  assert.equal(monthly.utcInstant, '2026-09-11T06:00:00.000Z');
+  assert.equal(monthly.cancelled, false);
+});
+
 function snbSource() {
   return {
     id: 'snb_policy_rate',
