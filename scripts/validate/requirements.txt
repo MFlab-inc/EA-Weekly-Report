@@ -1,0 +1,4 @@
+# scripts/validate/ のPython検証スクリプトが必要とする依存（task #13）。
+# validate_ledger.py / publish_gate.py は標準ライブラリのみで動作する。
+beautifulsoup4>=4.12
+playwright>=1.45

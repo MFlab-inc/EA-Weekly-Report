@@ -4,3 +4,6 @@ __pycache__/
 phase0-out/
 phase1-out/
 data/cache/
+mobile_layout_validation/
+mobile_header_validation/
+gate-result*.json
