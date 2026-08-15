@@ -19,17 +19,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.12' }
-      # TODO(Claude Code): 依存導入（Playwright含む）、以下のパイプラインを実装
+      - run: npm ci
+      - name: Install Playwright Chromium (モバイル多幅レイアウト検証に使用)
+        run: npx playwright install --with-deps chromium
+      # 2026-08-15: 検証パイプラインをPython+Playwrightから移設した際にsetup-python/pipを撤去し、
+      # Node.js一本（.github/workflows/ci.ymlと同一ランタイム）に統一した
+      # （docs/validate-scripts-guide.md参照）。
+      # TODO(Claude Code): scripts/checkers/harness.mjsのrunChecks()結果をscripts/lib/build-ledger.jsへ
+      # 渡すcollectステップのCLIエントリ、およびrenderステップ（ledger→weekInput変換込み）が未実装。
+      # 現時点で実装済みなのは check（scripts/checkers/harness.mjs）と
+      # gate（scripts/check/gate.mjs、ledger×HTML突合・ポリシーlint・モバイル多幅レイアウトを集約）。
       - name: pipeline
         run: |
           node scripts/collect.js
           node scripts/build-ledger.js
-          node scripts/check.js
           node scripts/render.js
-          python scripts/validate/run_all.py
-          node scripts/gate.js
+          node scripts/check/gate.mjs --ledger "data/ledger/$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart)").json" --html "output/ea-weekly-$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart.replace(/-/g,''))").html" --result gate-result.json
       - name: commit outputs
         if: success()
         run: |
