@@ -10,7 +10,7 @@ RBA総裁の下院経済委員会証言、task #18）や、臨時会合・突発
 - `scripts/lib/manual-events.js` が形式検証（`validateManualEvents`）と候補変換
   （`manualEntryToCandidate`／`candidatesForTargetWeek`）を担う
 - 観測パイプライン（`scripts/phase1/observation-run.mjs`）が対象週に該当するentriesを、公式ソース
-  由来の候補と同列の候補イベントとして取り込む（`sourceId: "manual_events"`）
+  由来の候補と同列の候補イベントとして取り込む（`sourceId: "manual"`）
 - 対象週の範囲外になったentriesは自動的に候補化されなくなる（`date`列で判定）。削除は任意（履歴として
   残してもレポートには影響しない）
 
