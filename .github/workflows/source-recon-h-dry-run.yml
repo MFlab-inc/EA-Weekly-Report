@@ -4,6 +4,12 @@
 name: source-recon-h-dry-run
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - claude/ea-weekly-report-automation-lw6cio
+    paths:
+      - '.github/workflows/source-recon-h-dry-run.yml'
+      - 'scripts/phase1/source-recon-h.mjs'
 permissions:
   contents: read
 jobs:
