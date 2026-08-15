@@ -190,13 +190,21 @@ function extractAnchorsNear(rawHtml, linkTextPattern) {
 
   // ===== task #53（しょうさん指示: EU/GB/DEフラッシュPMIの規則精度を「英国祝日調整済み
   // 営業日カウント」仮説で検証するため、GOV.UK公式の祝日データを実測する。静的JSON・
-  // 政府公式ソースで利用規約上の懸念なし） =====
-  await fetchLogText(
-    'gb_govuk.bank_holidays',
-    'https://www.gov.uk/bank-holidays.json',
-    robotsChecker,
-    ['england-and-wales', '2025', '2026']
-  );
+  // 政府公式ソースで利用規約上の懸念なし）。config/gb-bank-holidays.json化のため
+  // england-and-wales区分のみをJSONとして構造的に抽出しログに出す（全期間分） =====
+  const govukHtml = await fetchAndLog('gb_govuk.bank_holidays', 'https://www.gov.uk/bank-holidays.json', robotsChecker);
+  if (govukHtml) {
+    try {
+      const parsed = JSON.parse(govukHtml);
+      const ew = parsed['england-and-wales'];
+      log(`  england-and-wales division: ${ew?.events?.length || 0}件`);
+      log(`  ENGLAND_AND_WALES_EVENTS_JSON_START`);
+      log(JSON.stringify(ew?.events || []));
+      log(`  ENGLAND_AND_WALES_EVENTS_JSON_END`);
+    } catch (e) {
+      log(`  [PARSE-ERROR] ${e.message}`);
+    }
+  }
 
   section(`phase1 source-recon-l end ${new Date().toISOString()}`);
 })();
