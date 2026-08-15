@@ -1035,6 +1035,120 @@
       "notes": "優先度B1b。2026-08-14実測: auction_calendar_indexは月別インデックスページと判明（2026年1〜10月分は月別ページへのリンク済み、11・12月はまだリンクなし＝BOJ/RBAのような年次一括公表ではなく月次ローリング公表と判明。typeをannual_schedule_configからweekly_scrapeへ訂正）。月別ページ（2608e.htm=2026年8月分）の`<table class=\"table2a\">`からground truth 2件（10年債8/4・30年債8/6）を完全一致で抽出確認済み（scripts/checkers/extractors/mof.js）。命名（SPEC §4.2の国別分岐テンプレート）はレンダラー実装（task #12）側で適用する | 2026-08-15（task #19付随の配線ギャップ修正）: harness.mjsのWEEKLY_SCRAPE_EXTRACTORSへ登録完了。月別ローリング公表のためaccess.month_url_patternから対象週の月ページURLを動的生成するbuildMofMonthTargets()を追加（primaryLabel未指定として複数ページのマージに対応。月またぎ週は2ページ分を合成）。観測モード実測（job 94843102819）で確認された「抽出ルール未実装」失敗はこれで解消"
     },
     {
+      "id": "jp_stat_cpi",
+      "name_ja": "総務省統計局（全国消費者物価指数）",
+      "status": "draft_schedule",
+      "country": "JP",
+      "kinds": [
+        "cpi"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "cpi_qa_schedule_rule",
+            "url": "https://www.stat.go.jp/data/cpi/4-1.html"
+          },
+          {
+            "label": "cpi_index",
+            "url": "https://www.stat.go.jp/data/cpi/index.html"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "cpi": {
+          "local_time": "08:30",
+          "tz": "Asia/Tokyo"
+        }
+      },
+      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 全国消費者物価指数（総務省統計局）。公表ルールは公式ページ本文（stat.go.jp/data/cpi/4-1.html、WebSearch経由で確認）『全国の前月分指数を、原則として毎月19日を含む週の金曜日の午前8時30分に公表』。schedule[]はこの固定ルールから2026年通年13回分を算出した（Claude Code側で算出式の自己整合性を検算済み）。うち2026年6月分の実発表日（2026-07-24）はNHK・money-pro.net等の複数独立ソースで裏付けが取れており、算出式と一致することを確認済み（他11回は算出のみ、個別の実績照合はしていない）。2025年基準への改定が2027年2月分から予定されている（総務省2026年発表、soumu.go.jp press release 01000329）が、2026年中の名称・ルールには影響しない。直接フェッチ不可のためWebSearch経由確認（source_verified:false相当）。次回本番runでのライブ検証が必要",
+      "schedule": [
+        { "date": "2026-01-23", "kind": "cpi", "note": "2025年12月分。算出のみ（19日を含む週の金曜08:30ルール）" },
+        { "date": "2026-02-20", "kind": "cpi", "note": "2026年1月分。算出のみ" },
+        { "date": "2026-03-20", "kind": "cpi", "note": "2026年2月分。算出のみ" },
+        { "date": "2026-04-24", "kind": "cpi", "note": "2026年3月分。算出のみ" },
+        { "date": "2026-05-22", "kind": "cpi", "note": "2026年4月分。算出のみ" },
+        { "date": "2026-06-19", "kind": "cpi", "note": "2026年5月分。算出のみ" },
+        { "date": "2026-07-24", "kind": "cpi", "note": "2026年6月分。NHK・money-pro.net等の複数独立ソースで実発表日を確認済み（task #41-2調査）" },
+        { "date": "2026-08-21", "kind": "cpi", "note": "2026年7月分。算出のみ。8/17週の欠損事例（しょうさん指摘の『日本の全国CPI』）に該当" },
+        { "date": "2026-09-18", "kind": "cpi", "note": "2026年8月分。算出のみ" },
+        { "date": "2026-10-23", "kind": "cpi", "note": "2026年9月分。算出のみ" },
+        { "date": "2026-11-20", "kind": "cpi", "note": "2026年10月分。算出のみ" },
+        { "date": "2026-12-18", "kind": "cpi", "note": "2026年11月分。算出のみ" },
+        { "date": "2027-01-22", "kind": "cpi", "note": "2026年12月分。算出のみ" }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
+      "id": "jp_esri_gdp",
+      "name_ja": "内閣府/ESRI（四半期別GDP速報）",
+      "status": "draft_schedule",
+      "country": "JP",
+      "kinds": [
+        "gdp"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "sokuhou_top",
+            "url": "https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html"
+          },
+          {
+            "label": "kouhyou_yotei",
+            "url": "https://www.esri.cao.go.jp/jp/sna/kouhyou/kouhyou_top.html"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "gdp": {
+          "local_time": "08:50",
+          "tz": "Asia/Tokyo"
+        }
+      },
+      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 四半期別GDP速報（内閣府/ESRI）。1次速報・2次速報の両方を収録（既刊design-mockのGB【速報値】と同様、改定値も別イベントとして扱う）。日程はDaiwa・MURC・三菱UFJ・第一生命等の複数の民間調査部レポートで独立に裏付けが取れている（WebSearch経由）。2026年04-06月期1次速報（2026-08-17発表）は、まさに8/17週の欠損事例（しょうさん指摘の『日本GDP速報』）そのもの。時刻08:50は2026年01-03月期2次速報（2026-06-08）についてe-stat.go.jpのリリースカレンダー詳細ページURL（e-stat.go.jp/release-calendar/detail/00100409/202606080850）のタイムスタンプで直接確認済み。2026年07-09月期・10-12月期分は2026-08-15時点でWebSearchでは日程が見つからなかったため未収録（推測で埋めていない。次回調査・本番runでの確認が必要）。直接フェッチ不可のためWebSearch経由確認（source_verified:false相当）",
+      "schedule": [
+        { "date": "2026-02-16", "kind": "gdp", "note": "2025年10-12月期1次速報" },
+        { "date": "2026-03-09", "kind": "gdp", "note": "2025年10-12月期2次速報" },
+        { "date": "2026-05-19", "kind": "gdp", "note": "2026年01-03月期1次速報" },
+        { "date": "2026-06-08", "kind": "gdp", "note": "2026年01-03月期2次速報。時刻08:50はe-stat.go.jpリリースカレンダー詳細ページのタイムスタンプで直接確認済み" },
+        { "date": "2026-08-17", "kind": "gdp", "note": "2026年04-06月期1次速報。8/17週の欠損事例（しょうさん指摘の『日本GDP速報』）に該当" },
+        { "date": "2026-09-08", "kind": "gdp", "note": "2026年04-06月期2次速報" }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
+      "id": "jp_customs_trade",
+      "name_ja": "財務省税関（貿易統計）",
+      "status": "draft_schedule",
+      "country": "JP",
+      "kinds": [
+        "trade_balance"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "release_calendar",
+            "url": "https://www.customs.go.jp/toukei/calendar/calend.htm"
+          }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 貿易統計（財務省税関）。WebSearchでは2026年分のうち2件（2026年4月分→5/21発表・2026年7月分→8/20発表）しか実日付を確認できず、6月分は検索結果が旬報/速報/確報の複数リリース種別を混同していて確定できなかった（task #41-2調査agent報告）。他10ヶ月分は未収録（推測で埋めていない）。時刻も未確定: 市場慣行の08:50説とe-stat.go.jpのタイムスタンプ実例（e-stat.go.jp/release-calendar/detail/00350300/202209290930等、貿易統計コード00350300）が示す09:30とで食い違いがあり（e-statのポータル反映遅延の可能性もある）、誤った時刻を入れるより未確定のままにする方を優先しannounce_time_by_kind.trade_balanceは空とした（time:nullで扱う）。2026-08-20発表分（2026年7月分）は、まさに8/17週の欠損事例（しょうさん指摘の『日本 7月貿易統計』）に該当。次回本番runでのライブ検証（calend.htmの直接確認）で日程・時刻とも精度を上げる必要がある",
+      "schedule": [
+        { "date": "2026-05-21", "kind": "trade_balance", "note": "2026年4月分" },
+        { "date": "2026-08-20", "kind": "trade_balance", "note": "2026年7月分。8/17週の欠損事例（しょうさん指摘の『日本 7月貿易統計』）に該当" }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
       "id": "us_frb_speeches",
       "name_ja": "FRB（理事講演カレンダー）",
       "status": "active",

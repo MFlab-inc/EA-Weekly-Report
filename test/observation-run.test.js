@@ -260,6 +260,44 @@ test('annualEntryToCandidate + resolveRuleGeneratedName: BOC議事要旨（CA mi
   assert.equal(resolveRuleGeneratedName({ kind: c.kind, country: c.country }, null), 'BOC議事要旨');
 });
 
+// task #41-2（しょうさん承認済み国×kindマトリクス）の回帰テスト: 総務省統計局CPI・内閣府GDP・
+// 財務省貿易統計を新規annual_schedule_config型ソースとして追加した。3件とも8/17週の欠損事例
+// （しょうさん指摘の『日本GDP速報』『日本の全国CPI』『日本 7月貿易統計』）に該当する日付
+test('annualEntryToCandidate: 全国消費者物価指数（JP cpi）が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'jp_stat_cpi');
+  const importanceRules = { importance_by_kind: { cpi: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'cpi' && e.date === '2026-08-21');
+  assert.ok(entry, '2026-08-21のCPI scheduleエントリが見つからない（2026年7月分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '全国消費者物価指数（CPI）');
+  assert.equal(c.time, '08:30'); // Asia/TokyoはDST無しのためJSTそのまま
+  assert.equal(c.date, '2026-08-21');
+});
+
+test('annualEntryToCandidate: GDP【速報値】（JP gdp）が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'jp_esri_gdp');
+  const importanceRules = { importance_by_kind: { gdp: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'gdp' && e.date === '2026-08-17');
+  assert.ok(entry, '2026-08-17のGDP scheduleエントリが見つからない（2026年04-06月期1次速報）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'GDP【速報値】');
+  assert.equal(c.time, '08:50');
+  assert.equal(c.date, '2026-08-17');
+});
+
+test('annualEntryToCandidate: 貿易収支（JP trade_balance）が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'jp_customs_trade');
+  const importanceRules = { importance_by_kind: { trade_balance: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'trade_balance' && e.date === '2026-08-20');
+  assert.ok(entry, '2026-08-20の貿易統計scheduleエントリが見つからない（2026年7月分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '貿易収支');
+  assert.equal(c.time, null); // announce_time_by_kind.trade_balance未設定（公表時刻がWebSearchで08:50/09:30と食い違い確定できなかったため推測値を入れていない）
+});
+
 test('renderText: outcome・候補一覧・停止目安を含むテキストを生成する（例外を投げない）', async () => {
   const { buildObservationSummary, renderText } = await import('../scripts/phase1/observation-run.mjs');
   const report = {

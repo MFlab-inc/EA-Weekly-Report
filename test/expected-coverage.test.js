@@ -108,10 +108,13 @@ test('validateExpectedCoverage: 実config — 国×kind必須マトリクス（�
     // us_frb_policy_rate/au_rba/ecb_policy_rate/boc_policy_rateへschedule追加）のため4件とも
     // ここから削除した。EU/CAはFOMC/RBAと異なり固定オフセット計算ではなく各中銀が単発告知する
     // 実日付をWebSearch経由で個別収録（source_verified:false同等。次回本番runでのライブ検証対象）
-    // --- task #41-2（日本3件。新規annual_schedule_config候補として調査済み。着手順2） ---
-    'JP:cpi', // 総務省統計局。固定ルール（19日を含む週の金曜08:30）
-    'JP:gdp', // 内閣府/ESRI。stat-schedule.htmlでFY2026全4四半期の日程確認済み
-    'JP:trade_balance', // 財務省税関。calend.htmで年次スケジュール確認済み
+    // --- task #41-2（日本3件。着手順2）は完了 ---
+    // JP:cpi（総務省統計局、19日を含む週の金曜08:30固定ルール、通年13回算出）・
+    // JP:gdp（内閣府/ESRI、1次/2次速報、WebSearch経由で6件確認。うち2026-08-17分1次速報が
+    // 8/17週の欠損事例そのもの）・JP:trade_balance（財務省税関、2026年分は2件のみ確認できたが
+    // うち2026-08-20分＝7月分が8/17週の欠損事例そのもの）は実装済み（2026-08-15、いずれも新規
+    // annual_schedule_config型ソースとして追加）のため3件ともここから削除した。いずれも
+    // WebSearch経由確認（source_verified:false同等）。次回本番runでのライブ検証が必要
     // --- task #41-3（Eurostat・フラッシュPMI。着手順3） ---
     'EU:cpi', // ユーロ圏HICP。Eurostat release-calendar ICSフィード（tier a、calendar_EN.ics）
     'EU:gdp', // Eurostat。ICSフィードで対応可能
