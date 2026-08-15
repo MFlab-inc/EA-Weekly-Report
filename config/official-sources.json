@@ -425,7 +425,8 @@
         "employment_situation",
         "trade_balance",
         "cpi",
-        "gdp"
+        "gdp",
+        "retail_sales"
       ],
       "type": "annual_schedule_config",
       "recurring_check_refs": [],
@@ -455,6 +456,11 @@
         "gdp": {
           "local_time": "08:30",
           "tz": "America/Toronto"
+        },
+        "retail_sales": {
+          "local_time": "08:30",
+          "tz": "America/Toronto",
+          "note": "2026-08-15追加（task #50/51）。個別のretail_sales発表時刻はライブ未検証だが、既に検証済みの他4kind（employment_situation/trade_balance/cpi/gdp）が全てStatCanの標準発表時刻08:30 America/Torontoで統一されており、これはStatCan公式の一律運用（Daily Releaseは全て08:30 ET）としてWebSearch・既存3件の一致で裏付けられているため、同一パターンとして採用する（推測ではなく既存の一律運用ルールの適用）"
         }
       },
       "residual_monitor_weeks": 4,
@@ -702,9 +708,24 @@
         {
           "date": "2027-03-31",
           "kind": "gdp"
-        }
+        },
+        { "date": "2026-01-23", "kind": "retail_sales" },
+        { "date": "2026-02-20", "kind": "retail_sales" },
+        { "date": "2026-03-20", "kind": "retail_sales" },
+        { "date": "2026-04-24", "kind": "retail_sales" },
+        { "date": "2026-05-22", "kind": "retail_sales" },
+        { "date": "2026-06-19", "kind": "retail_sales" },
+        { "date": "2026-07-23", "kind": "retail_sales" },
+        { "date": "2026-08-21", "kind": "retail_sales" },
+        { "date": "2026-09-24", "kind": "retail_sales" },
+        { "date": "2026-10-23", "kind": "retail_sales" },
+        { "date": "2026-11-20", "kind": "retail_sales" },
+        { "date": "2026-12-18", "kind": "retail_sales" },
+        { "date": "2027-01-22", "kind": "retail_sales" },
+        { "date": "2027-02-19", "kind": "retail_sales" },
+        { "date": "2027-03-19", "kind": "retail_sales" }
       ],
-      "notes": "【2026-08-14再実測で訂正】前回記録（cal1-eng.htmは検索フォームで発表日程を含まない・年次PDFは中間HTML着地ページに転送され直接取得不可）のうち、年次PDF側の判断は誤りだったと判明した。cal1-eng.htm自身が年次PDF（n1/release-diffusion/2026-eng.pdf）へのリンクを含んでおり、このURLへ直接フェッチするとHTTP 200・content-type application/pdf・リダイレクト無しで『2026-2027 release dates Major economic releases』というタイトルのPDF本体（約159KB）が取得できることを確認した（前回の判断はcal1-eng.htm自体の到達性テストと混同していた可能性が高い）。PDFはStatistics Canadaが毎年公表する主要経済指標の年次発表日程表で、Labour Force Survey（雇用統計）・Canadian international merchandise trade（国際商品貿易）を含む全指標の発表日・対象期間が2026年1月〜2027年3月分まで掲載されている。しょうさん指示の優先順(a)API/RSS/ICS→(b)年次PDFのうち(b)で解決。scripts/checkers/extractors/statcan.jsで抽出し、既刊ground truth（CA国際商品貿易2026-08-04＝2026年6月分、CA雇用統計2026-08-07＝2026年7月分）と完全一致を確認した。typeをweekly_scrapeからannual_schedule_configへ再分類し、抽出結果（2026年1月〜2027年3月分、trade_balance15件・employment_situation15件）をscheduleへ投入済み | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: 同一PDFに掲載されているConsumer Price Index・Gross domestic product by industryの見出しをSUBJECT_HEADERSへ追加し、CPI・GDP(月次)をkindsへ追加した（trade_balance/employment_situationと同じ年次PDFから追加抽出。再フェッチ不要）。2026-08-17のCPI発表はまさに指摘元の欠損事例（8/17週のground truth候補）。四半期GDP（Gross domestic product, income and expenditure）は月次GDPと同日発表のため重複を避けて未採用"
+      "notes": "【2026-08-14再実測で訂正】前回記録（cal1-eng.htmは検索フォームで発表日程を含まない・年次PDFは中間HTML着地ページに転送され直接取得不可）のうち、年次PDF側の判断は誤りだったと判明した。cal1-eng.htm自身が年次PDF（n1/release-diffusion/2026-eng.pdf）へのリンクを含んでおり、このURLへ直接フェッチするとHTTP 200・content-type application/pdf・リダイレクト無しで『2026-2027 release dates Major economic releases』というタイトルのPDF本体（約159KB）が取得できることを確認した（前回の判断はcal1-eng.htm自体の到達性テストと混同していた可能性が高い）。PDFはStatistics Canadaが毎年公表する主要経済指標の年次発表日程表で、Labour Force Survey（雇用統計）・Canadian international merchandise trade（国際商品貿易）を含む全指標の発表日・対象期間が2026年1月〜2027年3月分まで掲載されている。しょうさん指示の優先順(a)API/RSS/ICS→(b)年次PDFのうち(b)で解決。scripts/checkers/extractors/statcan.jsで抽出し、既刊ground truth（CA国際商品貿易2026-08-04＝2026年6月分、CA雇用統計2026-08-07＝2026年7月分）と完全一致を確認した。typeをweekly_scrapeからannual_schedule_configへ再分類し、抽出結果（2026年1月〜2027年3月分、trade_balance15件・employment_situation15件）をscheduleへ投入済み | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: 同一PDFに掲載されているConsumer Price Index・Gross domestic product by industryの見出しをSUBJECT_HEADERSへ追加し、CPI・GDP(月次)をkindsへ追加した（trade_balance/employment_situationと同じ年次PDFから追加抽出。再フェッチ不要）。2026-08-17のCPI発表はまさに指摘元の欠損事例（8/17週のground truth候補）。四半期GDP（Gross domestic product, income and expenditure）は月次GDPと同日発表のため重複を避けて未採用 | 2026-08-15追記（task #50/51、しょうさんのManus突合指摘: CA小売売上高が未マッピングのまま8/21分が欠落）: 同一PDFに『Retail trade』見出しが2025年11月〜2027年1月分まで既に含まれていたと判明（新規ライブ検証・再フェッチ不要）。SUBJECT_HEADERSへretail_salesを追加し、15件をscheduleへ投入。8/21発表分（2026年6月分）はManusが★★★掲載していた実際の欠損事例と完全一致"
     },
     {
       "id": "au_abs",
@@ -715,7 +736,8 @@
         "trade_balance",
         "cpi",
         "employment_situation",
-        "gdp"
+        "gdp",
+        "retail_sales"
       ],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
@@ -744,6 +766,11 @@
         "gdp": {
           "local_time": "11:30",
           "tz": "Australia/Sydney"
+        },
+        "retail_sales": {
+          "local_time": "11:30",
+          "tz": "Australia/Sydney",
+          "note": "2026-08-15追加（task #50/51）。WebSearchで確認: ABSは従来の月次『Retail Trade』公表を2025-07-31付けで終了し（Retail Trade Replacement Program）、『Monthly Household Spending Indicator』（MHSI）へ統合済み。実fixtureのutcInstant（2026-08-04T01:30:00Z・2026-08-27T01:30:00Z＝いずれも11:30 Sydney）が他ABSリリースと同一の標準枠であることを確認済み"
         }
       },
       "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: future-releases-calendarは元々ABSの全リリースを汎用抽出しており（抽出コード変更不要）、trade_balance以外はkinds未登録だったため取りこぼしていた。実fixtureで実在確認済みのCPI・雇用統計（Labour Force）をkindsへ追加。雇用統計は8/17週（2026-08-20発表）でまさに欠損していた事例。時刻は貿易収支と同じ11:30 Sydney（実fixtureのutcInstantでも01:30Z=11:30 AESTと確認済み） | 2026-08-15追記（task #41-4、しょうさん承認済み国×kindマトリクス）: GDP（Australian National Accounts: National Income, Expenditure and Product）を追加。future_releases_calendarは元々ABSの全リリースを汎用抽出する設計のため、抽出コード変更不要でkinds追加のみで対応可能（trade_balance/CPI追加時と同じ理由）。2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済みだが、hardcodeはしていない（本ソースはweekly_scrape型のため、live fetch時にfuture_releases_calendarの実ページ内容が対象週分を含んでいれば自動的に検出される。ローリング6ヶ月窓のため、対象週の6ヶ月以上先の発表分はresidual監視の対象外）。時刻11:30 Sydneyは他ABSリリースと同一の標準枠として複数ソースで確認 | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: future_releases_calendarを実ネットワークで直接取得し25件の行を抽出（抽出コード自体は正常動作を再確認。既存のCPI『Consumer Price Index, Australia @ 2026-08-26』・雇用統計『Labour Force, Australia @ 2026-08-20』は引き続き正しく検出）。ただし2026-08-15時点の実ページの公表ホライズンは2026-08-31までで、次回GDP発表（2026-09-02、予備日程）はこの窓の外のため『national accounts』を含む行はまだ出現していない（想定どおりのタイミング依存であり、抽出機構の欠陥ではない）。9月に入り対象週が近づいた時点で改めてライブ確認が必要"

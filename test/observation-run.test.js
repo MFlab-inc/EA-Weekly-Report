@@ -298,6 +298,19 @@ test('annualEntryToCandidate: 貿易収支（JP trade_balance）が実configか�
   assert.equal(c.time, '08:50'); // ライブ検証（task #41、2026-08-15）でcalend.htmの表組みヘッダー『月分』列=午前8時50分を直接確認し確定
 });
 
+// task #50/51（2026-08-15、しょうさんのManus突合指摘）の回帰テスト: ca_statcanは登録済みだが
+// retail_sales（小売売上高）がkind未登録のため8/21発表分が欠落していた
+test('annualEntryToCandidate: 小売売上高（CA retail_sales）が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'ca_statcan');
+  const importanceRules = { importance_by_kind: { retail_sales: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'retail_sales' && e.date === '2026-08-21');
+  assert.ok(entry, '2026-08-21のCA小売売上高scheduleエントリが見つからない（2026年6月分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '小売売上高＆【除自動車】');
+  assert.equal(c.time, '21:30'); // 08:30 America/Toronto → 21:30 JST（既存4kindと同一のStatCan標準発表時刻）
+});
+
 // task #41-3（しょうさん承認済み国×kindマトリクス）の回帰テスト: Eurostat HICP・GDP速報値、
 // EU/GBフラッシュPMIを新規annual_schedule_config型ソースとして追加した
 test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）が実configから名称解決できる（時刻はしょうさん発見のECB statscal静的ページで確定）', async () => {

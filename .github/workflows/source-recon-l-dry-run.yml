@@ -1,0 +1,28 @@
+# task #50/52/53ライブ検証用の一時ワークフロー（2026-08-15）。
+# scripts/phase1/source-recon-l.mjsを実ネットワーク環境で実行し、JP retail_sales(METI)・
+# DE国追加候補(Destatis/ZEW/Ifo/HCOB)・EU retail_sales(Eurostat)・flash PMI代替経路
+# (markiteconomics.com)を一括ライブ検証する。検証完了後は削除すること。
+name: source-recon-l-dry-run
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - claude/ea-weekly-report-automation-lw6cio
+    paths:
+      - '.github/workflows/source-recon-l-dry-run.yml'
+      - 'scripts/phase1/source-recon-l.mjs'
+      - 'scripts/phase1/source-recon-k.mjs'
+permissions:
+  contents: read
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: source-recon-k (gb_ons employment/retail)
+        run: node scripts/phase1/source-recon-k.mjs
+      - name: source-recon-l (JP/DE/EU new sources)
+        run: node scripts/phase1/source-recon-l.mjs
