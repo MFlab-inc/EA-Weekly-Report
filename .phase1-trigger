@@ -4,6 +4,8 @@
   "run_recon_c": false,
   "run_recon_d": false,
   "run_recon_e": false,
-  "run_recon_f": true,
-  "collect_fixtures": false
+  "run_recon_f": false,
+  "run_recon_g": true,
+  "collect_fixtures": true,
+  "only_ids_fixtures": "snb_policy_rate"
 }

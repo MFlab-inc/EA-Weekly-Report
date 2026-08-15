@@ -30,6 +30,7 @@ import { extractBocPolicyRateSchedule } from './extractors/boc-policy-rate.js';
 import { extractMofAuctions } from './extractors/mof.js';
 import { extractUsTreasuryAuctions } from './extractors/us-treasury.js';
 import { extractFrbSpeeches } from './extractors/frb-speeches.js';
+import { extractSnbEvents } from './extractors/snb-policy-rate.js';
 
 export const USER_AGENT = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; checker-harness)';
 
@@ -118,6 +119,14 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     primaryLabel: 'speeches_rss',
     parseFn: extractFrbSpeeches,
     toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech' }),
+  },
+  // SNB: row.kindが抽出側で確定済み（policy_rate / press_conference / opinions_summary）。
+  // event-scheduleページ本文の平文リスト「DD.MM.YYYY HH:MM タイトル」を直接パースする（2026-08-15、
+  // しょうさん一次ソース訂正対応。ICS個別フィードの実在は確認済みだが94件と多いため本HTML直読み方式を採用）
+  snb_policy_rate: {
+    primaryLabel: 'event_schedule',
+    parseFn: extractSnbEvents,
+    toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime, kind: r.kind }),
   },
 };
 

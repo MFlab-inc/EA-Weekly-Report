@@ -64,18 +64,17 @@ test('validateExpectedCoverage: 未充足があればok:false・missingに列挙
   assert.deepEqual(r.missing.map((m) => m.country), ['NZ']);
 });
 
-// 実configに対する回帰ゲート。task #19（2026-08-15）時点でRBA/BOJ/FRB/ECB/BOE/BOCの6中銀は
-// active/draft_scheduleのpolicy_rate担当ソースを持つ。RBNZ/SNBはRBNZと同じ「人間が年1回、
-// 公式ページを目視して確定する」手入力方式（annual_schedule_config）での解決待ちのため
-// pending_reconのまま（しょうさんへの確認待ち。docs/annual-schedule-maintenance.md参照）。
-// この2件は既知のギャップとして明示的にassertする＝新たな中銀の担当ソースが意図せず欠落した場合は
-// missingに想定外の国コードが増えてこのテストが落ちる（回帰検知）。RBNZ/SNBが解決されたら
-// このテストの期待値を更新すること（その変更自体が「カバレッジ表がGREENになった」ことの記録になる）
-test('validateExpectedCoverage: 実config — 6/8中銀は充足、既知のギャップ（RBNZ・SNB）のみ残っている', () => {
+// 実configに対する回帰ゲート。2026-08-15: しょうさんが一次ソースを直接確認しRBNZ（annual_schedule_config・
+// schedule確定）・SNB（weekly_scrape・event-scheduleページの平文リスト抽出）の担当ソースが解決したため、
+// 8/8中銀すべてがactive/draft_scheduleのpolicy_rate担当ソースを持つ状態になった（期待カバレッジCIグリーン化。
+// docs/annual-schedule-maintenance.md参照）。以後、新たな中銀の担当ソースが意図せず欠落した場合は
+// missingが非空になりこのテストが落ちる（回帰検知）
+test('validateExpectedCoverage: 実config — 8/8中銀すべてpolicy_rate担当ソースを充足している', () => {
   const sourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
   const officials = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'officials.json'), 'utf8'));
   const expectedCoverageConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'expected-coverage.json'), 'utf8'));
   const r = validateExpectedCoverage(sourcesConfig, officials, expectedCoverageConfig);
   assert.equal(r.required.length, 8, 'officials.json登録中銀8行から導出される必須カバレッジは8件のはず');
-  assert.deepEqual(r.missing.map((m) => m.country).sort(), ['CH', 'NZ'], 'RBNZ(NZ)・SNB(CH)以外は全てカバレッジ充足しているはず（新規欠落の回帰検知）');
+  assert.equal(r.ok, true, '8/8中銀すべて充足しているはず（新規欠落の回帰検知）');
+  assert.deepEqual(r.missing, []);
 });
