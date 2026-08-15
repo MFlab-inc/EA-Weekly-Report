@@ -34,14 +34,30 @@ import { extractSnbEvents } from './extractors/snb-policy-rate.js';
 
 export const USER_AGENT = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; checker-harness)';
 
-// recurring_checks の名称→担当kindの対応（config/importance-rules.json）。
-// ルールが増えたらここに追記する
-const RECURRING_CHECK_KIND = {
-  米雇用統計: 'employment_situation',
-  米CPI: 'cpi',
+// recurring_checks の名称→担当kind（＋任意でsourceId）の対応（config/importance-rules.json）。
+// ルールが増えたらここに追記する。
+// sourceId省略時（米雇用統計・米CPI等）: そのkindを検出した結果が「どのソース由来でも」あれば
+// 充足とみなす（複数ソースが同じkindを担当し得るため）。
+// sourceId指定時（中国PMI等）: 特定のソースIDの結果に限定してfoundKindsを照合する。理由:
+// pmi_ism・employment_indicatorはus_ism/ca_ivey等の実装済みソースとkindが重複するため、
+// sourceId指定なしでkindだけ見ると「別ソース（例: 米ISM）がその週たまたま該当した」ことで
+// 未実装ソースの欠落が覆い隠されてしまう（誤ってWARNが消える）。sourceId指定はこれを防ぐ
+const RECURRING_CHECK_MATCH = {
+  米雇用統計: { kind: 'employment_situation' },
+  米CPI: { kind: 'cpi' },
   // RBA総裁下院経済委員会証言（testimony）は担当ソース未定義（task #18）のため、
   // このWARNは恒常的に出続ける想定。しょうさんが手動でその週の実施有無を確認する運用
-  RBA総裁下院経済委員会証言: 'testimony',
+  RBA総裁下院経済委員会証言: { kind: 'testimony' },
+  // 中国PMI・英建設業PMI・ADP雇用統計（task #16、抽出未実装・status=pending_recon）は
+  // いずれも★★・毎月発生のため、担当ソースがpending_reconである限り恒常的にWARNが出続ける
+  // 想定（しょうさん指示2026-08-15: HOLDではなくWARNで可視化することが必須要件。担当ソースが
+  // skipped扱いのため、そもそもfailuresに計上されずHOLDにはならない。本エントリが無いと
+  // WARNすら出ず完全に無警告で欠落するため追加した）。日付範囲は既知の一般的な公表時期
+  // （月初〜第1週）に基づく暫定粒度（RBA証言と同様、task #16で正確な担当ソースが確定するまでの
+  // 措置。誤検知よりも見落とし防止を優先する）
+  中国PMI: { kind: 'pmi_ism', sourceId: 'cn_pmi' },
+  英国建設業PMI: { kind: 'pmi_ism', sourceId: 'gb_construction_pmi' },
+  ADP雇用統計: { kind: 'employment_indicator', sourceId: 'us_adp' },
 };
 
 // jp_mof向け: auction_calendar_index.htmは月別ローリング公表（年次一括ではない）ため、対象週が
@@ -101,26 +117,32 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime, kind: r.kind }),
   },
   // MOF: row.kind='bond_auction'は抽出側で確定済み（time-exempt。resolveCandidateEventのTIME_EXEMPT_KINDS
-  // 分岐でtime:null扱い）。primaryLabel未指定のためbuildTargetsが返す全月ページをマージして解析する
+  // 分岐でtime:null扱い）。primaryLabel未指定のためbuildTargetsが返す全月ページをマージして解析する。
+  // tenorJa（年限、例「10年」）はresolveCandidateEvent経由で候補へ引き継がれ、
+  // scripts/lib/build-ledger.jsのresolveRuleGeneratedName()がSPEC §4.2の国債入札命名テンプレート
+  // （naming.bondAuctionNameJp）で使う（2026-08-15配線）
   jp_mof: {
     buildTargets: buildMofMonthTargets,
     parseFn: extractMofAuctions,
-    toRow: (r) => ({ title: r.issueRaw, date: r.date, kind: r.kind }),
+    toRow: (r) => ({ title: r.issueRaw, date: r.date, kind: r.kind, tenorJa: r.tenorJa }),
   },
   // 米財務省: extractUsTreasuryAuctionsは(json, weekStart, weekEnd)を取るため、harnessが渡す
-  // 第2引数ctx.targetWeekから抽出する。row.kind='bond_auction'は抽出側で確定済み（MOFと同様time-exempt）
+  // 第2引数ctx.targetWeekから抽出する。row.kind='bond_auction'は抽出側で確定済み（MOFと同様time-exempt）。
+  // tenorJaはMOFと同様naming.bondAuctionNameUsで使う（2026-08-15配線）
   us_treasury: {
     primaryLabel: 'fiscaldata_upcoming_auctions',
     parseFn: (body, ctx) => extractUsTreasuryAuctions(body, ctx.targetWeek.targetWeekStart, ctx.targetWeek.targetWeekEnd),
-    toRow: (r) => ({ title: r.securityTerm, date: r.date, kind: r.kind }),
+    toRow: (r) => ({ title: r.securityTerm, date: r.date, kind: r.kind, tenorJa: r.tenorJa }),
   },
   // FRB理事講演: pubDateが絶対UTC値のためutcInstantとして渡す（DST判定不要）。row.kind='official_speech'は
-  // ここで付与する（SPEC §4.2の規則生成命名kind）。話者の人名・役職解決（officials.json拡充、task #17）は
-  // 未実装のためdisplayNameは解決されない（ruleGenerated分岐でdictionary照合自体を行わないため実害なし）
+  // ここで付与する（SPEC §4.2の規則生成命名kind）。speakerLastName（抽出元RSSタイトルの姓）は
+  // resolveCandidateEvent経由で候補へ引き継がれ、resolveRuleGeneratedName()がnaming.resolveOfficialBySurname
+  // で照合を試みる（2026-08-15配線）が、2026-08-15時点officials.jsonにFRB理事個人（議長以外）が
+  // 未登録（task #17）のため実運用では常に不一致→役職のみ命名（SPEC §4.2のverified:falseフォールバック）
   us_frb_speeches: {
     primaryLabel: 'speeches_rss',
     parseFn: extractFrbSpeeches,
-    toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech' }),
+    toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
   },
   // SNB: row.kindが抽出側で確定済み（policy_rate / press_conference / opinions_summary）。
   // event-scheduleページ本文の平文リスト「DD.MM.YYYY HH:MM タイトル」を直接パースする（2026-08-15、
@@ -422,8 +444,13 @@ export async function runChecks({ sourcesConfig, importanceRules, eventNames, ta
     targetWeek,
     (rule) => matchesRecurringRule(rule, targetWeek.dates.map((d) => d.date)),
     (rule) => {
-      const kind = RECURRING_CHECK_KIND[rule.name];
-      return results.some((r) => r.foundKinds?.includes(kind));
+      const match = RECURRING_CHECK_MATCH[rule.name];
+      if (!match) return false;
+      if (match.sourceId) {
+        const sourceResult = results.find((r) => r.id === match.sourceId);
+        return Boolean(sourceResult?.foundKinds?.includes(match.kind));
+      }
+      return results.some((r) => r.foundKinds?.includes(match.kind));
     }
   );
 

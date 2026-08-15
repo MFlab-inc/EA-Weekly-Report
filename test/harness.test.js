@@ -143,6 +143,10 @@ test('checkWeeklyScrapeSource: jp_mof（動的月別URL・primaryLabel未指定�
   assert.deepEqual(r.foundKinds, ['bond_auction']);
   assert.ok(r.thisWeek.some((c) => c.date === '2026-08-04'));
   assert.ok(r.thisWeek.every((c) => c.time === null), 'bond_auctionはTIME_EXEMPT_KINDSによりtime:nullのはず');
+  // tenorJaがresolveCandidateEvent経由で候補まで引き継がれることの確認（2026-08-15配線。
+  // scripts/lib/build-ledger.jsのresolveRuleGeneratedName()がSPEC §4.2の国債入札命名で使う）
+  const row10y = r.thisWeek.find((c) => c.date === '2026-08-04');
+  assert.equal(row10y.tenorJa, '10年');
 });
 
 test('checkWeeklyScrapeSource: jp_mof は月またぎ週で2つの月別ページを両方フェッチする', async () => {
@@ -196,6 +200,9 @@ test('checkWeeklyScrapeSource: us_treasury（weekStart/weekEndを渡すparseFn�
   assert.equal(r.unregistered.length, 0);
   assert.ok(r.thisWeek.some((c) => c.date === '2026-08-19'));
   assert.ok(r.thisWeek.every((c) => c.time === null));
+  // tenorJaの引き継ぎ確認（2026-08-15配線。jp_mofと同様）
+  const auction = r.thisWeek.find((c) => c.date === '2026-08-19');
+  assert.equal(auction.tenorJa, '20年');
 });
 
 test('checkWeeklyScrapeSource: us_frb_speeches（RSS pubDateをutcInstantとして利用）はDST不要でJST時刻を導出する', async () => {
@@ -221,6 +228,9 @@ test('checkWeeklyScrapeSource: us_frb_speeches（RSS pubDateをutcInstantとし�
   assert.equal(cook.date, '2026-08-06');
   assert.equal(cook.time, '05:05');
   assert.equal(cook.kind, 'official_speech');
+  // speakerLastNameの引き継ぎ確認（2026-08-15配線。scripts/lib/build-ledger.jsの
+  // resolveRuleGeneratedName()がnaming.resolveOfficialBySurnameで照合を試みる）
+  assert.equal(cook.speakerLastName, 'Cook');
 });
 
 function snbSource() {
@@ -339,4 +349,51 @@ test('runChecks: 年次config型ソースの残量監視WARNがresidualWarnings�
   const report = await runChecks({ sourcesConfig, importanceRules: { recurring_checks: [] }, targetWeek: TARGET_WEEK });
   assert.equal(report.residualWarnings.length, 1);
   assert.equal(report.residualWarnings[0].id, 'stale_annual');
+});
+
+// pending_reconソース（中国PMI・英建設業PMI・ADP等、task #16）はhttps://...の実装が無いため
+// skipped扱いとなりfailuresに計上されない＝HOLDにはならないが、担当sourceIdを指定した
+// recurring_checksエントリにより「定例欠落」WARNとして可視化される（しょうさん指示2026-08-15）。
+// 対象週は2026-08-03週（day 3〜7、rule「1日〜7日ごろ」に該当）を使う
+const EARLY_MONTH_WEEK = {
+  collectionDate: '2026-08-01',
+  targetWeekStart: '2026-08-03',
+  targetWeekEnd: '2026-08-07',
+  dates: [
+    { date: '2026-08-03', md: '8/3', weekday: '月' },
+    { date: '2026-08-04', md: '8/4', weekday: '火' },
+    { date: '2026-08-05', md: '8/5', weekday: '水' },
+    { date: '2026-08-06', md: '8/6', weekday: '木' },
+    { date: '2026-08-07', md: '8/7', weekday: '金' },
+  ],
+};
+
+test('runChecks: pending_reconソースの欠落はHOLDにせずrecurring_checks経由でWARN可視化する', async () => {
+  const { runChecks } = await loadHarness();
+  const sourcesConfig = {
+    sources: [{ id: 'cn_pmi', status: 'pending_recon', country: 'CN', kinds: ['pmi_ism'], type: 'weekly_scrape', recurring_check_refs: ['中国PMI'] }],
+  };
+  const importanceRules = { recurring_checks: [{ name: '中国PMI', rule: '毎月1日〜7日ごろ', action: 'WARN' }] };
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek: EARLY_MONTH_WEEK });
+  assert.equal(report.outcome.status, 'OK', 'pending_reconはskipped扱いでfailuresに計上されないためHOLDにはならない');
+  assert.equal(report.recurringMissingWarnings.length, 1);
+  assert.match(report.recurringMissingWarnings[0], /中国PMI/);
+});
+
+test('runChecks: sourceId指定のrecurring_checksは同一kindの別ソース成功では消えない（誤った充足判定の防止）', async () => {
+  const { runChecks } = await loadHarness();
+  const sourcesConfig = {
+    sources: [
+      { id: 'cn_pmi', status: 'pending_recon', country: 'CN', kinds: ['pmi_ism'], type: 'weekly_scrape', recurring_check_refs: ['中国PMI'] },
+      {
+        id: 'us_ism', status: 'active', country: 'US', kinds: ['pmi_ism'], type: 'annual_schedule_config',
+        schedule: [{ date: '2026-08-03', kind: 'pmi_ism' }],
+      },
+    ],
+  };
+  const importanceRules = { recurring_checks: [{ name: '中国PMI', rule: '毎月1日〜7日ごろ', action: 'WARN' }] };
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek: EARLY_MONTH_WEEK });
+  // us_ismが同じkind=pmi_ismを対象週内に見つけていても、中国PMI（cn_pmi限定）のWARNは消えない
+  assert.equal(report.recurringMissingWarnings.length, 1);
+  assert.match(report.recurringMissingWarnings[0], /中国PMI/);
 });

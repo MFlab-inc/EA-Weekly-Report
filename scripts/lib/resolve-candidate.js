@@ -53,6 +53,11 @@ function resolveCandidateEvent(row, ctx) {
     localTime: row.localTime || null,
     tz: ctx.tz || null,
     utcInstant: row.utcInstant || null,
+    // SPEC §4.2の規則生成命名（scripts/lib/build-ledger.jsのresolveRuleGeneratedName）向けの
+    // kind別追加コンテキスト。該当しないkindのrowには含まれないためundefined→nullで正規化する
+    // （bond_auction: mof.js/us-treasury.jsが抽出。official_speech: frb-speeches.jsが抽出）
+    tenorJa: row.tenorJa || null,
+    speakerLastName: row.speakerLastName || null,
   };
 }
 

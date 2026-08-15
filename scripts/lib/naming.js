@@ -49,6 +49,26 @@ function bojMinutesName(periodJa) {
   return periodJa ? `${BOJ_MINUTES_BASE}（${periodJa}）` : BOJ_MINUTES_BASE;
 }
 
+// periodJaの書式（しょうさん指示2026-08-15・既刊2週の実例に準拠）。meetingStart/meetingEnd（'YYYY-MM-DD'）
+// はscripts/lib/boj-meeting-schedule.jsのresolveBojMeetingRange()が返す会合開催日レンジ（常に連続2日）。
+// 主な意見=年なし・開始日は「日」抜き（「7月30・31日」）、議事要旨=年あり・両日「日」付き
+// （「2026年6月15日・16日」）。既刊2週はいずれも同月内の会合のため、月をまたぐ会合（例: 1/31・2/1開催）
+// は実例未確認だが、両日それぞれに月を付け直す形で機械的に拡張した（未検証の一般化である点に注意）
+function formatOpinionsPeriod(meetingStart, meetingEnd) {
+  const [, ms, ds] = meetingStart.split('-').map(Number);
+  const [, me, de] = meetingEnd.split('-').map(Number);
+  if (ms === me) return `${me}月${ds}・${de}日開催分`;
+  return `${ms}月${ds}日・${me}月${de}日開催分`;
+}
+
+function formatMinutesPeriod(meetingStart, meetingEnd) {
+  const [ys, ms, ds] = meetingStart.split('-').map(Number);
+  const [ye, me, de] = meetingEnd.split('-').map(Number);
+  if (ys === ye && ms === me) return `${ye}年${me}月${ds}日・${de}日開催分`;
+  if (ys === ye) return `${ye}年${ms}月${ds}日・${me}月${de}日開催分`;
+  return `${ys}年${ms}月${ds}日・${ye}年${me}月${de}日開催分`;
+}
+
 // 国債入札（国別分岐。2026-08-14確定・既刊実例に基づく。SPEC §4.2）
 // issueYearMonthJa: 例「2026年8月」
 function bondAuctionNameJp(tenorJa, issueYearMonthJa) {
@@ -71,6 +91,19 @@ function resolveGovernor(officials, country) {
   return (officials || []).find((o) => o.role_type === 'central_bank_governor' && o.country === country) || null;
 }
 
+// official_speech向け: 発言者の英語姓（例: RSSタイトルから抽出した"Cook"）から、
+// config/officials.jsonの該当者を解決する。officials.jsonのfull_name欄は非日本人の場合
+// 「ミシェル・ブロック（Michele Bullock）」のように日本語表記＋英語フルネームを併記する
+// 既存慣行があるため、full_nameに英語姓が部分一致する要素をもって照合する（2026-08-15新設）。
+// 2026-08-15時点、officials.jsonにはFRB議長（チェア）以外の個々のFRB理事
+// （Cook・Waller等）は未登録（task #17）のため、実運用では常にnull＝役職のみ命名
+// （SPEC §4.2のverified:falseフォールバック）になる。task #17でFRB理事個々の登録が
+// 追加され、同じfull_name併記慣行が踏襲されれば、本関数はそのまま機能する
+function resolveOfficialBySurname(officials, surnameEn) {
+  if (!surnameEn) return null;
+  return (officials || []).find((o) => o.full_name && o.full_name.includes(surnameEn)) || null;
+}
+
 module.exports = {
   nameAndRole,
   speechName,
@@ -80,8 +113,11 @@ module.exports = {
   quarterlyReportName,
   bojOpinionsName,
   bojMinutesName,
+  formatOpinionsPeriod,
+  formatMinutesPeriod,
   bondAuctionNameJp,
   bondAuctionNameUs,
   BANK_ABBR_BY_COUNTRY,
   resolveGovernor,
+  resolveOfficialBySurname,
 };

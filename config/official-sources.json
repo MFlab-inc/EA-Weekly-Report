@@ -860,6 +860,9 @@
       "kinds": [
         "pmi_ism"
       ],
+      "recurring_check_refs": [
+        "中国PMI"
+      ],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
       "access": {
@@ -877,6 +880,9 @@
       "kinds": [
         "pmi_ism"
       ],
+      "recurring_check_refs": [
+        "英国建設業PMI"
+      ],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
       "access": {
@@ -893,6 +899,9 @@
       "country": "US",
       "kinds": [
         "employment_indicator"
+      ],
+      "recurring_check_refs": [
+        "ADP雇用統計"
       ],
       "type": "weekly_scrape",
       "recurring_check_refs": [],

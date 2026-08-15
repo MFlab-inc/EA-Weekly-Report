@@ -68,11 +68,45 @@ test('candidateToLedgerEvent: displayName未解決・officials指定時はnaming
   assert.equal(pressEv.name_resolution, 'rule_generated');
 });
 
-test('resolveRuleGeneratedName: opinions_summary/minutes_summary/official_speech/bond_auctionは未対応でnullを返す（要文脈情報が候補パイプライン未実装のため。docs/ledger-schema.md参照）', () => {
-  const unsupportedKinds = ['opinions_summary', 'minutes_summary', 'official_speech', 'bond_auction'];
-  for (const kind of unsupportedKinds) {
-    assert.equal(resolveRuleGeneratedName({ kind, country: 'JP' }, officials), null, `kind=${kind}`);
-  }
+test('resolveRuleGeneratedName: bond_auction（tenorJa無し）・official_speech（US以外）は未対応でnullを返す', () => {
+  assert.equal(resolveRuleGeneratedName({ kind: 'bond_auction', country: 'JP' }, officials), null, 'tenorJaが無いbond_auction');
+  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP' }, officials), null, 'US以外のofficial_speech（役職ラベル未定義）');
+});
+
+test('resolveRuleGeneratedName: opinions_summary/minutes_summary（BOJ）はperiodJaがあれば会合開催日を含めて解決する', () => {
+  assert.equal(
+    resolveRuleGeneratedName({ kind: 'opinions_summary', country: 'JP', periodJa: '7月30・31日開催分' }, officials),
+    '日銀金融政策決定会合における主な意見の公表（7月30・31日開催分）'
+  );
+  assert.equal(
+    resolveRuleGeneratedName({ kind: 'minutes_summary', country: 'JP', periodJa: '2026年6月15日・16日開催分' }, officials),
+    '金融政策決定会合議事要旨（2026年6月15日・16日開催分）'
+  );
+});
+
+test('resolveRuleGeneratedName: opinions_summary/minutes_summary（BOJ）はperiodJa無しでも基底文言を返す（FALLBACK_KIND_LABELより優先）', () => {
+  assert.equal(resolveRuleGeneratedName({ kind: 'opinions_summary', country: 'JP' }, officials), '日銀金融政策決定会合における主な意見の公表');
+  assert.equal(resolveRuleGeneratedName({ kind: 'minutes_summary', country: 'JP' }, officials), '金融政策決定会合議事要旨');
+});
+
+test('resolveRuleGeneratedName: opinions_summary（SNB等JP以外）はBOJ固有テンプレート対象外でnullを返す', () => {
+  assert.equal(resolveRuleGeneratedName({ kind: 'opinions_summary', country: 'CH' }, officials), null);
+});
+
+test('resolveRuleGeneratedName: bond_auction（tenorJaあり）は国別テンプレートで解決する', () => {
+  assert.equal(
+    resolveRuleGeneratedName({ kind: 'bond_auction', country: 'JP', date: '2026-08-04', tenorJa: '10年' }, officials),
+    '10年利付国債（2026年8月債）の入札'
+  );
+  assert.equal(
+    resolveRuleGeneratedName({ kind: 'bond_auction', country: 'US', date: '2026-08-19', tenorJa: '10年' }, officials),
+    '米10年債入札'
+  );
+});
+
+test('resolveRuleGeneratedName: official_speech（US）はspeakerLastNameの照合結果に関わらず役職ラベルは返す（未登録は役職のみ）', () => {
+  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'US', speakerLastName: 'Cook' }, officials), 'FRB理事の発言');
+  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'US', speakerLastName: null }, officials), 'FRB理事の発言');
 });
 
 test('resolveRuleGeneratedName: BANK_ABBR_BY_COUNTRY未収録の国はnullを返す', () => {

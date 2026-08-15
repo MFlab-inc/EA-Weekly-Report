@@ -125,3 +125,41 @@ test('resolveGovernor: 該当なしはnull（財務長官等はcentral_bank_gove
   const financeMinistryOnly = officials.filter((o) => o.role_type !== 'central_bank_governor');
   assert.equal(naming.resolveGovernor(financeMinistryOnly, 'US'), null);
 });
+
+test('resolveOfficialBySurname: full_name欄の英語表記に部分一致すれば解決する', () => {
+  // 実在のofficials.jsonエントリ（RBA総裁）の英語表記「Michele Bullock」で照合できることを確認
+  const found = naming.resolveOfficialBySurname(officials, 'Bullock');
+  assert.equal(found.role_ja, 'RBA総裁');
+});
+
+test('resolveOfficialBySurname: 現時点のofficials.jsonにはFRB理事個人（議長以外）が未登録のため常にnull（task #17）', () => {
+  assert.equal(naming.resolveOfficialBySurname(officials, 'Cook'), null);
+  assert.equal(naming.resolveOfficialBySurname(officials, 'Waller'), null);
+});
+
+test('resolveOfficialBySurname: task #17登録後を想定した合成データでは解決できる（既存のfull_name併記慣行を踏襲する前提）', () => {
+  const futureOfficials = [
+    ...officials,
+    { role_ja: 'FRB理事', role_type: 'fed_governor', country: 'US', name_ja: 'クック', verified: true, full_name: 'リサ・クック（Lisa D. Cook）' },
+  ];
+  const found = naming.resolveOfficialBySurname(futureOfficials, 'Cook');
+  assert.equal(found.role_ja, 'FRB理事');
+  assert.equal(naming.speechName(found, found.role_ja), 'クックFRB理事の発言');
+});
+
+test('resolveOfficialBySurname: 該当なし・surname未指定はnull', () => {
+  assert.equal(naming.resolveOfficialBySurname(officials, 'NonexistentSurname'), null);
+  assert.equal(naming.resolveOfficialBySurname(officials, null), null);
+});
+
+// periodJa書式（既刊2週の実例に準拠）。scripts/lib/boj-meeting-schedule.jsのresolveBojMeetingRange()
+// が返す{meetingStart, meetingEnd}を入力として想定
+test('formatOpinionsPeriod/formatMinutesPeriod: 既刊実例と一致（同月内の会合）', () => {
+  assert.equal(naming.formatOpinionsPeriod('2026-07-30', '2026-07-31'), '7月30・31日開催分');
+  assert.equal(naming.formatMinutesPeriod('2026-06-15', '2026-06-16'), '2026年6月15日・16日開催分');
+});
+
+test('formatOpinionsPeriod/formatMinutesPeriod: 月をまたぐ会合は両日に月を付け直す（未検証の一般化）', () => {
+  assert.equal(naming.formatOpinionsPeriod('2026-01-31', '2026-02-01'), '1月31日・2月1日開催分');
+  assert.equal(naming.formatMinutesPeriod('2026-01-31', '2026-02-01'), '2026年1月31日・2月1日開催分');
+});

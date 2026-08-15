@@ -29,25 +29,63 @@ const FALLBACK_KIND_LABEL = {
   bond_auction: '国債入札',
 };
 
-// SPEC §4.2の規則生成命名テンプレート（scripts/lib/naming.js）による解決を試みる。2026-08-15時点で
-// candidateパイプラインを通じて必要な文脈情報が揃っているkindのみ対応する:
+// 国債入札のissueYearMonthJa（発行年月、例「2026年8月」）。発表元記載の発行月そのものではなく、
+// 既刊ground truth2件（jp_jgb_10y_auction_20260804・jp_jgb_30y_auction_20260806）で
+// 入札日=発行月が一致することを確認済みの近似として、候補date（=入札日）の年月から導出する
+// （docs/ledger-schema.md参照）
+function issueYearMonthJaFromDate(dateStr) {
+  const [y, m] = dateStr.split('-');
+  return `${y}年${Number(m)}月`;
+}
+
+// official_speech（要人発言）の役職ラベル。country単位で1つに決め打ちできる情報源のみ登録する
+// （2026-08-15時点、情報源はus_frb_speeches[FRB理事講演RSS]のみ）
+const OFFICIAL_SPEECH_ROLE_BY_COUNTRY = {
+  US: 'FRB理事',
+};
+
+// SPEC §4.2の規則生成命名テンプレート（scripts/lib/naming.js）による解決を試みる。
 // - policy_rate/quarterly_report: candidate.country（naming.BANK_ABBR_BY_COUNTRY）のみで解決可能
 // - press_conference: officials（country×role_type=central_bank_governor）で解決可能
-// 未対応（呼び出し側でFALLBACK_KIND_LABELへフォールバックする。docs/ledger-schema.md
-// 「既知の簡略化」参照）:
-// - opinions_summary/minutes_summary: 会合期間文字列（periodJa）が候補パイプラインに未実装
-// - official_speech: 発言者→officials.json照合が未実装（task #17、FRB理事個人未登録）
-// - bond_auction: 年限/発行年月（tenorJa/issueYearMonthJa）が候補パイプラインに未実装
+// - opinions_summary/minutes_summary: BOJ（country=JP）限定。candidate.periodJa
+//   （scripts/phase1/observation-run.mjsのresolveBojPeriodJaが算出）が無くても年月日なしの
+//   基底文言を返す（FALLBACK_KIND_LABELの汎用ラベルより情報量が多いため常に優先する）。
+//   SNB等JP以外のopinions_summaryはBOJ固有の文言のため対象外（FALLBACK_KIND_LABELへ）
+// - bond_auction: candidate.tenorJa（mof.js/us-treasury.jsが抽出）が無ければ対象外。
+//   country=JP/USのみテンプレートが定義されている（SPEC §4.2）
+// - official_speech: candidate.speakerLastNameをofficials.jsonと照合（naming.resolveOfficialBySurname）。
+//   不一致（未登録・未指定とも）でもnaming.speechNameがverified:falseと同じ扱いで役職のみを返す。
+//   2026-08-15時点officials.jsonにFRB理事個人（議長以外）は未登録（task #17）のため実運用では
+//   常に役職のみになる
 // - testimony: manual-events.json由来の候補は常にcandidate.displayNameを持つため、
 //   本関数を経由する前にcandidateToLedgerEvent側で優先採用される（対象外）
 function resolveRuleGeneratedName(candidate, officials) {
-  const bankAbbr = naming.BANK_ABBR_BY_COUNTRY[candidate.country];
-  if (!bankAbbr) return null;
-  if (candidate.kind === 'policy_rate') return naming.policyRateName(bankAbbr);
-  if (candidate.kind === 'quarterly_report') return naming.quarterlyReportName(bankAbbr);
+  if (candidate.kind === 'policy_rate' || candidate.kind === 'quarterly_report') {
+    const bankAbbr = naming.BANK_ABBR_BY_COUNTRY[candidate.country];
+    if (!bankAbbr) return null;
+    return candidate.kind === 'policy_rate' ? naming.policyRateName(bankAbbr) : naming.quarterlyReportName(bankAbbr);
+  }
   if (candidate.kind === 'press_conference') {
     const official = naming.resolveGovernor(officials, candidate.country);
     return official ? naming.pressConferenceName(official, official.role_ja) : null;
+  }
+  if (candidate.kind === 'opinions_summary' && candidate.country === 'JP') {
+    return naming.bojOpinionsName(candidate.periodJa);
+  }
+  if (candidate.kind === 'minutes_summary' && candidate.country === 'JP') {
+    return naming.bojMinutesName(candidate.periodJa);
+  }
+  if (candidate.kind === 'bond_auction' && candidate.tenorJa) {
+    const issueYearMonthJa = issueYearMonthJaFromDate(candidate.date);
+    if (candidate.country === 'JP') return naming.bondAuctionNameJp(candidate.tenorJa, issueYearMonthJa);
+    if (candidate.country === 'US') return naming.bondAuctionNameUs(candidate.tenorJa);
+    return null;
+  }
+  if (candidate.kind === 'official_speech') {
+    const roleJa = OFFICIAL_SPEECH_ROLE_BY_COUNTRY[candidate.country];
+    if (!roleJa) return null;
+    const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName);
+    return naming.speechName(official, roleJa);
   }
   return null;
 }

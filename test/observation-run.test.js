@@ -28,6 +28,56 @@ test('annualEntryToCandidate: announce_time_by_kindが無いkindはtime:nullで�
   assert.equal(c.timeNote, 'announce_time_by_kind未設定');
 });
 
+test('annualEntryToCandidate: displayNameはnull（naming.js統合はscripts/lib/build-ledger.jsのresolveRuleGeneratedName側の責務）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = {
+    id: 'au_rba',
+    country: 'AU',
+    announce_time_by_kind: { policy_rate: { local_time: '14:30', tz: 'Australia/Sydney' } },
+  };
+  const c = annualEntryToCandidate({ date: '2026-08-11', kind: 'policy_rate' }, source, { importance_by_kind: { policy_rate: 3 } });
+  assert.equal(c.displayName, null);
+});
+
+test('annualEntryToCandidate: jp_bojのopinions_summary/minutes_summaryはsource.scheduleからperiodJaを算出する（既刊2週と一致）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = {
+    id: 'jp_boj',
+    country: 'JP',
+    name_ja: '日本銀行（BOJ）',
+    announce_time_by_kind: {
+      opinions_summary: { local_time: '08:50', tz: 'Asia/Tokyo' },
+      minutes_summary: { local_time: '08:50', tz: 'Asia/Tokyo' },
+      policy_rate: { local_time: '12:00', tz: 'Asia/Tokyo' },
+    },
+    schedule: [
+      { date: '2026-06-16', kind: 'policy_rate' },
+      { date: '2026-07-31', kind: 'policy_rate' },
+      { date: '2026-08-05', kind: 'minutes_summary' },
+      { date: '2026-08-10', kind: 'opinions_summary' },
+      { date: '2026-09-18', kind: 'policy_rate' },
+    ],
+  };
+  const importanceRules = { importance_by_kind: { opinions_summary: 3, minutes_summary: 2 } };
+
+  const opinions = annualEntryToCandidate({ date: '2026-08-10', kind: 'opinions_summary' }, source, importanceRules);
+  assert.equal(opinions.periodJa, '7月30・31日開催分');
+
+  const minutes = annualEntryToCandidate({ date: '2026-08-05', kind: 'minutes_summary' }, source, importanceRules);
+  assert.equal(minutes.periodJa, '2026年6月15日・16日開催分');
+});
+
+test('annualEntryToCandidate: jp_boj以外・opinions/minutes以外のkindはperiodJa:null', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const rbaSource = { id: 'au_rba', country: 'AU', announce_time_by_kind: {}, schedule: [] };
+  const c1 = annualEntryToCandidate({ date: '2026-08-11', kind: 'policy_rate' }, rbaSource, {});
+  assert.equal(c1.periodJa, null);
+
+  const bojSource = { id: 'jp_boj', country: 'JP', announce_time_by_kind: {}, schedule: [] };
+  const c2 = annualEntryToCandidate({ date: '2026-08-11', kind: 'policy_rate' }, bojSource, {});
+  assert.equal(c2.periodJa, null);
+});
+
 test('buildObservationSummary: thisWeek由来とmatchedEntries由来の候補を統合し、★★★のみ停止窓を計算する', async () => {
   const { buildObservationSummary } = await import('../scripts/phase1/observation-run.mjs');
   const report = {

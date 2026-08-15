@@ -22,12 +22,34 @@ const { computeHaltWindow, unionIntervals } = require('../lib/halt-schedule.js')
 const { zonedWallTimeToJst } = require('../lib/tz-convert.js');
 const { resolveImportance } = require('../lib/importance.js');
 const { candidatesForTargetWeek } = require('../lib/manual-events.js');
+const { resolveBojMeetingRange } = require('../lib/boj-meeting-schedule.js');
+const naming = require('../lib/naming.js');
 
 export const USER_AGENT = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; observation-mode)';
 
+// jp_boj（日銀）のopinions_summary/minutes_summaryは、会合開催日レンジ（periodJa）を
+// scripts/lib/naming.jsの規則生成命名テンプレート（bojOpinionsName/bojMinutesName）が必要とする。
+// 同ソースのscheduleに含まれるpolicy_rate日程から、BOJの公表運用（主な意見=直近会合・
+// 議事要旨=1つ前の会合。scripts/lib/boj-meeting-schedule.js参照）に基づき機械的に導出する。
+// jp_bojはtz=Asia/Tokyoのためentry.date（現地日付）がそのままJST日付として扱える。
+// 該当する会合が見つからない場合はnull（呼び出し側=build-ledger.jsのnaming.js統合は
+// periodJa無しでも基底文言[年月日なし]へフォールバックする）
+function resolveBojPeriodJa(entry, source) {
+  if (source.id !== 'jp_boj') return null;
+  if (entry.kind !== 'opinions_summary' && entry.kind !== 'minutes_summary') return null;
+  const policyRateDates = (source.schedule || []).filter((e) => e.kind === 'policy_rate').map((e) => e.date);
+  const indexFromMostRecent = entry.kind === 'opinions_summary' ? 0 : 1;
+  const range = resolveBojMeetingRange(policyRateDates, entry.date, indexFromMostRecent);
+  if (!range) return null;
+  return entry.kind === 'opinions_summary'
+    ? naming.formatOpinionsPeriod(range.meetingStart, range.meetingEnd)
+    : naming.formatMinutesPeriod(range.meetingStart, range.meetingEnd);
+}
+
 // annual_schedule_config型のmatchedEntries（{date, kind, note?}）を、他ソース由来のthisWeek
 // 候補と同じ形（date/time/kind/country/importance/displayName）へ変換する。
-// 表示名は解決しない（naming.js統合はtask #12のレンダラー側スコープ）
+// 表示名は解決しない（scripts/lib/build-ledger.jsのresolveRuleGeneratedName()がnaming.js経由で
+// 解決する。displayName:nullのままにしておくことでそちらへ処理を委ねる）
 export function annualEntryToCandidate(entry, source, importanceRules) {
   const at = source.announce_time_by_kind?.[entry.kind];
   const base = {
@@ -35,7 +57,8 @@ export function annualEntryToCandidate(entry, source, importanceRules) {
     kind: entry.kind,
     country: source.country,
     importance: resolveImportance(entry.kind, source.country, importanceRules),
-    displayName: `[${entry.kind}]（名称未解決・task #12の命名ロジック統合待ち）`,
+    displayName: null,
+    periodJa: resolveBojPeriodJa(entry, source),
     sourceId: source.id,
     note: entry.note,
     // 台帳のsource_evidence用: 年次確定スケジュールのnoteが無ければ確定記録自体を根拠として使う
