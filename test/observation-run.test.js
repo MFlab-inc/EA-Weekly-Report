@@ -383,21 +383,43 @@ test('annualEntryToCandidate: 英フラッシュPMI（GB pmi_ism, subtype:flash�
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
   const source = realSourcesConfig.sources.find((s) => s.id === 'gb_flash_pmi');
   const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
-  const entry = source.schedule.find((e) => e.kind === 'pmi_ism' && e.date === '2026-07-24');
-  assert.ok(entry, '2026-07-24のフラッシュPMI scheduleエントリが見つからない');
+  // task #53で規則生成方式へ切替、schedule収録範囲が2026-08〜2027-11へ変更（2026-07-24は収録外）
+  const entry = source.schedule.find((e) => e.kind === 'pmi_ism' && e.date === '2026-08-21');
+  assert.ok(entry, '2026-08-21のフラッシュPMI scheduleエントリが見つからない');
   assert.equal(entry.subtype, 'flash');
   const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
-  assert.equal(c.displayName, '英フラッシュPMI');
+  assert.equal(c.displayName, '英フラッシュPMI（製造業＆サービス業）');
 });
 
 test('annualEntryToCandidate: ユーロ圏フラッシュPMI（EU pmi_ism）が実configから名称解決できる', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
   const source = realSourcesConfig.sources.find((s) => s.id === 'eu_flash_pmi');
   const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
-  const entry = source.schedule.find((e) => e.kind === 'pmi_ism' && e.date === '2026-07-24');
-  assert.ok(entry, '2026-07-24のフラッシュPMI scheduleエントリが見つからない');
+  const entry = source.schedule.find((e) => e.kind === 'pmi_ism' && e.date === '2026-08-21');
+  assert.ok(entry, '2026-08-21のフラッシュPMI scheduleエントリが見つからない');
   const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
-  assert.equal(c.displayName, 'ユーロ圏フラッシュPMI');
+  assert.equal(c.displayName, 'ユーロ圏フラッシュPMI（製造業＆サービス業）');
+});
+
+test('annualEntryToCandidate: 独フラッシュPMI（DE pmi_ism、task #53新規追加）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'de_flash_pmi');
+  assert.ok(source, 'de_flash_pmiがofficial-sources.jsonに見つからない');
+  const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'pmi_ism' && e.date === '2026-08-21');
+  assert.ok(entry, '2026-08-21のフラッシュPMI scheduleエントリが見つからない');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '独フラッシュPMI（製造業＆サービス業）');
+});
+
+test('DE/EU/GBフラッシュPMIは全て同一暦日（8/21）に発表される（task #53の規則検証どおり同一調査元・同日エンバーゴ）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
+  for (const id of ['de_flash_pmi', 'eu_flash_pmi', 'gb_flash_pmi']) {
+    const source = realSourcesConfig.sources.find((s) => s.id === id);
+    const entry = source.schedule.find((e) => e.date === '2026-08-21');
+    assert.ok(entry, `${id}: 2026-08-21のscheduleエントリが見つからない`);
+  }
 });
 
 // task #41-4（しょうさん承認済み国×kindマトリクス、着手順4・最後）の回帰テスト:

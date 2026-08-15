@@ -24,9 +24,17 @@ const TARGETS = {
 // FFのcountryは通貨コード（USD/AUD等）、official-sources.jsonのcountryはISO国コード（US/AU等）。
 // この不一致に気づかず初回実行で「全イベントに追跡ソース無し」という誤った結果を出したため
 // （しょうさん指摘の前段階で自己発見）、明示的な対応表で変換する
+// task #53（2026-08-15、しょうさん条件4: flash PMIを月曜FF突合の対象に含めること）で
+// EUR: nullを'EU'へ修正した。ECB・eurostat_hicp/gdp・eu_flash_pmiがcountry="EU"で
+// 既に登録済みだったが、EUR: nullのため実はこれらも本チェックの対象外になっていた
+// （eu_flash_pmi固有の問題ではなく既存の一般的な欠落だった）。
+// 既知の限界: FFのcountryフィールドは通貨コードのみでドイツ固有か否かを区別できないため、
+// de_zew・de_flash_pmi（country="DE"）はEUR建てのFFイベントと突合されない
+// （kindsByCountryの'DE'キーではなく'EU'キー配下にECB等と一緒に出る想定と異なる）。
+// これはFFフィード自体の情報粒度による構造的制約であり、本スクリプト側での解消不可
 const CURRENCY_TO_COUNTRY = {
   USD: 'US', JPY: 'JP', GBP: 'GB', AUD: 'AU', CAD: 'CA', NZD: 'NZ', CNY: 'CN', CHF: 'CH',
-  EUR: null, // ユーロ圏は単一countryに対応しないため対象外（ECB等は別途要検討）
+  EUR: 'EU',
 };
 
 function jstDateTime(isoStr) {

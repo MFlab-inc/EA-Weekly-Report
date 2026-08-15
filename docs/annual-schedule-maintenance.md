@@ -81,6 +81,26 @@ Stats NZはopen data API（api.stats.govt.nz）が2024-08-30に閉鎖済み、�
 
 **初回実施記録（2026-08-14）**: 前四半期（2026年3月期）ページの埋め込みテキストが「Labour market statistics: June 2026 quarter will be released on 5 August 2026」を予告しており、ground truth（nz_labour_q2_20260805）と完全一致することを確認した。
 
+### DE/EU/GBフラッシュPMI固有の手順（task #53・2026-08-15、しょうさん承認済み規則。年1回・手動照合が必須）
+
+S&P Global/HCOB Flash Manufacturing & Services PMI（DE/EU/GBの3ヶ国、`de_flash_pmi`・`eu_flash_pmi`・`gb_flash_pmi`）は、ISM・RBNZと同じ理由（公式サイトが自動取得不可）で年次スケジュールconfig方式を採るが、**先行一括公表ページそのものが存在しない**点がISM/RBNZと異なる。ISM/RBNZは「サイトはブロックされているが年間分の日程は公式に公表されている」のに対し、S&P Globalは4経路（`pmi.spglobal.com`・旧ドメイン`markiteconomics.com`・自社サイト`hcob-bank.com`・Ifo公式サイトの『Calendar of Events and Release Dates』）すべてで日程データそのものに到達できないことを確認済み（詳細は`config/official-sources.json`のde_flash_pmi/eu_flash_pmi/gb_flash_pmi notesを参照）。よって他ソースのような「ドラフト生成→公式ページと目視突合」ではなく、**ドラフト生成→翌月の実際の発表（ニュース報道）で答え合わせ**という運用にした。
+
+**規則（`scripts/lib/flash-pmi-schedule.js`）**: 月末から5英国営業日前（営業日は週末＋England and Wales銀行休業日を除外。祝日データは`config/gb-bank-holidays.json`＝GOV.UK公式`bank-holidays.json`）。DE/EU/GBの3ヶ国は毎月同一暦日に発表される（S&P Globalが単一カレンダーで運用しておりEngland and Wales祝日を基準にしていることが示唆される）ため、3ソース共通のルールで生成する。発表時刻はDE 09:30・EU 10:00（いずれもCET/CEST）・GB 09:30（BST/GMT）で、pmi.spglobal.comのエンバーゴヘッダー（`Embargoed until HH:MM TZ`）をWebSearchスニペット経由で複数月・複数年分直接確認した（高確度）。
+
+**検証**: WebSearch研究agent3系統（DE/EU/GB個別）＋GOV.UK公式データでの機械計算という独立2経路で、2024年通年＋2025年8月〜2026年7月の直近24ヶ月を突合し、12月を除く22/22ヶ月で完全一致することを確認した（2026年3月・2024年3月のGood Friday前倒しケース、2024年5月のEarly May+Spring Bank Holiday2件重複ケースを含む）。
+
+**12月の扱い（規則の唯一の例外）**: 12月はクリスマス休暇を避けるため意図的に大きく前倒しされる（2024年12/16・2025年12/16、いずれも実績確認済み）が、機械的な規則が見出せなかったため`flashPmiDraftForMonth(y, 12)`は常に`null`を返す設計にした。**12月分はscheduleに含めない**（他の月と違い、この穴は残量監視WARN（`residual_monitor_weeks`）では検知できない——12月の前後の月にscheduleエントリがあるため「対象週から数週先までに日程が1件も無い」という残量監視の判定条件に引っかからない）。よって12月の対象週に到達する前に、年次確認の一環として以下を必ず実施すること:
+
+1. 11月中（対象週の3〜4週前を目安に）、DE/EU/GB flash PMIの直近報道（Reuters/investingLive/ForexLive等の同日速報記事）を検索し、実際の12月発表日を確認する
+2. `config/official-sources.json`のde_flash_pmi/eu_flash_pmi/gb_flash_pmiのschedule配列へ、確認した日付を3ソース同時に追記する（3ヶ国は同一暦日のため一括で反映できる）
+3. 未追記のまま12月の対象週に到達した場合は`checkAnnualScheduleSource`が日程未検出として扱い、通常の週次ゲート（欠落WARN/HOLD）で検知される（安全側フォールバック。誤った日付を黙って出力するよりも、検知して手動確認を促す設計）
+
+**月曜FF事後突合への組み込み（しょうさん条件4）**: このソースは規則生成＋年1回手動確認という他の完全確定ソースより精度限界のある方式のため、`config/official-sources.json`の各エントリのnotes/confirmed_noteに「規則生成・年次手動確認・月曜FF突合でのクロスチェック対象」と明記した。月曜のFF事後突合run（task #39）で、DE/EU/GB flash PMIの実際の発表日・時刻がscheduleの値と一致するかを確認し、不一致があれば`docs/coverage-gap-2026-08-15.md`系のdiscrepancy-reportに計上する運用とする。
+
+**GB調査で判明した表示上の重要な発見**: 実際の発表は製造業PMI単独ではなく、製造業PMI・サービス業Business Activity Index・総合Output Indexが同一エンバーゴ時刻で一体公表される単一リリース（`S&P Global Flash UK PMI`という1つの文書）。DE/EUも同型と推定される。既存の束ねルール（bundle_id、同一国×同一source_id×同一日×90分以内）はこのソースがscheduleに単一行（subtype:flash）しか登録しないため元々発火対象外であり、代わりに`config/event-names.json`の`bundle_as_one_line`表記（US/CA/GB/AU小売売上高の「＆」併記と同型）でdisplay_nameに複数系列を反映した（例: 「英フラッシュPMI（製造業＆サービス業）」）。
+
+**初回実施記録（2026-08-15）**: Claude Codeが上記2経路の検証を実施し、しょうさんが規則の採用を承認。`schedule_status: "confirmed"`・`confirmed_at: "2026-08-15"`で2026年8月〜2027年11月分（12月除く）を`config/official-sources.json`へ反映した。次回の年次確認目安は2027年11月頃（scheduleの残量が`residual_monitor_weeks`＝4週を下回った時点でWARNが出る）。ただし12月分の穴は上記の別手順で毎年11月中に埋めること。
+
 ### ECBのcountry="EU"採用について（task #19・2026-08-15）
 
 `official-sources.json`のcountryフィールドは他ソースでは全てISO国コード（US/JP/GB/AU/CA/NZ/CH/CN）だが、ECB（ユーロ圏）は単一国に対応しないため`"EU"`とした。影響範囲を確認済み: `scripts/lib/naming.js`のpolicyRateName()等はbankAbbr（"ECB"）を直接受け取る設計でcountry値に依存しない。`resolveCandidateEvent`のruleGenerated分岐（SPEC §4.2の規則生成命名kind向け）を使うためevent-names.json辞書照合（country+kindキー）も経由しない。よって"EU"という非ISOコードによる実害は無いと判断した。`scripts/phase0/phase0.mjs`のCOUNTRY_JA_TO_CODEマップで「ユーロ圏」→「EU」の対応が既に前例としてあり整合的。

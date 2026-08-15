@@ -2093,9 +2093,66 @@
       "residual_monitor_weeks": 13
     },
     {
+      "id": "de_flash_pmi",
+      "name_ja": "S&P Global/HCOB（独フラッシュPMI）",
+      "status": "active",
+      "country": "DE",
+      "kinds": [
+        "pmi_ism"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "automated_fetch": false,
+        "targets": [
+          {
+            "label": "press_release_hub",
+            "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease"
+          }
+        ],
+        "note": "pmi.spglobal.com・markiteconomics.com（旧IHS Markitドメイン）・hcob-bank.comの独立3ドメインすべてで自動取得不成立（task #53、下記notes参照）。Ifo公式サイトの『Calendar of Events and Release Dates』は実際にはハイパーリンクではない平文ラベルと判明（task #53、GitHub Actions実ネットワークでaタグを構造抽出し0件確認）。よってautomated_fetch:falseとし、規則生成＋年1回手動確認（us_ismと同型）に統一"
+      },
+      "announce_time_by_kind": {
+        "pmi_ism": {
+          "local_time": "09:30",
+          "tz": "Europe/Berlin"
+        }
+      },
+      "notes": "task #53（2026-08-15、しょうさん承認済み規則）: HCOB Flash Germany Manufacturing PMI（S&P Global）。DE国は本ソースで新規追加。S&P Globalの直接取得は4経路（press_release_hub・markiteconomics.com旧ドメイン・hcob-bank.com自社サイト・Ifo『Calendar of Events and Release Dates』)すべて不成立と確定（詳細はde_zew notesおよびgb_flash_pmi notes参照、3ソース共通の同一調査）。代替として『月末5営業日前（営業日=週末＋England and Wales銀行休業日を除く）』という規則をWebSearch研究agent3系統＋GOV.UK公式bank-holidays.jsonでの機械計算の2経路で独立検証し、2024年通年＋2025年8月〜2026年7月の直近24ヶ月中23ヶ月（12月を除く22/22ヶ月が完全一致、12月は別枠の意図的例外）で成立することを確認した。発表時刻09:30 CET/CESTはpmi.spglobal.comの『Embargoed until 0930 CET/CEST』エンバーゴヘッダーがWebSearchスニペット経由で複数月分直接確認できた（高確度）。DE・EU・GBの3ヶ国は毎月同一暦日に発表される（S&P Globalが単一カレンダーで運用しておりEngland and Wales祝日を基準にしていることが示唆される）ため、規則・生成コードはEU/GBと共通（scripts/lib/flash-pmi-schedule.js）。実際の発表は製造業PMI単独ではなく、同一エンバーゴ時刻に製造業PMI＋サービス業PMI＋総合PMIが一体で公表される単一リリース（英国調査で判明、DE/EUも同型と推定。config/event-names.jsonのbundle_as_one_line表記を参照）",
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-08-15",
+      "confirmed_by": "Claude Code（3経路の独立検証・GOV.UK公式データでの機械計算突合、しょうさん承認2026-08-15）",
+      "confirmed_note": "12月は例年、クリスマス休暇を避けるため意図的に大きく前倒しされる（2024年12/16・2025年12/16、いずれも実績確認済み）が、機械的な規則が見出せなかったためscheduleに含めていない（flashPmiDraftForMonth(y,12)は常にnullを返す設計）。12月の対象週に到達する前に、年次確認（docs/annual-schedule-maintenance.md）で報道等から実際の発表日を確認しschedule配列へ手動追記すること。未追記のまま該当週に到達した場合はcheckAnnualScheduleSourceが日程未検出として扱い、通常の週次ゲート（欠落WARN/HOLD）で検知される（残量監視のresidual_monitor_weeksでは検知できない内部的な穴のため、この運用手順で代替する）",
+      "draft_rule": {
+        "description": "月末から5英国営業日前（営業日は週末＋England and Wales銀行休業日を除外）。12月は規則性が無く手動確定が必要なため生成対象外。scripts/lib/flash-pmi-schedule.js（flashPmiDraftForMonth/flashPmiDraftRange）で計算し、人間またはClaude Codeが年1回、公式報道等と突合・確定する",
+        "business_day_rule": "5th_gb_business_day_before_month_end",
+        "gb_bank_holidays_source": "config/gb-bank-holidays.json（GOV.UK公式bank-holidays.json、england-and-wales区分）",
+        "december_excluded": true
+      },
+      "schedule": [
+        { "date": "2026-08-21", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-09-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-10-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-11-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-01-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-02-19", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-03-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-04-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-05-21", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-06-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-07-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-08-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-09-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-10-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-11-23", "kind": "pmi_ism", "subtype": "flash" }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
       "id": "eu_flash_pmi",
-      "name_ja": "S&P Global（ユーロ圏フラッシュPMI）",
-      "status": "draft_schedule",
+      "name_ja": "S&P Global/HCOB（ユーロ圏フラッシュPMI）",
+      "status": "active",
       "country": "EU",
       "kinds": [
         "pmi_ism"
@@ -2104,29 +2161,55 @@
       "recurring_check_refs": [],
       "access": {
         "robots_check": true,
+        "automated_fetch": false,
         "targets": [
           {
             "label": "press_release_hub",
             "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease"
           }
-        ]
+        ],
+        "note": "task #53でde_flash_pmiと共通調査済み。4経路（press_release_hub・markiteconomics.com・hcob-bank.com・Ifo『Calendar of Events and Release Dates』)すべて不成立と確定。automated_fetch:falseとし規則生成＋年1回手動確認へ統一"
       },
-      "announce_time_by_kind": {},
-      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: HCOB Flash Eurozone PMI（S&P Global）。他の中銀年次スケジュールと異なり、S&P Globalは向こう1〜2ヶ月分のみを掲載するローリングPDF（例: UK_Rel_Dates PDF、2026-07-16更新時点で2026年8-9月分のみ収録）で運用しており、年間分の事前一括公表が存在しないことを確認した（task #41-3調査agent報告）。日付にも第何営業日等の規則性が見出せなかった（20日〜24日に分布するが規則不明）。よって2026-08-15時点でWebSearch経由で確認できた2026年1-7月分の実績日のみを収録し、8月以降は空のまま（residual_monitor_weeksによる警告で毎月の手動更新を促す運用とする。docs/annual-schedule-maintenance.md参照）。公表時刻はユーロ圏10:00 CEST(08:00 UTC)という単一情報源のみの言及（中程度の確度）のため、推測値を入れずannounce_time_by_kind.pmi_ismは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: press_release_hub（pmi.spglobal.com）へ実ネットワークでアクセスしたところ、robots.txt自体の取得がHTTP 403で失敗（インフラ側ブロック）のため慎重側に倒しSKIPした。これはBLS・ISM旧ページ・RatingDog・aph.gov.auと同種の既知の構造的ブロッカーであり、UA偽装による回避は行わない方針（cn_pmi notes参照）のため、日程・時刻ともWebSearch経由確認のまま恒久的に未検証となる見込み | 2026-08-15追記（task #53、しょうさん指摘: 8/21に3件集中するため代替経路を再調査）: 旧ドメインmarkiteconomics.com（Public/Release/PressReleases）を新たに検証したが、robots.txt自体がHTTP 403で取得失敗のため同様に慎重側SKIP。HCOB自社サイト（hcob-bank.com/en/insights/pmi/）はHTTP 200で到達できたが、フラッシュPMIの発表日程情報は一切掲載されていない（PMI関連キーワードのヒット0件。銀行の企業金融サービス紹介ページで、月次調査結果の解説記事とは別領域）ことを確認した。これで少なくとも3つの独立ドメイン（pmi.spglobal.com・markiteconomics.com・hcob-bank.com）がいずれも代替経路にならないと判明し、S&P Globalの事前一括公表が存在しない構造的制約である可能性が高まった。残る未踏査経路: Ifo公式サイト内で言及のみ確認した『Calendar of Events and Release Dates』ページ（未フェッチ、DE製造業PMI・Ifo景況指数の両方をカバーする可能性）。次点は『月末の数営業日前』という規則性からのannual_schedule_config型ルール生成＋年1回手動確定への切替検討（しょうさん提案、未着手）",
+      "announce_time_by_kind": {
+        "pmi_ism": {
+          "local_time": "10:00",
+          "tz": "Europe/Berlin"
+        }
+      },
+      "notes": "task #41-3で新規追加、task #53（2026-08-15、しょうさん承認済み規則）で規則生成＋年1回手動確認方式へ切替。HCOB Flash Eurozone PMI（S&P Global）。他の中銀年次スケジュールと異なりS&P Globalは向こう1〜2ヶ月分のみのローリングPDF運用で年間分の事前一括公表が存在しない（task #41-3調査agent報告）。2026-08-15ライブ検証でpress_release_hub（pmi.spglobal.com）・旧ドメインmarkiteconomics.com・HCOB自社サイト（hcob-bank.com/en/insights/pmi/）の3ドメインすべてで自動取得不成立、Ifo『Calendar of Events and Release Dates』も実際にはハイパーリンクではない平文ラベルと判明（4経路目も不成立）。以上でS&P Globalの事前一括公表が存在しない構造的制約と確定し、代替として『月末5営業日前（営業日=週末＋England and Wales銀行休業日を除く）』という規則をWebSearch研究agent3系統＋GOV.UK公式bank-holidays.jsonでの機械計算の2経路で独立検証し、2024年通年＋2025年8月〜2026年7月の直近24ヶ月中12月を除く22/22ヶ月が完全一致することを確認した（12月は別枠の意図的例外、de_flash_pmi notes参照）。発表時刻10:00 CET/CESTはドイツ等の国別値（09:30）より30分遅い集計値としてpmi.spglobal.comのエンバーゴヘッダーで複数月分直接確認（高確度）。旧2026年1-7月分の実績値のうち2026-05-22は誤りと判明（3経路中2経路が高確度で2026-05-21を報告、1経路のみ低確度で05-22。同日発表の原則と整合するのは05-21）、05-21へ訂正した。実際の発表は製造業PMI単独ではなくサービス業PMI・総合PMIと同一エンバーゴ時刻での単一リリース（config/event-names.jsonのbundle_as_one_line表記を参照）",
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-08-15",
+      "confirmed_by": "Claude Code（3経路の独立検証・GOV.UK公式データでの機械計算突合、しょうさん承認2026-08-15）",
+      "confirmed_note": "12月の扱い・残量監視の限界についてはde_flash_pmi notes/confirmed_noteと同一（DE/EU/GBは同一規則・同一暦日で運用）",
+      "draft_rule": {
+        "description": "月末から5英国営業日前（営業日は週末＋England and Wales銀行休業日を除外）。12月は規則性が無く手動確定が必要なため生成対象外。scripts/lib/flash-pmi-schedule.js（flashPmiDraftForMonth/flashPmiDraftRange）で計算し、人間またはClaude Codeが年1回、公式報道等と突合・確定する",
+        "business_day_rule": "5th_gb_business_day_before_month_end",
+        "gb_bank_holidays_source": "config/gb-bank-holidays.json（GOV.UK公式bank-holidays.json、england-and-wales区分）",
+        "december_excluded": true
+      },
       "schedule": [
-        { "date": "2026-01-23", "kind": "pmi_ism", "subtype": "flash" },
-        { "date": "2026-02-20", "kind": "pmi_ism", "subtype": "flash" },
-        { "date": "2026-04-23", "kind": "pmi_ism", "subtype": "flash" },
-        { "date": "2026-05-22", "kind": "pmi_ism", "subtype": "flash" },
-        { "date": "2026-06-23", "kind": "pmi_ism", "subtype": "flash" },
-        { "date": "2026-07-24", "kind": "pmi_ism", "subtype": "flash" }
+        { "date": "2026-08-21", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-09-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-10-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-11-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-01-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-02-19", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-03-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-04-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-05-21", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-06-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-07-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-08-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-09-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-10-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-11-23", "kind": "pmi_ism", "subtype": "flash" }
       ],
       "residual_monitor_weeks": 4
     },
     {
       "id": "gb_flash_pmi",
       "name_ja": "S&P Global（英フラッシュPMI）",
-      "status": "draft_schedule",
+      "status": "active",
       "country": "GB",
       "kinds": [
         "pmi_ism"
@@ -2135,6 +2218,7 @@
       "recurring_check_refs": [],
       "access": {
         "robots_check": true,
+        "automated_fetch": false,
         "targets": [
           {
             "label": "press_release_hub",
@@ -2144,17 +2228,42 @@
             "label": "release_dates_pdf",
             "url": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates"
           }
-        ]
+        ],
+        "note": "task #53でde_flash_pmi/eu_flash_pmiと共通調査済み。4経路すべて不成立と確定。automated_fetch:falseとし規則生成＋年1回手動確認へ統一"
       },
-      "announce_time_by_kind": {},
-      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: S&P Global Flash UK PMI。ユーロ圏フラッシュPMIと同日発表（同一調査元・同日エンバーゴ）のため日程はeu_flash_pmiと同一。現行gb_construction_pmiは建設業PMI専業のためこのkind（製造業/サービス業フラッシュ）とは別ソース。eu_flash_pmiと同じ理由でS&P Globalの事前一括公表が無く（UK_Rel_Dates PDFがまさにこの用途のローリングPDF）、2026年1-7月分のみ収録。公表時刻は09:30という言及があるがBST/GMTどちらか不明かつ中程度の確度のため、推測値を入れずannounce_time_by_kind.pmi_ismは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: eu_flash_pmiと同一ドメイン（pmi.spglobal.com）のためrobots.txt HTTP 403で同様にSKIP。日程・時刻とも恒久的にWebSearch経由確認のまま（詳細はeu_flash_pmi notes参照）",
+      "announce_time_by_kind": {
+        "pmi_ism": {
+          "local_time": "09:30",
+          "tz": "Europe/London"
+        }
+      },
+      "notes": "task #41-3で新規追加、task #53（2026-08-15、しょうさん承認済み規則）で規則生成＋年1回手動確認方式へ切替。S&P Global Flash UK PMI。ユーロ圏フラッシュPMIと同日発表（同一調査元・同日エンバーゴ）のため日程はeu_flash_pmi/de_flash_pmiと同一（詳細な調査経緯・4経路不成立の確定・規則検証の方法論はeu_flash_pmi notes参照）。現行gb_construction_pmiは建設業PMI専業のためこのkind（製造業/サービス業フラッシュ）とは別ソース。発表時刻09:30 BST/GMTはpmi.spglobal.comの『Embargoed until 0930 BST』『0930 GMT』エンバーゴヘッダーが複数月分・複数年分（2024年12月ぶんまで遡って）直接確認できた（高確度）。旧2026年1-7月分の実績値のうち2026-05-22は誤り、05-21へ訂正（詳細はeu_flash_pmi notes参照）。task #53のGB専用調査で重要な発見: 実際の発表は『S&P Global Flash UK PMI』という単一の文書で、製造業PMI・サービス業Business Activity Index・総合Output Indexが同一エンバーゴ時刻で一体公表される（Manus参考版が『英国・製造業PMI【速報値】』の1件のみ掲載していたのは実態と不一致）。既存の束ねルール（同一国×同一source_id×同一日×90分以内のbundle_id）はこのソースが単一スケジュール行（subtype:flash）のみを登録するため元々発火対象外であり、代わりにconfig/event-names.jsonのbundle_as_one_line表記（US/CA/GB/AU小売売上高と同型）で複数系列を1行に反映する方式を採用した",
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-08-15",
+      "confirmed_by": "Claude Code（3経路の独立検証・GOV.UK公式データでの機械計算突合、しょうさん承認2026-08-15）",
+      "confirmed_note": "12月の扱い・残量監視の限界についてはde_flash_pmi notes/confirmed_noteと同一（DE/EU/GBは同一規則・同一暦日で運用）",
+      "draft_rule": {
+        "description": "月末から5英国営業日前（営業日は週末＋England and Wales銀行休業日を除外）。12月は規則性が無く手動確定が必要なため生成対象外。scripts/lib/flash-pmi-schedule.js（flashPmiDraftForMonth/flashPmiDraftRange）で計算し、人間またはClaude Codeが年1回、公式報道等と突合・確定する",
+        "business_day_rule": "5th_gb_business_day_before_month_end",
+        "gb_bank_holidays_source": "config/gb-bank-holidays.json（GOV.UK公式bank-holidays.json、england-and-wales区分）",
+        "december_excluded": true
+      },
       "schedule": [
-        { "date": "2026-01-23", "kind": "pmi_ism", "subtype": "flash" },
-        { "date": "2026-02-20", "kind": "pmi_ism", "subtype": "flash" },
-        { "date": "2026-04-23", "kind": "pmi_ism", "subtype": "flash" },
-        { "date": "2026-05-22", "kind": "pmi_ism", "subtype": "flash" },
-        { "date": "2026-06-23", "kind": "pmi_ism", "subtype": "flash" },
-        { "date": "2026-07-24", "kind": "pmi_ism", "subtype": "flash" }
+        { "date": "2026-08-21", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-09-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-10-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-11-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-01-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-02-19", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-03-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-04-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-05-21", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-06-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-07-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-08-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-09-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-10-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-11-23", "kind": "pmi_ism", "subtype": "flash" }
       ],
       "residual_monitor_weeks": 4
     },

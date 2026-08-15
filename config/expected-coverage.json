@@ -42,7 +42,7 @@
     {
       "country": "EU",
       "kind": "pmi_ism",
-      "note": "しょうさん承認2026-08-15（フラッシュPMI）。task #41-3で実装済み（eu_flash_pmi、2026年1-7月分。S&P Globalが年間分の事前公表をしないため8月以降は毎月手動更新が必要）"
+      "note": "しょうさん承認2026-08-15（フラッシュPMI）。task #41-3で実装（eu_flash_pmi）。task #53で規則生成＋年1回手動確認方式へ切替（S&P Globalの事前一括公表が存在しないため、月末5英国営業日前の規則をGOV.UK公式祝日データで検証し2026年8月〜2027年11月分をschedule収録。12月は規則性が無いため手動確定が必要、詳細はeu_flash_pmi notes/confirmed_note参照）"
     },
     {
       "country": "EU",
@@ -62,7 +62,7 @@
     {
       "country": "GB",
       "kind": "pmi_ism",
-      "note": "しょうさん承認2026-08-15（フラッシュPMI・製造業/サービス業）。task #41-3で実装済み（gb_flash_pmi、既存gb_construction_pmi[建設業PMI]とはsubtypeで区別）"
+      "note": "しょうさん承認2026-08-15（フラッシュPMI・製造業/サービス業）。task #41-3で実装（gb_flash_pmi、既存gb_construction_pmi[建設業PMI]とはsubtypeで区別）。task #53で規則生成＋年1回手動確認方式へ切替（詳細はeu_flash_pmi notes参照、EU/GB/DEは同一規則・同一暦日）"
     },
     {
       "country": "AU",
@@ -152,7 +152,12 @@
     {
       "country": "DE",
       "kind": "sentiment",
-      "note": "しょうさん承認2026-08-15（task #50/52、DE国追加。ドイツ製造業PMI・ZEW・Ifo等はEURペアで★★★級との指摘）。ZEW Indicator of Economic Sentimentをde_zewとして実装済み（2026-08-15ライブ検証、zew.de公式プレスリリースの年次一括公表を確認）。ドイツ製造業PMI（S&P Global。既存task #16ブロッカーと同一構造的制約）・Ifo Business Climate Index（実測継続中、次点候補）は未実装（task #52/53参照）"
+      "note": "しょうさん承認2026-08-15（task #50/52、DE国追加。ドイツ製造業PMI・ZEW・Ifo等はEURペアで★★★級との指摘）。ZEW Indicator of Economic Sentimentをde_zewとして実装済み（2026-08-15ライブ検証、zew.de公式プレスリリースの年次一括公表を確認）。Ifo Business Climate Index（実測継続中、次点候補）は未実装。ドイツ製造業PMIはtask #53で別途pmi_ismとして実装済み（下記参照）"
+    },
+    {
+      "country": "DE",
+      "kind": "pmi_ism",
+      "note": "しょうさん承認2026-08-15（フラッシュPMI・task #53で新規実装）。de_flash_pmi。S&P Globalの直接取得が4経路（press_release_hub・markiteconomics.com・hcob-bank.com・Ifo『Calendar of Events and Release Dates』）すべて不成立と確定したため、規則生成＋年1回手動確認方式を採用（月末5英国営業日前、GOV.UK公式祝日データで24ヶ月中22ヶ月を検証。詳細はde_flash_pmi notes/confirmed_note参照。EU/GBと同一規則・同一暦日）"
     }
   ],
   "_pending_not_yet_added": {
