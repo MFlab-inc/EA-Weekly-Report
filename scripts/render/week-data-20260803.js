@@ -1,5 +1,13 @@
 'use strict';
 // 2026-08-03週の入力データ。scripts/phase0/expected-events.json（実測ground truth）から転記。
+//
+// 【役割変更（2026-08-15、しょうさん指示によるcollect→build-ledger→render実データ接続後）】
+// 本ファイルはもはや「本番レンダラーの入力」ではない（本番は scripts/collect.mjs →
+// scripts/build-ledger.mjs → scripts/render.mjs が data/ledger/*.json から動的に生成する。
+// scripts/render/ledger-to-week-input.js参照）。現在の唯一の用途は
+// test/renderer.test.js（design-mock_v1.2.html準拠のレンダリングエンジン自体の回帰テスト:
+// 停止バー%・▲位置・イベントカードID列等がモックと完全一致するかの検証）向けの固定フィクスチャ。
+// 実データ経路の正しさはtest/regen-sample-weeks.test.jsが別途検証している（本ファイルとは無関係）。
 // displayNameはconfig/event-names.json辞書またはscripts/lib/naming.js（規則生成）に準拠。
 // FRB理事クック氏はconfig/officials.json未登録（task #17）のため、SPEC §4.2の
 // 「verified:falseは役職のみ」規則どおり「FRB理事の発言」と役職のみで命名する

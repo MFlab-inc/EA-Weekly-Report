@@ -1,6 +1,17 @@
 'use strict';
 // 2026-08-10週の入力データ。templates/design-mock_v1.2.htmlの実例値をそのまま転記した
-// （このモジュール自体がそのままデザイン契約の回帰テスト用データになる）。
+// （このモジュール自体がそのままデザイン契約の回帰テスト用データになる。test/renderer.test.js専用）。
+//
+// 【役割変更（2026-08-15、しょうさん指示によるcollect→build-ledger→render実データ接続後）】
+// 本ファイルはもはや「本番レンダラーの入力」ではない（scripts/render/week-data-20260803.jsの
+// ファイル先頭コメント参照）。加えて2026-08-15の実データ経路regressionテスト
+// （test/regen-sample-weeks.test.js）で判明した点として、本ファイルはdesign-mock_v1.2.html
+// （デザイン契約のサンプル値）をそのまま転記したものであり、scripts/phase0/expected-events.json
+// （実測ground truth・29イベント）とは完全には一致しない（例: 中古住宅販売件数[us-ehs]・
+// 製造業生産高[gb-manuf]・ミシガン大学消費者信頼感指数[us-umich]はデザイン契約のサンプル値であり、
+// 既刊の実配信物には含まれない）。よってoutput/ea-weekly-20260810.html（本ファイルから生成・
+// コミット済み）を「既刊の完全な再現」の基準として扱わないこと。既刊の実データ突合は
+// test/regen-sample-weeks.test.jsが別途行っている
 // show_prev_forecast=false（恒久確定）のため、prevForecastTextは保持するが
 // レンダラー側では出力しない（config/report-policy.jsonのshow_prev_forecast参照）。
 module.exports = {
