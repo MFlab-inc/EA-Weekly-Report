@@ -103,10 +103,10 @@ test('validateExpectedCoverage: 実config — 国×kind必須マトリクス（�
   const stillMissing = r.missing.map((m) => `${m.country}:${m.kind}`).sort();
   const expectedStillMissing = [
     // --- task #41-1（中銀議事要旨4件。既存ソースへの追記で対応可能。着手順1・最優先） ---
-    'US:minutes_summary', // FOMC議事録。既存us_frb_policy_rateへ追記（会合終了+21日固定オフセット）
-    'EU:minutes_summary', // ECB Accounts of the monetary policy meeting。既存ecb_policy_rateへ追記（次回日程を事前明示）
-    'AU:minutes_summary', // RBA議事要旨。既存au_rbaへ追記（会合2週間後固定オフセット）
-    'CA:minutes_summary', // BOC Summary of Governing Council Deliberations。既存boc_policy_rateへ追記（BOCが翌年分日程を毎年8月に事前公表）
+    // US:minutes_summary（FOMC議事録）・AU:minutes_summary（RBA議事要旨）は実装済み（2026-08-15、
+    // 既存us_frb_policy_rate/au_rbaへ固定オフセットで算出したscheduleを追加）のためここから削除した
+    'EU:minutes_summary', // ECB Accounts of the monetary policy meeting。既存ecb_policy_rateへ追記（次回日程を事前明示、実際の日付を要調査）
+    'CA:minutes_summary', // BOC Summary of Governing Council Deliberations。既存boc_policy_rateへ追記（BOCが翌年分日程を毎年8月に事前公表、実際の日付を要調査）
     // --- task #41-2（日本3件。新規annual_schedule_config候補として調査済み。着手順2） ---
     'JP:cpi', // 総務省統計局。固定ルール（19日を含む週の金曜08:30）
     'JP:gdp', // 内閣府/ESRI。stat-schedule.htmlでFY2026全4四半期の日程確認済み

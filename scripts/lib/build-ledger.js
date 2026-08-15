@@ -44,6 +44,16 @@ const OFFICIAL_SPEECH_ROLE_BY_COUNTRY = {
   US: 'FRB理事',
 };
 
+// minutes_summary（中銀議事要旨）のBOJ以外向け国別命名（task #41-1、しょうさん承認済み
+// 国×kindマトリクス）。BOJ（naming.bojMinutesName、periodJa付き）とは異なり、各中銀の
+// 議事要旨は通称としての固有名詞が既に確立しているため、対象会合の特定を伴わない固定文言とする。
+// 会合日程自体は既存の中銀ソース（us_frb_policy_rate/au_rba等）のscheduleへ固定オフセットで
+// 算出したminutes_summaryエントリを追加する形で配線している（新規フェッチ不要）
+const MINUTES_SUMMARY_NAME_BY_COUNTRY = {
+  US: 'FOMC議事録',
+  AU: 'RBA議事要旨',
+};
+
 // SPEC §4.2の規則生成命名テンプレート（scripts/lib/naming.js）による解決を試みる。
 // - policy_rate/quarterly_report: candidate.country（naming.BANK_ABBR_BY_COUNTRY）のみで解決可能
 // - press_conference: officials（country×role_type=central_bank_governor）で解決可能
@@ -72,8 +82,9 @@ function resolveRuleGeneratedName(candidate, officials) {
   if (candidate.kind === 'opinions_summary' && candidate.country === 'JP') {
     return naming.bojOpinionsName(candidate.periodJa);
   }
-  if (candidate.kind === 'minutes_summary' && candidate.country === 'JP') {
-    return naming.bojMinutesName(candidate.periodJa);
+  if (candidate.kind === 'minutes_summary') {
+    if (candidate.country === 'JP') return naming.bojMinutesName(candidate.periodJa);
+    return MINUTES_SUMMARY_NAME_BY_COUNTRY[candidate.country] || null;
   }
   if (candidate.kind === 'bond_auction' && candidate.tenorJa) {
     const issueYearMonthJa = issueYearMonthJaFromDate(candidate.date);

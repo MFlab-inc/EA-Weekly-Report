@@ -9,28 +9,120 @@
     }
   ],
   "additional_required": [
-    { "country": "JP", "kind": "cpi", "note": "しょうさん承認2026-08-15（task #38コード名: 国×kind必須マトリクス）。総務省統計局。2026-08-15時点でca_statcan/au_absと同型のannual_schedule_config候補（e-Stat/各省庁ページ実測が必要、task #41）" },
-    { "country": "JP", "kind": "gdp", "note": "しょうさん承認2026-08-15。内閣府/ESRI。task #41で実装予定" },
-    { "country": "JP", "kind": "trade_balance", "note": "しょうさん承認2026-08-15。財務省税関。task #41で実装予定" },
-    { "country": "US", "kind": "minutes_summary", "note": "しょうさん承認2026-08-15。FOMC議事録。既存us_frb_policy_rate（会合日程を保持）への追記で対応可能（会合終了+21日固定オフセット、task #41）" },
-    { "country": "EU", "kind": "cpi", "note": "しょうさん承認2026-08-15（ユーロ圏HICP）。Eurostat release-calendar ICS feed（tier a、task #41で実装予定）" },
-    { "country": "EU", "kind": "gdp", "note": "しょうさん承認2026-08-15。Eurostat。task #41で実装予定" },
-    { "country": "EU", "kind": "pmi_ism", "note": "しょうさん承認2026-08-15（フラッシュPMI）。task #41で実装予定" },
-    { "country": "EU", "kind": "minutes_summary", "note": "しょうさん承認2026-08-15（ECB Accounts of the monetary policy meeting）。既存ecb_policy_rateへの追記で対応可能（次回日程を事前明示、task #41）" },
-    { "country": "GB", "kind": "cpi", "note": "しょうさん承認2026-08-15。task #38で実装済み（gb_ons、query=CPIターゲット追加）。ライブ検証は次回本番run" },
-    { "country": "GB", "kind": "gdp", "note": "しょうさん承認2026-08-15。既存gb_ons（gdp）で充足済み。API仕様上の過去週検証不可という既知の制約あり（official-sources.json gb_ons notes参照）" },
-    { "country": "GB", "kind": "pmi_ism", "note": "しょうさん承認2026-08-15（フラッシュPMI・製造業/サービス業）。現行gb_construction_pmiは建設業PMIのみで対象外。別ソースとしてtask #41で実装予定" },
-    { "country": "AU", "kind": "cpi", "note": "しょうさん承認2026-08-15。task #38で実装済み（au_abs）" },
-    { "country": "AU", "kind": "gdp", "note": "しょうさん承認2026-08-15。au_absの実fixture窓には未出現（ABS正式名『Australian National Accounts』要ライブ確認、task #41）" },
-    { "country": "AU", "kind": "employment_situation", "note": "しょうさん承認2026-08-15。task #38で実装済み（au_abs、8/17週の欠損事例そのもの）" },
-    { "country": "AU", "kind": "minutes_summary", "note": "しょうさん承認2026-08-15（RBA議事要旨）。既存au_rbaへの追記で対応可能（会合2週間後固定オフセット、task #41）" },
-    { "country": "NZ", "kind": "cpi", "note": "しょうさん承認2026-08-15。task #41で実装予定" },
-    { "country": "NZ", "kind": "gdp", "note": "しょうさん承認2026-08-15。task #41で実装予定" },
-    { "country": "CA", "kind": "cpi", "note": "しょうさん承認2026-08-15。task #38で実装済み（ca_statcan、8/17週の欠損事例そのもの）" },
-    { "country": "CA", "kind": "gdp", "note": "しょうさん承認2026-08-15。task #38で実装済み（ca_statcan、月次GDP）" },
-    { "country": "CA", "kind": "minutes_summary", "note": "しょうさん承認2026-08-15（BOC Summary of Governing Council Deliberations）。BOCが翌年分日程を毎年8月に事前公表（最も確実なtier）。既存boc_policy_rateへの追記で対応可能（task #41）" },
-    { "country": "CN", "kind": "industrial_production", "note": "しょうさん承認2026-08-15（AUD系ペアの停止判断に直結するため必須）。NBS（国家統計局）担当。task #16（S&P Global系PMIブロッカー）とは無関係の別トラック。新設kind（config/importance-rules.jsonのimportance_by_kindに追加済み）。task #41で実装予定" },
-    { "country": "CN", "kind": "retail_sales", "note": "しょうさん承認2026-08-15。NBS担当。task #41で実装予定" },
-    { "country": "CN", "kind": "gdp", "note": "しょうさん承認2026-08-15（四半期GDP）。NBS担当。task #41で実装予定" }
+    {
+      "country": "JP",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15（task #38コード名: 国×kind必須マトリクス）。総務省統計局。2026-08-15時点でca_statcan/au_absと同型のannual_schedule_config候補（e-Stat/各省庁ページ実測が必要、task #41）"
+    },
+    {
+      "country": "JP",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。内閣府/ESRI。task #41で実装予定"
+    },
+    {
+      "country": "JP",
+      "kind": "trade_balance",
+      "note": "しょうさん承認2026-08-15。財務省税関。task #41で実装予定"
+    },
+    {
+      "country": "US",
+      "kind": "minutes_summary",
+      "note": "しょうさん承認2026-08-15。task #41-1で実装済み（既存us_frb_policy_rateへ会合終了+21日固定オフセットで算出したschedule追加）"
+    },
+    {
+      "country": "EU",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15（ユーロ圏HICP）。Eurostat release-calendar ICS feed（tier a、task #41で実装予定）"
+    },
+    {
+      "country": "EU",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。Eurostat。task #41で実装予定"
+    },
+    {
+      "country": "EU",
+      "kind": "pmi_ism",
+      "note": "しょうさん承認2026-08-15（フラッシュPMI）。task #41で実装予定"
+    },
+    {
+      "country": "EU",
+      "kind": "minutes_summary",
+      "note": "しょうさん承認2026-08-15（ECB Accounts of the monetary policy meeting）。既存ecb_policy_rateへの追記で対応可能（次回日程を事前明示、task #41）"
+    },
+    {
+      "country": "GB",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15。task #38で実装済み（gb_ons、query=CPIターゲット追加）。ライブ検証は次回本番run"
+    },
+    {
+      "country": "GB",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。既存gb_ons（gdp）で充足済み。API仕様上の過去週検証不可という既知の制約あり（official-sources.json gb_ons notes参照）"
+    },
+    {
+      "country": "GB",
+      "kind": "pmi_ism",
+      "note": "しょうさん承認2026-08-15（フラッシュPMI・製造業/サービス業）。現行gb_construction_pmiは建設業PMIのみで対象外。別ソースとしてtask #41で実装予定"
+    },
+    {
+      "country": "AU",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15。task #38で実装済み（au_abs）"
+    },
+    {
+      "country": "AU",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。au_absの実fixture窓には未出現（ABS正式名『Australian National Accounts』要ライブ確認、task #41）"
+    },
+    {
+      "country": "AU",
+      "kind": "employment_situation",
+      "note": "しょうさん承認2026-08-15。task #38で実装済み（au_abs、8/17週の欠損事例そのもの）"
+    },
+    {
+      "country": "AU",
+      "kind": "minutes_summary",
+      "note": "しょうさん承認2026-08-15。task #41-1で実装済み（既存au_rbaへ会合2週間後固定オフセットで算出したschedule追加）"
+    },
+    {
+      "country": "NZ",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15。task #41で実装予定"
+    },
+    {
+      "country": "NZ",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。task #41で実装予定"
+    },
+    {
+      "country": "CA",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15。task #38で実装済み（ca_statcan、8/17週の欠損事例そのもの）"
+    },
+    {
+      "country": "CA",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。task #38で実装済み（ca_statcan、月次GDP）"
+    },
+    {
+      "country": "CA",
+      "kind": "minutes_summary",
+      "note": "しょうさん承認2026-08-15（BOC Summary of Governing Council Deliberations）。BOCが翌年分日程を毎年8月に事前公表（最も確実なtier）。既存boc_policy_rateへの追記で対応可能（task #41）"
+    },
+    {
+      "country": "CN",
+      "kind": "industrial_production",
+      "note": "しょうさん承認2026-08-15（AUD系ペアの停止判断に直結するため必須）。NBS（国家統計局）担当。task #16（S&P Global系PMIブロッカー）とは無関係の別トラック。新設kind（config/importance-rules.jsonのimportance_by_kindに追加済み）。task #41で実装予定"
+    },
+    {
+      "country": "CN",
+      "kind": "retail_sales",
+      "note": "しょうさん承認2026-08-15。NBS担当。task #41で実装予定"
+    },
+    {
+      "country": "CN",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15（四半期GDP）。NBS担当。task #41で実装予定"
+    }
   ]
 }

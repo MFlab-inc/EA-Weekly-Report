@@ -191,6 +191,44 @@ test('annualEntryToCandidate: CA CPI/GDP(月次)が実configから名称解決�
   assert.equal(gdpCandidate.displayName, '国内総生産（GDP）');
 });
 
+// task #41-1（しょうさん承認済み国×kindマトリクス）の回帰テスト: FOMC議事録・RBA議事要旨を
+// 既存の中銀ソース（新規フェッチ不要・会合日程から固定オフセットで算出）へ追加した。
+// 2026-07-29のFOMC会合→米東部時間2026-08-19 14:00の議事録公表は、まさに8/17週の欠損事例
+// （しょうさん指摘）そのもの（JST変換すると日付繰り上がりで2026-08-20 03:00になる。下記参照）。
+// minutes_summaryはSPEC §4.2の規則生成kindのため、displayNameの解決はannualEntryToCandidate
+// （resolveAnnualDictionaryName経由）ではなくresolveRuleGeneratedName（scripts/lib/build-ledger.js）
+// の責務（RULE_GENERATED_KINDSにより常にnullを返す。36行目「displayNameはnull」テスト参照）。
+// 2026-08-15: 当初annualEntryToCandidate側でdisplayNameを検証する誤ったテストを書いており
+// （resolveAnnualDictionaryNameがminutes_summaryを解決しないため失敗）、責務どおりに修正した際、
+// c.dateの期待値も誤り（JST日付繰り上がりを考慮していなかった）と判明したため合わせて修正した
+test('annualEntryToCandidate + resolveRuleGeneratedName: FOMC議事録（US minutes_summary）が実configから正しく組み立てられる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const { resolveRuleGeneratedName } = require('../scripts/lib/build-ledger');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'us_frb_policy_rate');
+  const importanceRules = { importance_by_kind: { minutes_summary: 2 }, country_overrides: [{ kind: 'minutes_summary', country: 'US', importance: 3 }] };
+  const entry = source.schedule.find((e) => e.kind === 'minutes_summary' && e.date === '2026-08-19');
+  assert.ok(entry, '2026-08-19のFOMC議事録scheduleエントリが見つからない');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, null); // rule_generated kindのためresolveAnnualDictionaryNameは対象外
+  assert.equal(c.time, '03:00'); // 14:00 ET(EDT, UTC-4、8月はサマータイム中) → 翌日03:00 JST
+  assert.equal(c.date, '2026-08-20'); // JST変換で日付が繰り上がる（8/17週内・木曜のまま）
+  assert.equal(c.importance, 3); // country_overrides（US/minutes_summary）で★★★
+  assert.equal(resolveRuleGeneratedName({ kind: c.kind, country: c.country }, null), 'FOMC議事録');
+});
+
+test('annualEntryToCandidate + resolveRuleGeneratedName: RBA議事要旨（AU minutes_summary）が実configから正しく組み立てられる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const { resolveRuleGeneratedName } = require('../scripts/lib/build-ledger');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'au_rba');
+  const importanceRules = { importance_by_kind: { minutes_summary: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'minutes_summary' && e.date === '2026-08-25');
+  assert.ok(entry, '2026-08-25のRBA議事要旨scheduleエントリが見つからない（8/11会合の2週間後）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, null); // rule_generated kindのためresolveAnnualDictionaryNameは対象外
+  assert.equal(c.importance, 2); // country_overrides無し（既定の★★のまま）
+  assert.equal(resolveRuleGeneratedName({ kind: c.kind, country: c.country }, null), 'RBA議事要旨');
+});
+
 test('renderText: outcome・候補一覧・停止目安を含むテキストを生成する（例外を投げない）', async () => {
   const { buildObservationSummary, renderText } = await import('../scripts/phase1/observation-run.mjs');
   const report = {

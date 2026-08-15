@@ -86,7 +86,8 @@
       "kinds": [
         "policy_rate",
         "quarterly_report",
-        "press_conference"
+        "press_conference",
+        "minutes_summary"
       ],
       "type": "annual_schedule_config",
       "recurring_check_refs": [],
@@ -178,6 +179,46 @@
         {
           "date": "2026-12-08",
           "kind": "press_conference"
+        },
+        {
+          "date": "2026-02-17",
+          "kind": "minutes_summary",
+          "note": "会合2週間後固定オフセット（火曜11:30現地）で算出（task #41-1調査）"
+        },
+        {
+          "date": "2026-03-31",
+          "kind": "minutes_summary",
+          "note": "会合2週間後固定オフセット（火曜11:30現地）で算出（task #41-1調査）"
+        },
+        {
+          "date": "2026-05-19",
+          "kind": "minutes_summary",
+          "note": "会合2週間後固定オフセット（火曜11:30現地）で算出（task #41-1調査）"
+        },
+        {
+          "date": "2026-06-30",
+          "kind": "minutes_summary",
+          "note": "会合2週間後固定オフセット（火曜11:30現地）で算出（task #41-1調査）"
+        },
+        {
+          "date": "2026-08-25",
+          "kind": "minutes_summary",
+          "note": "会合2週間後固定オフセット（火曜11:30現地）で算出（task #41-1調査）"
+        },
+        {
+          "date": "2026-10-13",
+          "kind": "minutes_summary",
+          "note": "会合2週間後固定オフセット（火曜11:30現地）で算出（task #41-1調査）"
+        },
+        {
+          "date": "2026-11-17",
+          "kind": "minutes_summary",
+          "note": "会合2週間後固定オフセット（火曜11:30現地）で算出（task #41-1調査）"
+        },
+        {
+          "date": "2026-12-22",
+          "kind": "minutes_summary",
+          "note": "会合2週間後固定オフセット（火曜11:30現地）で算出（task #41-1調査）"
         }
       ],
       "access": {
@@ -202,9 +243,13 @@
         "press_conference": {
           "local_time": "15:30",
           "tz": "Australia/Sydney"
+        },
+        "minutes_summary": {
+          "local_time": "11:30",
+          "tz": "Australia/Sydney"
         }
       },
-      "notes": "2026-08-14: 実測fixture（board_meeting_schedule.html）から年間8会合の日付を抽出（scripts/checkers/extractors/rba.js）し、weekly_scrapeからannual_schedule_config型へ再分類（RBAは翌年分を年1回まとめて公表する年次公表ソースのため）。8月分はground truth 3件（policy_rate/press_conference/quarterly_report、いずれも2026-08-11）と完全一致を確認。四半期報告(quarterly_report)を伴う月は公知のRBA運用（Feb/May/Aug/Nov）と仮定しているが、既刊で確認できたのは8月分のみのため、他3ヶ月（Feb/May/Nov）は月曜FF事後突合（SPEC §3.3）での確認待ち。下院経済委員会証言（testimony）はRBAではなく豪州議会（aph.gov.au）側の告知が必要なため本ソースの担当外（未実装・将来対応）"
+      "notes": "2026-08-14: 実測fixture（board_meeting_schedule.html）から年間8会合の日付を抽出（scripts/checkers/extractors/rba.js）し、weekly_scrapeからannual_schedule_config型へ再分類（RBAは翌年分を年1回まとめて公表する年次公表ソースのため）。8月分はground truth 3件（policy_rate/press_conference/quarterly_report、いずれも2026-08-11）と完全一致を確認。四半期報告(quarterly_report)を伴う月は公知のRBA運用（Feb/May/Aug/Nov）と仮定しているが、既刊で確認できたのは8月分のみのため、他3ヶ月（Feb/May/Nov）は月曜FF事後突合（SPEC §3.3）での確認待ち。下院経済委員会証言（testimony）はRBAではなく豪州議会（aph.gov.au）側の告知が必要なため本ソースの担当外（未実装・将来対応） | 2026-08-15追記（task #41-1、しょうさん承認済み国×kindマトリクス）: minutes_summary（RBA議事要旨、Minutes of the Monetary Policy Meeting of the Board）を追加。会合2週間後固定オフセット（火曜11:30現地）で算出。会合日程自体は既存実測データをそのまま利用（新規フェッチ不要）"
     },
     {
       "id": "us_census",
@@ -1156,7 +1201,8 @@
       "kinds": [
         "policy_rate",
         "press_conference",
-        "quarterly_report"
+        "quarterly_report",
+        "minutes_summary"
       ],
       "type": "annual_schedule_config",
       "recurring_check_refs": [],
@@ -1182,9 +1228,13 @@
         "press_conference": {
           "local_time": "14:30",
           "tz": "America/New_York"
+        },
+        "minutes_summary": {
+          "local_time": "14:00",
+          "tz": "America/New_York"
         }
       },
-      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。既存us_frb_speeches（理事講演）とは別物。2026-08-15実測: robots.txt許可・HTTP 200・164KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。構造確認・抽出ルール実装は未着手 | 2026-08-15: annual_schedule_config化完了（scripts/checkers/extractors/frb-policy-rate.js実測）。schedule[]は2026-01以降を収録（fixtureは2021年分まで遡れるが直近2年分に限定）。既実施会合（2026-07-29等）が抽出結果に含まれることを確認済み（検証基準a）。発表時刻14:00 ET(声明)・14:30 ET(会見)はFRB公式運用の規定時刻（2019年以降全会合後に会見を実施）。DST変換テストはtest/tz-convert.test.js・test/resolve-candidate.test.jsのAmerica/New_York変換で担保",
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。既存us_frb_speeches（理事講演）とは別物。2026-08-15実測: robots.txt許可・HTTP 200・164KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。構造確認・抽出ルール実装は未着手 | 2026-08-15: annual_schedule_config化完了（scripts/checkers/extractors/frb-policy-rate.js実測）。schedule[]は2026-01以降を収録（fixtureは2021年分まで遡れるが直近2年分に限定）。既実施会合（2026-07-29等）が抽出結果に含まれることを確認済み（検証基準a）。発表時刻14:00 ET(声明)・14:30 ET(会見)はFRB公式運用の規定時刻（2019年以降全会合後に会見を実施）。DST変換テストはtest/tz-convert.test.js・test/resolve-candidate.test.jsのAmerica/New_York変換で担保 | 2026-08-15追記（task #41-1、しょうさん承認済み国×kindマトリクス）: minutes_summary（FOMC議事録）を追加。会合終了日+21日固定オフセット（14:00 ET）で算出。WebSearch経由で2026年の3件の実例（1/27-28→2/18、3/17-18→4/8、6/16-17→7/8）と一致確認済み。会合日程自体はfederalreserve.gov/monetarypolicy/fomccalendars.htmの既存実測データをそのまま利用（新規フェッチ不要）",
       "schedule": [
         {
           "date": "2026-01-28",
@@ -1353,6 +1403,86 @@
           "date": "2027-12-08",
           "kind": "quarterly_report",
           "note": "Summary of Economic Projections公表会合"
+        },
+        {
+          "date": "2026-02-18",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2026-04-08",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2026-05-20",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2026-07-08",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2026-08-19",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2026-10-07",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2026-11-18",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2026-12-30",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（休日調整は未考慮。年末年始のため実際の日付とずれる可能性あり、要ライブ確認）"
+        },
+        {
+          "date": "2027-02-17",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2027-04-07",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2027-05-19",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2027-06-30",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2027-08-18",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2027-10-06",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2027-11-17",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
+        },
+        {
+          "date": "2027-12-29",
+          "kind": "minutes_summary",
+          "note": "会合終了+21日固定オフセットで算出（task #41-1調査で3件の実例と一致確認済み）"
         }
       ],
       "residual_monitor_weeks": 4
