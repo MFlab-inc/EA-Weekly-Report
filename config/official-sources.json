@@ -49,7 +49,7 @@
           {
             "release_id": 53,
             "kind": "gdp",
-            "note": "2026-08-15追加（しょうさん指摘: US GDPが未登録だった）。release_id=53はFRED『Gross Domestic Product』（BEA）。WebSearch経由での確認（fred.stlouisfed.org/release?rid=53等の複数独立ページで確認）。ライブ検証（実APIレスポンス確認）は未実施のため次回本番runで確認すること"
+            "note": "2026-08-15追加（しょうさん指摘: US GDPが未登録だった）。release_id=53はFRED『Gross Domestic Product』（BEA）。WebSearch経由での確認（fred.stlouisfed.org/release?rid=53等の複数独立ページで確認） | 2026-08-15ライブ検証PASS（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク・実FRED_API_KEY経由）: 実APIレスポンスで2026年分8件の実在release_dates（1/22・2/20・3/13・4/9・4/30・5/28・6/25・7/30）を確認。release_id=53が有効かつ正しいリリースを指していることを確認済み"
           }
         ]
       },
@@ -317,7 +317,7 @@
           "tz": "Europe/London"
         }
       },
-      "notes": "抽出はscripts/checkers/extractors/ons.js（releases[].description.title/release_dateをJSON.parseで直接取得）。9元中最良の構造化JSON API（release_date・date_changes訂正履歴を含む）。統計実施規範により12ヶ月ローリング事前公表＋4週間前確定。既知の制約（2026-08-14実測で判明）: 本APIは`release-type=type-upcoming`のため実行時点より未来の日程しか返さない。そのため既刊ground truth（2026-08-13のGDP速報値）のような既に過去となった日付は本番同様の照合ができない（本番運用では対象週は常に未来のため実害はない） | 2026-08-15追記（しょうさん指示・恒久的な検証免除にしない）: 「未来日程は照合済み」の事実を明記する。実キャプチャ済みfixture（releases_api_upcoming_gdp.json）に含まれる実在リリース『GDP monthly estimate, UK: July 2026』（2026-09-11発表予定）の抽出をtest/harness.test.jsで回帰テスト化した。また、この過程でevent-names.jsonのGB/gdp matchキーワード（旧: gdp m/m・prelim gdp q/q、FF想定の表記）が、実際の担当ソースgb_onsが返す実タイトル形式『GDP first quarterly estimate, UK: {期間}』と一致しないバグをWebSearchでons.gov.uk実在ブリテン名を確認のうえ発見・修正した（config/event-names.json・test/match-event-name.test.js参照）。現行fixtureのAPIレスポンス窓（2026-09-11〜10-15）には次回のGDP first quarterly estimate（Q3=7-9月分、11月頃公表見込み）自体は含まれていないため、修正後のmatchキーワードは既刊実例の文言（第2四半期分）と架空でない実タイトル形式の両方で確認したうえでの訂正であり、次回API窓に入り次第そのまま機能する設計 | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: query=CPIターゲットを追加し、CPIをkindsへ追加した。harness.mjs側もprimaryLabelを外して両ターゲットをマージする方式へ変更。CPIの実APIレスポンスはこのサンドボックスからons.gov.ukへ直接フェッチ不可のためfixture化・ライブ検証は未実施（config/event-names.jsonのGB/cpiエントリ参照。次回本番runでのライブ検証が必要）"
+      "notes": "抽出はscripts/checkers/extractors/ons.js（releases[].description.title/release_dateをJSON.parseで直接取得）。9元中最良の構造化JSON API（release_date・date_changes訂正履歴を含む）。統計実施規範により12ヶ月ローリング事前公表＋4週間前確定。既知の制約（2026-08-14実測で判明）: 本APIは`release-type=type-upcoming`のため実行時点より未来の日程しか返さない。そのため既刊ground truth（2026-08-13のGDP速報値）のような既に過去となった日付は本番同様の照合ができない（本番運用では対象週は常に未来のため実害はない） | 2026-08-15追記（しょうさん指示・恒久的な検証免除にしない）: 「未来日程は照合済み」の事実を明記する。実キャプチャ済みfixture（releases_api_upcoming_gdp.json）に含まれる実在リリース『GDP monthly estimate, UK: July 2026』（2026-09-11発表予定）の抽出をtest/harness.test.jsで回帰テスト化した。また、この過程でevent-names.jsonのGB/gdp matchキーワード（旧: gdp m/m・prelim gdp q/q、FF想定の表記）が、実際の担当ソースgb_onsが返す実タイトル形式『GDP first quarterly estimate, UK: {期間}』と一致しないバグをWebSearchでons.gov.uk実在ブリテン名を確認のうえ発見・修正した（config/event-names.json・test/match-event-name.test.js参照）。現行fixtureのAPIレスポンス窓（2026-09-11〜10-15）には次回のGDP first quarterly estimate（Q3=7-9月分、11月頃公表見込み）自体は含まれていないため、修正後のmatchキーワードは既刊実例の文言（第2四半期分）と架空でない実タイトル形式の両方で確認したうえでの訂正であり、次回API窓に入り次第そのまま機能する設計 | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: query=CPIターゲットを追加し、CPIをkindsへ追加した。harness.mjs側もprimaryLabelを外して両ターゲットをマージする方式へ変更。CPIの実APIレスポンスはこのサンドボックスからons.gov.ukへ直接フェッチ不可のためfixture化・ライブ検証は未実施（config/event-names.jsonのGB/cpiエントリ参照。次回本番runでのライブ検証が必要） | 2026-08-15ライブ検証PASS（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク経由）: query=CPIターゲットの実APIレスポンスを直接取得し、実タイトル『Consumer price inflation, UK: July 2026』・release_date=2026-08-19T06:00:00Z（=07:00 BST）を確認。event-names.jsonのGB/cpi matchキーワード『consumer price inflation』・announce_time_by_kind.cpi（07:00 Europe/London）とも完全一致（GB GDPの前例と異なり今回は不一致なし）。同APIレスポンスには『Contributions to the 12-month rate of CPI(H) by import intensity』という別リリースも混在するが、matchキーワードに一致しないため誤って拾われないことも確認済み"
     },
     {
       "id": "nz_statsnz",
@@ -375,7 +375,7 @@
           "note": "公式ページで直接確認できず、FXStreet等のGMT表記からの逆算（慣行値、中程度の確度）。nz_statsnz（雇用統計）と同一時刻帯で運用上一貫性がある"
         }
       },
-      "notes": "task #41-4（2026-08-15、しょうさん承認済み国×kindマトリクス）: NZ CPI（四半期リリース。他国の多くが月次なのに対しNZは四半期のみ）。nz_statsnz（雇用統計）と同様、Stats NZは年次一括の事前公表カレンダーを持たない（open data API廃止・年次PDF未発見、nz_statsnz notes参照）。将来的にはnz_statsnzと同じnext_release_pointer方式（各四半期ページが次回リリース日を本文に埋め込む）への統合が望ましいが、抽出コードの拡張（extractors/nz-statsnz.jsをCPI/GDPページ構造にも対応させる）が必要なため、task #41-4では暫定的に2026年分の実発表日をWebSearch経由で個別収録した（2ソース以上で相互裏付けが取れた3件のみ。9月期分は単一情報源のみで未確定のため収録していない）",
+      "notes": "task #41-4（2026-08-15、しょうさん承認済み国×kindマトリクス）: NZ CPI（四半期リリース。他国の多くが月次なのに対しNZは四半期のみ）。nz_statsnz（雇用統計）と同様、Stats NZは年次一括の事前公表カレンダーを持たない（open data API廃止・年次PDF未発見、nz_statsnz notes参照）。将来的にはnz_statsnzと同じnext_release_pointer方式（各四半期ページが次回リリース日を本文に埋め込む）への統合が望ましいが、抽出コードの拡張（extractors/nz-statsnz.jsをCPI/GDPページ構造にも対応させる）が必要なため、task #41-4では暫定的に2026年分の実発表日をWebSearch経由で個別収録した（2ソース以上で相互裏付けが取れた3件のみ。9月期分は単一情報源のみで未確定のため収録していない） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: release-calendar/を実ネットワークで直接取得したが、既存のnz_statsnz notesに記載済みの既知の制約（SPA構造で静的取得不可）のとおり、本文には実質的なコンテンツが含まれておらず（『Release calendar | Stats NZ』のタイトルのみ）、日程データへの到達不可。schedule[]は引き続きWebSearch経由確認のまま未検証",
       "schedule": [
         { "date": "2026-01-23", "kind": "cpi", "note": "2025年12月期。2ソースで裏付け済み" },
         { "date": "2026-04-21", "kind": "cpi", "note": "2026年3月期。2ソースで裏付け済み" },
@@ -409,7 +409,7 @@
           "note": "nz_stats_cpiと同一の逆算根拠（慣行値、中程度の確度）"
         }
       },
-      "notes": "task #41-4（2026-08-15、しょうさん承認済み国×kindマトリクス）: NZ GDP（四半期リリース）。nz_stats_cpiと同じ理由で暫定annual_schedule_config方式とした。2026年分のうち2ソースで裏付けが取れた2件のみ収録（2026年6月期分・9月期分は単一情報源または未発見のため収録していない。推測で埋めていない）",
+      "notes": "task #41-4（2026-08-15、しょうさん承認済み国×kindマトリクス）: NZ GDP（四半期リリース）。nz_stats_cpiと同じ理由で暫定annual_schedule_config方式とした。2026年分のうち2ソースで裏付けが取れた2件のみ収録（2026年6月期分・9月期分は単一情報源または未発見のため収録していない。推測で埋めていない） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: nz_stats_cpiと同一のrelease-calendar/ページのためSPA構造により同様に未検証（詳細はnz_stats_cpi notes参照）",
       "schedule": [
         { "date": "2026-03-19", "kind": "gdp", "note": "2025年12月期。2ソースで裏付け済み" },
         { "date": "2026-06-18", "kind": "gdp", "note": "2026年3月期。2ソースで裏付け済み（実績値0.8%成長とも一致）" }
@@ -746,7 +746,7 @@
           "tz": "Australia/Sydney"
         }
       },
-      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: future-releases-calendarは元々ABSの全リリースを汎用抽出しており（抽出コード変更不要）、trade_balance以外はkinds未登録だったため取りこぼしていた。実fixtureで実在確認済みのCPI・雇用統計（Labour Force）をkindsへ追加。雇用統計は8/17週（2026-08-20発表）でまさに欠損していた事例。時刻は貿易収支と同じ11:30 Sydney（実fixtureのutcInstantでも01:30Z=11:30 AESTと確認済み） | 2026-08-15追記（task #41-4、しょうさん承認済み国×kindマトリクス）: GDP（Australian National Accounts: National Income, Expenditure and Product）を追加。future_releases_calendarは元々ABSの全リリースを汎用抽出する設計のため、抽出コード変更不要でkinds追加のみで対応可能（trade_balance/CPI追加時と同じ理由）。2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済みだが、hardcodeはしていない（本ソースはweekly_scrape型のため、live fetch時にfuture_releases_calendarの実ページ内容が対象週分を含んでいれば自動的に検出される。ローリング6ヶ月窓のため、対象週の6ヶ月以上先の発表分はresidual監視の対象外）。時刻11:30 Sydneyは他ABSリリースと同一の標準枠として複数ソースで確認"
+      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: future-releases-calendarは元々ABSの全リリースを汎用抽出しており（抽出コード変更不要）、trade_balance以外はkinds未登録だったため取りこぼしていた。実fixtureで実在確認済みのCPI・雇用統計（Labour Force）をkindsへ追加。雇用統計は8/17週（2026-08-20発表）でまさに欠損していた事例。時刻は貿易収支と同じ11:30 Sydney（実fixtureのutcInstantでも01:30Z=11:30 AESTと確認済み） | 2026-08-15追記（task #41-4、しょうさん承認済み国×kindマトリクス）: GDP（Australian National Accounts: National Income, Expenditure and Product）を追加。future_releases_calendarは元々ABSの全リリースを汎用抽出する設計のため、抽出コード変更不要でkinds追加のみで対応可能（trade_balance/CPI追加時と同じ理由）。2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済みだが、hardcodeはしていない（本ソースはweekly_scrape型のため、live fetch時にfuture_releases_calendarの実ページ内容が対象週分を含んでいれば自動的に検出される。ローリング6ヶ月窓のため、対象週の6ヶ月以上先の発表分はresidual監視の対象外）。時刻11:30 Sydneyは他ABSリリースと同一の標準枠として複数ソースで確認 | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: future_releases_calendarを実ネットワークで直接取得し25件の行を抽出（抽出コード自体は正常動作を再確認。既存のCPI『Consumer Price Index, Australia @ 2026-08-26』・雇用統計『Labour Force, Australia @ 2026-08-20』は引き続き正しく検出）。ただし2026-08-15時点の実ページの公表ホライズンは2026-08-31までで、次回GDP発表（2026-09-02、予備日程）はこの窓の外のため『national accounts』を含む行はまだ出現していない（想定どおりのタイミング依存であり、抽出機構の欠陥ではない）。9月に入り対象週が近づいた時点で改めてライブ確認が必要"
     },
     {
       "id": "us_ism",
@@ -1135,7 +1135,7 @@
           "tz": "Asia/Tokyo"
         }
       },
-      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 全国消費者物価指数（総務省統計局）。公表ルールは公式ページ本文（stat.go.jp/data/cpi/4-1.html、WebSearch経由で確認）『全国の前月分指数を、原則として毎月19日を含む週の金曜日の午前8時30分に公表』。schedule[]はこの固定ルールから2026年通年13回分を算出した（Claude Code側で算出式の自己整合性を検算済み）。うち2026年6月分の実発表日（2026-07-24）はNHK・money-pro.net等の複数独立ソースで裏付けが取れており、算出式と一致することを確認済み（他11回は算出のみ、個別の実績照合はしていない）。2025年基準への改定が2027年2月分から予定されている（総務省2026年発表、soumu.go.jp press release 01000329）が、2026年中の名称・ルールには影響しない。直接フェッチ不可のためWebSearch経由確認（source_verified:false相当）。次回本番runでのライブ検証が必要",
+      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 全国消費者物価指数（総務省統計局）。公表ルールは公式ページ本文（stat.go.jp/data/cpi/4-1.html）『全国の前月分指数を、原則として毎月19日を含む週の金曜日の午前8時30分に公表』。schedule[]はこの固定ルールから2026年通年13回分を算出した（Claude Code側で算出式の自己整合性を検算済み）。2025年基準への改定が2027年2月分から予定されている（総務省2026年発表、soumu.go.jp press release 01000329）が、2026年中の名称・ルールには影響しない | 2026-08-15ライブ検証PASS（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク・Shift_JISデコード対応）: 4-1.html本文の公表ルール記載文言を実ページで直接確認（当初WebSearch確認どおり一致）。さらにindex.htmlの『更新情報』欄で『令和8年7月24日 2020年基準 消費者物価指数 全国 2026年（令和8年）6月分』の実績記載を直接確認し、算出式（19日を含む週の金曜08:30）による2026-07-24との一致を再確認した（他12回は算出のみ、個別の実績照合はしていない）",
       "schedule": [
         { "date": "2026-01-23", "kind": "cpi", "note": "2025年12月分。算出のみ（19日を含む週の金曜08:30ルール）" },
         { "date": "2026-02-20", "kind": "cpi", "note": "2026年1月分。算出のみ" },
@@ -1143,7 +1143,7 @@
         { "date": "2026-04-24", "kind": "cpi", "note": "2026年3月分。算出のみ" },
         { "date": "2026-05-22", "kind": "cpi", "note": "2026年4月分。算出のみ" },
         { "date": "2026-06-19", "kind": "cpi", "note": "2026年5月分。算出のみ" },
-        { "date": "2026-07-24", "kind": "cpi", "note": "2026年6月分。NHK・money-pro.net等の複数独立ソースで実発表日を確認済み（task #41-2調査）" },
+        { "date": "2026-07-24", "kind": "cpi", "note": "2026年6月分。当初NHK・money-pro.net等のWebSearchで確認、2026-08-15ライブ検証でstat.go.jp公式ページ（更新情報欄）の実績記載からも直接再確認済み" },
         { "date": "2026-08-21", "kind": "cpi", "note": "2026年7月分。算出のみ。8/17週の欠損事例（しょうさん指摘の『日本の全国CPI』）に該当" },
         { "date": "2026-09-18", "kind": "cpi", "note": "2026年8月分。算出のみ" },
         { "date": "2026-10-23", "kind": "cpi", "note": "2026年9月分。算出のみ" },
@@ -1182,14 +1182,18 @@
           "tz": "Asia/Tokyo"
         }
       },
-      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 四半期別GDP速報（内閣府/ESRI）。1次速報・2次速報の両方を収録（既刊design-mockのGB【速報値】と同様、改定値も別イベントとして扱う）。日程はDaiwa・MURC・三菱UFJ・第一生命等の複数の民間調査部レポートで独立に裏付けが取れている（WebSearch経由）。2026年04-06月期1次速報（2026-08-17発表）は、まさに8/17週の欠損事例（しょうさん指摘の『日本GDP速報』）そのもの。時刻08:50は2026年01-03月期2次速報（2026-06-08）についてe-stat.go.jpのリリースカレンダー詳細ページURL（e-stat.go.jp/release-calendar/detail/00100409/202606080850）のタイムスタンプで直接確認済み。2026年07-09月期・10-12月期分は2026-08-15時点でWebSearchでは日程が見つからなかったため未収録（推測で埋めていない。次回調査・本番runでの確認が必要）。直接フェッチ不可のためWebSearch経由確認（source_verified:false相当）",
+      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 四半期別GDP速報（内閣府/ESRI）。1次速報・2次速報の両方を収録（既刊design-mockのGB【速報値】と同様、改定値も別イベントとして扱う）。日程はDaiwa・MURC・三菱UFJ・第一生命等の複数の民間調査部レポートで独立に裏付けが取れている（WebSearch経由）。2026年04-06月期1次速報（2026-08-17発表）は、まさに8/17週の欠損事例（しょうさん指摘の『日本GDP速報』）そのもの | 2026-08-15ライブ検証PASS（task #41ライブ検証、しょうさん指示）: kouhyou_yotei（公表予定）ページを実ネットワークで直接取得し、本文の『四半期別GDP速報』表（期間・公表予定日・公表時刻の3列）を直接確認した。既存6件（2025年10-12月期〜2026年04-06月期の1次/2次速報）は全件、日付・時刻08:50とも公式ページの実表記と完全一致（WebSearch確認どおりで誤りなし）。さらに当時WebSearchでは見つからなかった2026年07-09月期・10-12月期の1次/2次速報4件も、この公式表から直接確認できたため追加した（すべてsource_verified:true）。ライブ取得したページ自体はESRI公式ドメイン（esri.cao.go.jp）でUTF-8・robots許可・到達性良好なため、weekly_scrape型への格上げ（extractor実装）候補として有望（未着手）",
       "schedule": [
-        { "date": "2026-02-16", "kind": "gdp", "note": "2025年10-12月期1次速報" },
-        { "date": "2026-03-09", "kind": "gdp", "note": "2025年10-12月期2次速報" },
-        { "date": "2026-05-19", "kind": "gdp", "note": "2026年01-03月期1次速報" },
-        { "date": "2026-06-08", "kind": "gdp", "note": "2026年01-03月期2次速報。時刻08:50はe-stat.go.jpリリースカレンダー詳細ページのタイムスタンプで直接確認済み" },
-        { "date": "2026-08-17", "kind": "gdp", "note": "2026年04-06月期1次速報。8/17週の欠損事例（しょうさん指摘の『日本GDP速報』）に該当" },
-        { "date": "2026-09-08", "kind": "gdp", "note": "2026年04-06月期2次速報" }
+        { "date": "2026-02-16", "kind": "gdp", "note": "2025年10-12月期1次速報。2026-08-15ライブ検証PASS（kouhyou_yotei直接確認）" },
+        { "date": "2026-03-09", "kind": "gdp", "note": "2025年10-12月期2次速報。2026-08-15ライブ検証PASS" },
+        { "date": "2026-05-19", "kind": "gdp", "note": "2026年01-03月期1次速報。2026-08-15ライブ検証PASS" },
+        { "date": "2026-06-08", "kind": "gdp", "note": "2026年01-03月期2次速報。時刻08:50はe-stat.go.jpリリースカレンダー詳細ページのタイムスタンプに加え、2026-08-15ライブ検証（kouhyou_yotei直接確認）でも08:50と一致確認済み" },
+        { "date": "2026-08-17", "kind": "gdp", "note": "2026年04-06月期1次速報。8/17週の欠損事例（しょうさん指摘の『日本GDP速報』）に該当。2026-08-15ライブ検証PASS" },
+        { "date": "2026-09-08", "kind": "gdp", "note": "2026年04-06月期2次速報。2026-08-15ライブ検証PASS" },
+        { "date": "2026-11-16", "kind": "gdp", "note": "2026年07-09月期1次速報。2026-08-15ライブ検証で新規確認（WebSearch時点では未発見だった）" },
+        { "date": "2026-12-08", "kind": "gdp", "note": "2026年07-09月期2次速報。2026-08-15ライブ検証で新規確認" },
+        { "date": "2027-02-15", "kind": "gdp", "note": "2026年10-12月期1次速報。2026-08-15ライブ検証で新規確認" },
+        { "date": "2027-03-09", "kind": "gdp", "note": "2026年10-12月期2次速報。2026-08-15ライブ検証で新規確認" }
       ],
       "residual_monitor_weeks": 4
     },
@@ -1212,11 +1216,28 @@
           }
         ]
       },
-      "announce_time_by_kind": {},
-      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 貿易統計（財務省税関）。WebSearchでは2026年分のうち2件（2026年4月分→5/21発表・2026年7月分→8/20発表）しか実日付を確認できず、6月分は検索結果が旬報/速報/確報の複数リリース種別を混同していて確定できなかった（task #41-2調査agent報告）。他10ヶ月分は未収録（推測で埋めていない）。時刻も未確定: 市場慣行の08:50説とe-stat.go.jpのタイムスタンプ実例（e-stat.go.jp/release-calendar/detail/00350300/202209290930等、貿易統計コード00350300）が示す09:30とで食い違いがあり（e-statのポータル反映遅延の可能性もある）、誤った時刻を入れるより未確定のままにする方を優先しannounce_time_by_kind.trade_balanceは空とした（time:nullで扱う）。2026-08-20発表分（2026年7月分）は、まさに8/17週の欠損事例（しょうさん指摘の『日本 7月貿易統計』）に該当。次回本番runでのライブ検証（calend.htmの直接確認）で日程・時刻とも精度を上げる必要がある",
+      "announce_time_by_kind": {
+        "trade_balance": {
+          "local_time": "08:50",
+          "tz": "Asia/Tokyo",
+          "note": "2026-08-15ライブ検証（task #41ライブ検証、しょうさん指示）でcalend.htmの表組みヘッダーを直接確認: 普通貿易統計の『月分』列（速報の本体、trade_balanceに対応）は『公表時間：午前8時50分』、『輸出確報及び輸入速報』列は『午前9時30分』と、公式ページ自体が2つの時刻を明記していた。以前疑っていた08:50/09:30の食い違いは別リリース段階（確報系）の時刻であり、trade_balance（月分速報）自体は08:50で確定"
+        }
+      },
+      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 貿易統計（財務省税関）。当初はWebSearchで2026年分2件（4月分→5/21・7月分→8/20）のみ確認していたが、2026-08-15ライブ検証（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク経由・Shift_JISデコード対応）でcalend.htm（公表予定ページ）を直接取得し、『普通貿易統計（速報、確報等）』表の全12ヶ月分＋前年12月分の実日程を直接確認した。表の列構成は[上旬分・上中旬分・月分（8:50）・輸出確報及び輸入９桁速報（9:30）]の4列で、trade_balanceに対応する『月分』列（3列目）を採用。既存2件（5/21・8/20）は表の値と完全一致（WebSearch確認どおりで誤りなし）。残り11ヶ月分もこの表から直接収録し、time:nullを解消して08:50を確定値とした（announce_time_by_kind参照）。2026-08-20発表分（2026年7月分）は、まさに8/17週の欠損事例（しょうさん指摘の『日本 7月貿易統計』）に該当",
       "schedule": [
-        { "date": "2026-05-21", "kind": "trade_balance", "note": "2026年4月分" },
-        { "date": "2026-08-20", "kind": "trade_balance", "note": "2026年7月分。8/17週の欠損事例（しょうさん指摘の『日本 7月貿易統計』）に該当" }
+        { "date": "2026-01-22", "kind": "trade_balance", "note": "2025年12月分。2026-08-15ライブ検証で公式表から直接確認" },
+        { "date": "2026-02-18", "kind": "trade_balance", "note": "2026年1月分。2026-08-15ライブ検証で公式表から直接確認" },
+        { "date": "2026-03-18", "kind": "trade_balance", "note": "2026年2月分。2026-08-15ライブ検証で公式表から直接確認" },
+        { "date": "2026-04-22", "kind": "trade_balance", "note": "2026年3月分。2026-08-15ライブ検証で公式表から直接確認" },
+        { "date": "2026-05-21", "kind": "trade_balance", "note": "2026年4月分。当初WebSearchで確認済み、2026-08-15ライブ検証で公式表の値と完全一致を再確認" },
+        { "date": "2026-06-17", "kind": "trade_balance", "note": "2026年5月分。2026-08-15ライブ検証で公式表から直接確認（WebSearchでは未発見だった月）" },
+        { "date": "2026-07-22", "kind": "trade_balance", "note": "2026年6月分。2026-08-15ライブ検証で公式表から直接確認（WebSearchでは旬報/速報/確報が混同され未確定だった月）" },
+        { "date": "2026-08-20", "kind": "trade_balance", "note": "2026年7月分。8/17週の欠損事例（しょうさん指摘の『日本 7月貿易統計』）に該当。当初WebSearchで確認済み、2026-08-15ライブ検証で公式表の値と完全一致を再確認" },
+        { "date": "2026-09-16", "kind": "trade_balance", "note": "2026年8月分。2026-08-15ライブ検証で公式表から直接確認" },
+        { "date": "2026-10-21", "kind": "trade_balance", "note": "2026年9月分。2026-08-15ライブ検証で公式表から直接確認" },
+        { "date": "2026-11-18", "kind": "trade_balance", "note": "2026年10月分。2026-08-15ライブ検証で公式表から直接確認" },
+        { "date": "2026-12-16", "kind": "trade_balance", "note": "2026年11月分。2026-08-15ライブ検証で公式表から直接確認" },
+        { "date": "2027-01-21", "kind": "trade_balance", "note": "2026年12月分。2026-08-15ライブ検証で公式表から直接確認" }
       ],
       "residual_monitor_weeks": 4
     },
@@ -1280,7 +1301,7 @@
             "url": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/"
           }
         ],
-        "note": "2026年通年の公表日程表（『2026年国家统计局主要统计信息发布日程表』、stats.gov.cn/xxgk/sjfb/fbrcb/202512/t20251224_1962137.html、2025-12-24公表）の存在をWebSearch経由で確認したが、直接フェッチ不可のため本文内容は未取得（task #41-4調査agent報告）。次回本番run以降、このURLの直接確認を優先すること"
+        "note": "2026年通年の公表日程表（『2026年国家统计局主要统计信息发布日程表』、stats.gov.cn/xxgk/sjfb/fbrcb/202512/t20251224_1962137.html、2025-12-24公表）の存在をWebSearch経由で確認したが、直接フェッチ不可のため本文内容は未取得（task #41-4調査agent報告） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: release_calendar_en自体は実ネットワークで到達可能（HTTP 200、robotsブロック無し）と確認できたが、このページは年別の日程表PDF/文書一覧を示すインデックスページに過ぎず（『Regular Press Release Calendar of NBS in 2026 2025-12-26』等のリンク一覧）、schedule[]の日付を直接裏付ける実データ本体（2026年分の詳細な発表日一覧）には未到達。次回本番run以降、このインデックスから実際の2026年版ドキュメントへ辿って直接確認すること"
       },
       "announce_time_by_kind": {
         "industrial_production": { "local_time": "10:00", "tz": "Asia/Shanghai", "note": "公式ページで直接確認できず、GMT表記からの逆算（慣行値、中程度の確度）" },
@@ -1933,7 +1954,7 @@
         {
           "date": "2026-08-27",
           "kind": "minutes_summary",
-          "note": "2026-07-22-23会合分。ECB accounts索引ページの『next release』表記で確認（task #41-1調査、要ライブ確認）。9-10月・12月会合（2026-09-10/2026-10-29/2026-12-17、既存policy_rateスケジュール参照）分のAccounts日程はECBが単発告知のみ（年間分の事前公表なし）のため2026-08-15時点で確認不可。次回本番run以降、index.en.htmlの『next release』表記を都度確認し追記すること"
+          "note": "2026-07-22-23会合分。当初WebSearchでECB accounts索引ページの『next release』表記を確認、2026-08-15ライブ検証（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク経由）でindex.en.htmlを直接取得し『The accounts are typically published four weeks after the meetings. Next release: 27 August 2026』の実文言を確認済み（完全一致）。9-10月・12月会合（2026-09-10/2026-10-29/2026-12-17、既存policy_rateスケジュール参照）分のAccounts日程はECBが単発告知のみ（年間分の事前公表なし）のため2026-08-15時点で確認不可。次回本番run以降、index.en.htmlの『next release』表記を都度確認し追記すること"
         }
       ],
       "residual_monitor_weeks": 4
@@ -1959,7 +1980,7 @@
         "note": "release-calendarページに『Want to subscribe?』からのICS購読機能がある（WebSearch経由で存在を確認済みだが、実際の.icsファイルURLはブラウザ操作が必要で未解決。task #41-3調査）。将来weekly_scrape/ICS直接取得へ切り替える際はこの導線を使う"
       },
       "announce_time_by_kind": {},
-      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏HICP速報値（flash estimate、Eurostat）。公式運用ルール『月末（同月の速報値公表日は原則として当該月の最終暦日、休日の場合は翌営業日）』をWebSearch経由で確認し、Eurostat自身のURL日付スタンプ（例: 2-03032026-ap）から2026年8ヶ月分の実発表日を確認した。改定値（確報、対象月の翌月17日前後）は1件のみの照合例（2月分→3/18）しかなく規則性が未確定のため収録していない（しょうさんの原指摘『ユーロ圏HICP改定値』は速報値の誤認、または確報を指している可能性があるが、経済指標カレンダーとして通常追跡されるのは市場動意の大きい速報値のため、こちらを優先して実装した。確報が必要な場合は別途指摘してください）。公表時刻は11:00 CETという通説があるが、今回の調査では検索結果間で11:00 CET・15:00 CET（別ページ、ECB独自算出系列の可能性）の食い違いがあり確定できなかったため、推測値を入れずannounce_time_by_kind.cpiは空のまま（time:nullで扱う）。次回本番runでのライブ検証が必要",
+      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏HICP速報値（flash estimate、Eurostat）。公式運用ルール『月末（同月の速報値公表日は原則として当該月の最終暦日、休日の場合は翌営業日）』をWebSearch経由で確認し、Eurostat自身のURL日付スタンプ（例: 2-03032026-ap）から2026年8ヶ月分の実発表日を確認した。改定値（確報、対象月の翌月17日前後）は1件のみの照合例（2月分→3/18）しかなく規則性が未確定のため収録していない（しょうさんの原指摘『ユーロ圏HICP改定値』は速報値の誤認、または確報を指している可能性があるが、経済指標カレンダーとして通常追跡されるのは市場動意の大きい速報値のため、こちらを優先して実装した。確報が必要な場合は別途指摘してください）。公表時刻は11:00 CETという通説があるが、今回の調査では検索結果間で11:00 CET・15:00 CET（別ページ、ECB独自算出系列の可能性）の食い違いがあり確定できなかったため、推測値を入れずannounce_time_by_kind.cpiは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: release-calendarページを実ネットワークで直接取得したところ、実際のカレンダーデータ（各リリースの日付一覧）は静的HTMLに含まれておらず、JavaScriptによる動的読み込み（SPA構造）と判明した。取得した生HTMLにはナビゲーションメニュー等の定型文のみで、日程データそのものへの到達には至らなかった。よってschedule[]の日付・時刻ともWebSearch経由確認のまま未検証（Stats NZのrelease-calendar/と同種の構造的ブロッカー。docs/annual-schedule-maintenance.md参照）。将来的な対応にはPlaywrightでのレンダリング取得、またはICS購読フィードの直接特定が必要",
       "schedule": [
         { "date": "2026-01-07", "kind": "cpi", "note": "2025年12月分速報値" },
         { "date": "2026-02-04", "kind": "cpi", "note": "2026年1月分速報値。2025年=100への基準改定に伴い通常より発表が遅れた回" },
@@ -1992,7 +2013,7 @@
         ]
       },
       "announce_time_by_kind": {},
-      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏GDP速報値（Eurostat）。2段階公表（四半期末+30日でGDP単独の予備速報、+45日でGDP+雇用の統合速報）というEurostat公式の方法論ページ記載のルールをWebSearch経由で確認し、Eurostat自身のURL日付スタンプから2026年上半期分（Q1・Q2）の実発表日を確認した。Q3・Q4分はルールからの外挿のみで実URLでの照合ができなかったため収録していない（推測で埋めていない。task #41-3調査agent報告）。公表時刻はHICPと同様に確定できなかったためannounce_time_by_kind.gdpは空のまま（time:nullで扱う）。次回本番runでのライブ検証が必要",
+      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏GDP速報値（Eurostat）。2段階公表（四半期末+30日でGDP単独の予備速報、+45日でGDP+雇用の統合速報）というEurostat公式の方法論ページ記載のルールをWebSearch経由で確認し、Eurostat自身のURL日付スタンプから2026年上半期分（Q1・Q2）の実発表日を確認した。Q3・Q4分はルールからの外挿のみで実URLでの照合ができなかったため収録していない（推測で埋めていない。task #41-3調査agent報告）。公表時刻はHICPと同様に確定できなかったためannounce_time_by_kind.gdpは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: eurostat_hicpと同一のrelease-calendarページを使用しており、同じくJavaScript動的読み込み（SPA構造）のため日程データへの到達不可（未検証のまま。詳細はeurostat_hicp notes参照）。2026-08-14発表分（8/10週で新規検出、docs/validate-scripts-guide.md「既刊レポートの位置づけ」参照）はこのライブ検証では裏付けできていない点に注意",
       "schedule": [
         { "date": "2026-04-30", "kind": "gdp", "note": "2026年1-3月期・予備速報（GDP単独、四半期末+30日）" },
         { "date": "2026-05-13", "kind": "gdp", "note": "2026年1-3月期・統合速報（GDP+雇用、四半期末+45日）" },
@@ -2021,7 +2042,7 @@
         ]
       },
       "announce_time_by_kind": {},
-      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: HCOB Flash Eurozone PMI（S&P Global）。他の中銀年次スケジュールと異なり、S&P Globalは向こう1〜2ヶ月分のみを掲載するローリングPDF（例: UK_Rel_Dates PDF、2026-07-16更新時点で2026年8-9月分のみ収録）で運用しており、年間分の事前一括公表が存在しないことを確認した（task #41-3調査agent報告）。日付にも第何営業日等の規則性が見出せなかった（20日〜24日に分布するが規則不明）。よって2026-08-15時点でWebSearch経由で確認できた2026年1-7月分の実績日のみを収録し、8月以降は空のまま（residual_monitor_weeksによる警告で毎月の手動更新を促す運用とする。docs/annual-schedule-maintenance.md参照）。公表時刻はユーロ圏10:00 CEST(08:00 UTC)という単一情報源のみの言及（中程度の確度）のため、推測値を入れずannounce_time_by_kind.pmi_ismは空のまま（time:nullで扱う）",
+      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: HCOB Flash Eurozone PMI（S&P Global）。他の中銀年次スケジュールと異なり、S&P Globalは向こう1〜2ヶ月分のみを掲載するローリングPDF（例: UK_Rel_Dates PDF、2026-07-16更新時点で2026年8-9月分のみ収録）で運用しており、年間分の事前一括公表が存在しないことを確認した（task #41-3調査agent報告）。日付にも第何営業日等の規則性が見出せなかった（20日〜24日に分布するが規則不明）。よって2026-08-15時点でWebSearch経由で確認できた2026年1-7月分の実績日のみを収録し、8月以降は空のまま（residual_monitor_weeksによる警告で毎月の手動更新を促す運用とする。docs/annual-schedule-maintenance.md参照）。公表時刻はユーロ圏10:00 CEST(08:00 UTC)という単一情報源のみの言及（中程度の確度）のため、推測値を入れずannounce_time_by_kind.pmi_ismは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: press_release_hub（pmi.spglobal.com）へ実ネットワークでアクセスしたところ、robots.txt自体の取得がHTTP 403で失敗（インフラ側ブロック）のため慎重側に倒しSKIPした。これはBLS・ISM旧ページ・RatingDog・aph.gov.auと同種の既知の構造的ブロッカーであり、UA偽装による回避は行わない方針（cn_pmi notes参照）のため、日程・時刻ともWebSearch経由確認のまま恒久的に未検証となる見込み",
       "schedule": [
         { "date": "2026-01-23", "kind": "pmi_ism", "subtype": "flash" },
         { "date": "2026-02-20", "kind": "pmi_ism", "subtype": "flash" },
@@ -2056,7 +2077,7 @@
         ]
       },
       "announce_time_by_kind": {},
-      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: S&P Global Flash UK PMI。ユーロ圏フラッシュPMIと同日発表（同一調査元・同日エンバーゴ）のため日程はeu_flash_pmiと同一。現行gb_construction_pmiは建設業PMI専業のためこのkind（製造業/サービス業フラッシュ）とは別ソース。eu_flash_pmiと同じ理由でS&P Globalの事前一括公表が無く（UK_Rel_Dates PDFがまさにこの用途のローリングPDF）、2026年1-7月分のみ収録。公表時刻は09:30という言及があるがBST/GMTどちらか不明かつ中程度の確度のため、推測値を入れずannounce_time_by_kind.pmi_ismは空のまま（time:nullで扱う）",
+      "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: S&P Global Flash UK PMI。ユーロ圏フラッシュPMIと同日発表（同一調査元・同日エンバーゴ）のため日程はeu_flash_pmiと同一。現行gb_construction_pmiは建設業PMI専業のためこのkind（製造業/サービス業フラッシュ）とは別ソース。eu_flash_pmiと同じ理由でS&P Globalの事前一括公表が無く（UK_Rel_Dates PDFがまさにこの用途のローリングPDF）、2026年1-7月分のみ収録。公表時刻は09:30という言及があるがBST/GMTどちらか不明かつ中程度の確度のため、推測値を入れずannounce_time_by_kind.pmi_ismは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: eu_flash_pmiと同一ドメイン（pmi.spglobal.com）のためrobots.txt HTTP 403で同様にSKIP。日程・時刻とも恒久的にWebSearch経由確認のまま（詳細はeu_flash_pmi notes参照）",
       "schedule": [
         { "date": "2026-01-23", "kind": "pmi_ism", "subtype": "flash" },
         { "date": "2026-02-20", "kind": "pmi_ism", "subtype": "flash" },
@@ -2338,7 +2359,7 @@
         {
           "date": "2026-07-29",
           "kind": "minutes_summary",
-          "note": "2026-07-15決定分。同上"
+          "note": "2026-07-15決定分。同上。2026-08-15ライブ検証（task #41ライブ検証、しょうさん指示）でbankofcanada.ca/publications/summary-governing-council-deliberations/を直接取得し、公表物一覧の先頭が『July 29, 202[6]』であることを確認（このソースは一覧の完全なテキスト抽出はできなかったが、直近発表が本エントリの日付と一致することは確認できた）"
         },
         {
           "date": "2026-09-16",

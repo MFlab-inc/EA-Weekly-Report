@@ -287,7 +287,7 @@ test('annualEntryToCandidate: GDP【速報値】（JP gdp）が実configから�
   assert.equal(c.date, '2026-08-17');
 });
 
-test('annualEntryToCandidate: 貿易収支（JP trade_balance）が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
+test('annualEntryToCandidate: 貿易収支（JP trade_balance）が実configから名称解決できる（8/17週の欠損事例の回帰テスト。2026-08-15ライブ検証で時刻08:50が確定した）', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
   const source = realSourcesConfig.sources.find((s) => s.id === 'jp_customs_trade');
   const importanceRules = { importance_by_kind: { trade_balance: 2 } };
@@ -295,7 +295,7 @@ test('annualEntryToCandidate: 貿易収支（JP trade_balance）が実configか�
   assert.ok(entry, '2026-08-20の貿易統計scheduleエントリが見つからない（2026年7月分）');
   const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
   assert.equal(c.displayName, '貿易収支');
-  assert.equal(c.time, null); // announce_time_by_kind.trade_balance未設定（公表時刻がWebSearchで08:50/09:30と食い違い確定できなかったため推測値を入れていない）
+  assert.equal(c.time, '08:50'); // ライブ検証（task #41、2026-08-15）でcalend.htmの表組みヘッダー『月分』列=午前8時50分を直接確認し確定
 });
 
 // task #41-3（しょうさん承認済み国×kindマトリクス）の回帰テスト: Eurostat HICP・GDP速報値、
