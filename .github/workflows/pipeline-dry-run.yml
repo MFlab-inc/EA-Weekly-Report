@@ -75,6 +75,12 @@ jobs:
           echo "::group::gate-result"
           cat gate-result.json 2>/dev/null || echo "(gate-result.json not found)"
           echo "::endgroup::"
+
+          echo "::group::generated-html"
+          echo "===EA_WEEKLY_HTML_BEGIN==="
+          cat "output/ea-weekly-${TARGET_WEEK_START//-/}.html" 2>/dev/null || echo "(html not found)"
+          echo "===EA_WEEKLY_HTML_END==="
+          echo "::endgroup::"
       - name: Upload results (artifact only, no commit)
         if: always()
         uses: actions/upload-artifact@v4
