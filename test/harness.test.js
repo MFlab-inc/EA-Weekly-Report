@@ -223,6 +223,52 @@ test('checkWeeklyScrapeSource: us_frb_speeches（RSS pubDateをutcInstantとし�
   assert.equal(cook.kind, 'official_speech');
 });
 
+function snbSource() {
+  return {
+    id: 'snb_policy_rate',
+    country: 'CH',
+    kinds: ['policy_rate', 'press_conference', 'opinions_summary'],
+    access: { robots_check: true, targets: [{ label: 'event_schedule', url: 'https://www.snb.ch/en/services-events/digital-services/event-schedule' }] },
+    announce_time_by_kind: {
+      policy_rate: { local_time: '09:30', tz: 'Europe/Zurich' },
+      press_conference: { local_time: '10:00', tz: 'Europe/Zurich' },
+      opinions_summary: { local_time: '09:30', tz: 'Europe/Zurich' },
+    },
+  };
+}
+
+test('checkWeeklyScrapeSource: snb_policy_rate（row.kind確定型）は実fixtureから対象週のMonetary policy assessmentを抽出する', async () => {
+  const { readFileSync } = require('node:fs');
+  const { join } = require('node:path');
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  const html = readFileSync(join(__dirname, 'fixtures', 'official-sources', 'snb_policy_rate', 'event_schedule.html'), 'utf8');
+  const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  // ground truth: しょうさん転記の2026-09-24分（Monetary policy assessment）
+  const targetWeek = { targetWeekStart: '2026-09-21', targetWeekEnd: '2026-09-27' };
+  const r = await checkWeeklyScrapeSource(snbSource(), targetWeek, { fetchImpl, robotsChecker, eventNames: [] });
+  assert.equal(r.ok, true);
+  assert.equal(r.unregistered.length, 0, `event-names.json未登録WARNが出てはいけない: ${JSON.stringify(r.unregistered)}`);
+  assert.deepEqual([...r.foundKinds].sort(), ['policy_rate', 'press_conference']);
+  const policyRate = r.thisWeek.find((c) => c.kind === 'policy_rate');
+  const pressConf = r.thisWeek.find((c) => c.kind === 'press_conference');
+  assert.equal(policyRate.date, '2026-09-24');
+  assert.equal(policyRate.time, '16:30'); // Europe/Zurich 09:30 CEST(UTC+2) → JST 16:30
+  assert.equal(pressConf.time, '17:00'); // 10:00 CEST → JST 17:00
+  assert.ok(r.thisWeek.every((c) => c.displayName === null), 'ruleGenerated行はdisplayName未解決のはず');
+});
+
+test('checkWeeklyScrapeSource: snb_policy_rate は金融政策関連イベントが1件も無い応答を構造的失敗として返す（フェールクローズ接続）', async () => {
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
+  // サイト構造変化・想定外パターンを模擬（Monetary policy assessment等のパターンを含まない応答）
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => '<html><body>Page redesigned, no events listed here.</body></html>' });
+  const targetWeek = { targetWeekStart: '2026-09-21', targetWeekEnd: '2026-09-27' };
+  const r = await checkWeeklyScrapeSource(snbSource(), targetWeek, { fetchImpl, robotsChecker, eventNames: [] });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /抽出失敗（構造変化の疑い）/);
+});
+
 test('runChecks: 単一ソース失敗（見込みなし）でWARN、複数ソース失敗でHOLDになる', async () => {
   const { runChecks } = await loadHarness();
   const sourcesConfig = {

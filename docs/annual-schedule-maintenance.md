@@ -55,7 +55,7 @@ RBNZ公式サイトはrobots.txt自体がHTTP 403でインフラ側ブロック�
 2. 転記内容をClaude Codeが`config/official-sources.json`のrbnz_policy_rate.scheduleへ反映し、`schedule_status`を`confirmed`に、`confirmed_at`/`confirmed_by`を記録する
 3. 以後は残量監視WARN（本文の仕組み参照）が翌年分の確定時期を知らせる
 
-**現在の状態（2026-08-15、しょうさんが一次ソース直接確認）**: 新URL・2026年9月〜2028年2月分の全12回分をしょうさんが直接転記し、`schedule_status: "confirmed"`・`status: "active"`へ反映済み（2027年から年7→8回体制へ増加し、旧2027年2月分程日程は1週間前倒しになった点も反映）。**残課題**: 発表時刻14:00 NZTはWebSearchの複数の裏付け記事（『announced to financial markets at 2pm (NZT)』）で確認したが、RBNZ公式ページ本文の時刻表記そのものは自動取得不可（robots.txt 403、開発コンテナ・GitHub Actionsランナー双方で再現）のためClaude Code側で直接一次照合できていない。しょうさんが上記URLを開いた際に併せて時刻表記を確認できれば教えてほしい（tz=Pacific/Auckland指定によりNZST/NZDT切替自体は自動判定されるため、確認が必要なのは「14:00」という数値自体の正しさのみ）。
+**現在の状態（2026-08-15、しょうさんが一次ソース直接確認）**: 新URL・2026年9月〜2028年2月分の全12回分をしょうさんが直接転記し、`schedule_status: "confirmed"`・`status: "active"`へ反映済み（2027年から年7→8回体制へ増加し、旧2027年2月分程日程は1週間前倒しになった点も反映）。発表時刻14:00 NZTの一次ソース照合は**クローズ済み**（`docs/open-questions.md` O3）: しょうさんが直近MPSページ（2026年5月分）を直接確認し、公式ページ本文に時刻表記自体が無いことを確認（Claude Codeのrobots.txt 403実測と整合）。14:00 NZ時間（第三者複数ソースで裏付け済み）を慣行値として採用し、初回発生週（2026年9/2週）は月曜のFF事後突合runで実際の発表時刻を自動検知する運用でクローズした。
 
 ### SNB固有の手順（2026-08-15訂正: 先行一括公表あり・手動確認は不要に）
 

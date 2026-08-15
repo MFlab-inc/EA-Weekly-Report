@@ -1573,10 +1573,10 @@
         "policy_rate": {
           "local_time": "14:00",
           "tz": "Pacific/Auckland",
-          "note": "しょうさんの認識どおりNZ時間14:00が通例（Monetary Policy Reviewは financial marketsへ14:00 NZTで公表、との一致情報をWebSearchで複数件確認・2026-08-15）。ただしRBNZ公式ページ自体はrobots.txt 403のためClaude Code側での直接一次照合は構造的に不可（開発コンテナ・Actionsランナーとも同一結果）。tz=Pacific/Auckland指定によりNZST/NZDT切替は実行時にIANAデータで自動判定される（scripts/lib/tz-convert.js）ため、時刻はNZDT/NZSTを問わず常に14:00の壁時計時刻でよい"
+          "note": "時刻は慣行値。公式ページ本文には発表時刻の明記が無い（Claude Code実測: robots.txt 403で照合不可／しょうさん実測: 直近MPSページ[2026年5月分]を直接確認したが本文に時刻表記自体が無いことを確認、2026-08-15）。第三者複数ソース（WebSearch経由、市場解説記事）で『announced to financial markets at 2pm (NZT)』を確認し裏付けとする。docs/open-questions.md O3参照（決定・クローズ済み）。初回発生週（2026年9/2週）は月曜のFF事後突合runで実際の発表時刻を自動検知する。tz=Pacific/Auckland指定によりNZST/NZDT切替は実行時にIANAデータで自動判定される（scripts/lib/tz-convert.js）ため、時刻はNZDT/NZSTを問わず常に14:00の壁時計時刻でよい"
         }
       },
-      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt取得自体がHTTP 403でインフラ側ブロックと判明（BLS・S&P Global・aph.gov.auと同種、scripts/phase1/source-recon-d.mjs） | 2026-08-15追記: しょうさんがClaude Chat経由で一次ソースを直接取得し、旧URL（until-february-2027）が廃止・404済みであることと、正しい新URL・全12回分の日程を確認・転記。Claude Code側でも新URLへのアクセスを再実測したが、robots.txt自体が403のため引き続き自動取得は不可（旧URLと同じインフラ側ブロック。scripts/phase1/source-recon-e.mjs）。日程はしょうさんの一次ソース直接確認により確定（ISM/annual-schedule-maintenance.md記載の手順どおり）。発表時刻14:00 NZTはWebSearchで複数の裏付け（fxstreet等の市場解説記事が『announced to financial markets at 2pm (NZT)』と明記）を確認したが、RBNZ公式ページ本文の時刻表記そのものは自動取得不可のため直接照合できていない（残課題）。docs/annual-schedule-maintenance.md参照",
+      "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt取得自体がHTTP 403でインフラ側ブロックと判明（BLS・S&P Global・aph.gov.auと同種、scripts/phase1/source-recon-d.mjs） | 2026-08-15追記: しょうさんがClaude Chat経由で一次ソースを直接取得し、旧URL（until-february-2027）が廃止・404済みであることと、正しい新URL・全12回分の日程を確認・転記。Claude Code側でも新URLへのアクセスを再実測したが、robots.txt自体が403のため引き続き自動取得は不可（旧URLと同じインフラ側ブロック。scripts/phase1/source-recon-e.mjs）。日程はしょうさんの一次ソース直接確認により確定（ISM/annual-schedule-maintenance.md記載の手順どおり）。発表時刻14:00 NZTはWebSearchで複数の裏付け（fxstreet等の市場解説記事が『announced to financial markets at 2pm (NZT)』と明記）を確認 | 2026-08-15クローズ（O3）: しょうさんが直近MPSページ（2026年5月分）を直接確認し、公式ページ本文に時刻表記自体が無いことを確認（Claude Code実測と整合）。14:00を慣行値として採用し、月曜のFF事後突合runでの自動検知（初回発生週=2026年9/2週）を検証経路として受容。docs/open-questions.md O3・docs/annual-schedule-maintenance.md参照",
       "residual_monitor_weeks": 4,
       "schedule_status": "confirmed",
       "confirmed_at": "2026-08-15",
