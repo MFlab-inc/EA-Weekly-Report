@@ -31,6 +31,8 @@ jobs:
       # scripts/render.mjsのautoHeroSummary/autoHeroPills参照。人手キュレーションが必要な場合のみ
       # --narrativeで上書き可能）。発表枠の束ね（bundle_id、task #34）も配線済み
       - name: pipeline
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
           node scripts/collect.mjs
           node scripts/build-ledger.mjs
