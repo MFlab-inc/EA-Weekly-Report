@@ -136,6 +136,14 @@ async function fetchLogText(id, url, robotsChecker, keywords, opts) {
     robotsChecker,
     ['[Bb]usiness [Cc]limate', '[Rr]elease']
   );
+  // task #53（しょうさん指摘: de_ifo.pressの本文にリンクとして言及されていた
+  // 「Calendar of Events and Release Dates」の実URLが未確認のため、有力候補を実測する）
+  await fetchLogText(
+    'de_ifo.events',
+    'https://www.ifo.de/en/events',
+    robotsChecker,
+    ['[Bb]usiness [Cc]limate', '[Rr]elease', '2026', '[Cc]alendar']
+  );
 
   // ===== DE country追加: HCOB PMI =====
   await fetchLogText(
