@@ -1,0 +1,95 @@
+# 実データ経路（collect→build-ledger→render→gate）の実ネットワーク疎通確認用の一時ワークフロー
+# （task #38パターンの再利用、しょうさん指示2026-08-15: 8/17週での再検証）。
+# 観測モードと同じ制約: output/・data/ledger/等の成果物は一切コミットしない
+# （artifactとしてのみ保存、保持3日）。weekly.ymlはまだ .github/workflows/ へ移設していない。
+#
+# 起動方式: 開発ブランチへの `.pipeline-dry-run-trigger` 変更pushで起動する
+#   （workflow_dispatchはデフォルトブランチ登録が必要なため、Phase 0/1と同じ方式を踏襲）
+#
+# 本ワークフローは確認完了後に削除する。
+name: pipeline-dry-run
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths: ['.pipeline-dry-run-trigger']
+permissions:
+  contents: read
+concurrency:
+  group: pipeline-dry-run
+  cancel-in-progress: false
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+      - name: Install Playwright Chromium (gate.mjsのモバイル多幅レイアウト検証に使用)
+        run: npx playwright install --with-deps chromium
+      - name: pipeline (collect→build-ledger→render→gate、実ネットワーク)
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          set +e
+          echo "::group::collect"
+          node scripts/collect.mjs
+          echo "collect exit=$?"
+          echo "::endgroup::"
+
+          echo "::group::build-ledger"
+          node scripts/build-ledger.mjs
+          echo "build-ledger exit=$?"
+          echo "::endgroup::"
+
+          TARGET_WEEK_START=$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart)")
+          echo "target_week_start=${TARGET_WEEK_START}" >> "$GITHUB_OUTPUT" 2>/dev/null || true
+          echo "TARGET_WEEK_START=${TARGET_WEEK_START}"
+
+          echo "::group::render"
+          node scripts/render.mjs "data/ledger/${TARGET_WEEK_START}.json" --out "output/ea-weekly-${TARGET_WEEK_START//-/}.html"
+          echo "render exit=$?"
+          echo "::endgroup::"
+
+          echo "::group::gate"
+          node scripts/check/gate.mjs --ledger "data/ledger/${TARGET_WEEK_START}.json" --html "output/ea-weekly-${TARGET_WEEK_START//-/}.html" --result gate-result.json
+          echo "gate exit=$?"
+          echo "::endgroup::"
+
+          echo "::group::ledger summary"
+          node -e "
+            const fs = require('fs');
+            const path = 'data/ledger/${TARGET_WEEK_START}.json';
+            if (!fs.existsSync(path)) { console.log('ledger file not found: ' + path); process.exit(0); }
+            const ledger = JSON.parse(fs.readFileSync(path, 'utf8'));
+            console.log('meta:', JSON.stringify(ledger.meta, null, 2));
+            console.log('events (' + ledger.events.length + '):');
+            for (const e of ledger.events) {
+              console.log('  ' + e.date_jst + ' ' + (e.datetime_jst ? e.datetime_jst.slice(11,16) : '(未定)') + ' importance=' + e.importance + ' [' + e.source_id + '] ' + e.name_ja + ' (bundle_id=' + e.bundle_id + ')');
+            }
+            console.log('coverage:', JSON.stringify(ledger.coverage, null, 2));
+          "
+          echo "::endgroup::"
+
+          echo "::group::gate-result"
+          cat gate-result.json 2>/dev/null || echo "(gate-result.json not found)"
+          echo "::endgroup::"
+
+          echo "::group::generated-html"
+          echo "===EA_WEEKLY_HTML_BEGIN==="
+          cat "output/ea-weekly-${TARGET_WEEK_START//-/}.html" 2>/dev/null || echo "(html not found)"
+          echo "===EA_WEEKLY_HTML_END==="
+          echo "::endgroup::"
+      - name: Upload results (artifact only, no commit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-dry-run-result
+          path: |
+            phase1-out/
+            data/ledger/
+            output/
+            gate-result.json
+          retention-days: 3
+          if-no-files-found: warn
