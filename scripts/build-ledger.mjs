@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url);
 const { buildLedger } = require('./lib/build-ledger.js');
 const { validateLedger } = require('./lib/validate-ledger.js');
 const { validateExpectedCoverage } = require('./lib/validate-expected-coverage.js');
+const { nowJstIso } = require('./lib/tz-convert.js');
 
 const PIPELINE_VERSION = `ea-weekly-report@${require('../package.json').version}`;
 
@@ -35,7 +36,7 @@ async function main() {
 
   const ledger = buildLedgerFromCollectResult({
     collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules,
-    expectedCoverageConfig, generatedAt: new Date().toISOString(),
+    expectedCoverageConfig, generatedAt: nowJstIso(),
   });
 
   const check = validateLedger(ledger);

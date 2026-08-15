@@ -78,10 +78,27 @@ function zonedWallTimeToJst(y, mo, d, h, mi, ianaZone) {
   return { ...utcToJstParts(utc), utcInstant: utc };
 }
 
+// 現在時刻を「+09:00」オフセット付きISO日時（秒精度、ミリ秒なし）の文字列で返す。
+// scripts/lib/validate-ledger.jsのISO_DATETIME_OFFSET_RE（ミリ秒非対応）に適合させるため、
+// `new Date().toISOString()`（UTC・Z・ミリ秒付き）をmeta.generated_at等にそのまま使わないこと
+// （task #38実ネットワーク検証2026-08-15で発見・修正した実バグ）。
+function nowJstIso(now = new Date()) {
+  const jstMs = now.getTime() + 9 * 60 * 60 * 1000;
+  const d = new Date(jstMs);
+  const y = d.getUTCFullYear();
+  const mo = pad2(d.getUTCMonth() + 1);
+  const day = pad2(d.getUTCDate());
+  const h = pad2(d.getUTCHours());
+  const mi = pad2(d.getUTCMinutes());
+  const s = pad2(d.getUTCSeconds());
+  return `${y}-${mo}-${day}T${h}:${mi}:${s}+09:00`;
+}
+
 module.exports = {
   offsetMinutesAt,
   zonedWallTimeToUtc,
   utcToJstParts,
   utcToZonedParts,
   zonedWallTimeToJst,
+  nowJstIso,
 };

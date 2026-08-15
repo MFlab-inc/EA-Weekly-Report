@@ -1,7 +1,8 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { zonedWallTimeToJst, offsetMinutesAt } = require('../scripts/lib/tz-convert');
+const { zonedWallTimeToJst, offsetMinutesAt, nowJstIso } = require('../scripts/lib/tz-convert');
+const { ISO_DATETIME_OFFSET_RE } = require('../scripts/lib/validate-ledger');
 
 // 停止目安計算はJST時刻に依存するため、DST切替週の換算を必須テストとする
 // （しょうさん指示・2026-08-14）。対象: 米ET・英GMT/BST・豪AEST/AEDT。
@@ -69,4 +70,20 @@ test('offsetMinutesAt: 既知の実測（8/10週RBA=13:30JST）と整合する',
   const r = zonedWallTimeToJst(2026, 8, 11, 0, 30, 'America/New_York');
   assert.equal(r.date, '2026-08-11');
   assert.equal(r.time, '13:30');
+});
+
+// task #38（本番CLI実ネットワーク検証、しょうさん指示2026-08-15）で発見した実バグの回帰テスト。
+// scripts/build-ledger.mjsのmain()がmeta.generated_at/sources[].fetched_atに
+// `new Date().toISOString()`（UTC・Z・ミリ秒付き、例: "2026-08-15T05:14:47.567Z"）をそのまま使っており、
+// scripts/lib/validate-ledger.jsのISO_DATETIME_OFFSET_RE（ミリ秒非対応）に落ちて台帳生成が
+// 毎回失敗していた（実ネットワーク経路で初めて顕在化。fixtureテストは固定文字列のgeneratedAtを
+// 渡していたため検知できていなかった）。nowJstIso()に置き換えて解消
+test('nowJstIso: +09:00オフセット・ミリ秒なしで、validate-ledger.jsのISO_DATETIME_OFFSET_REに適合する', () => {
+  const iso = nowJstIso(new Date('2026-08-15T05:14:47.567Z'));
+  assert.equal(iso, '2026-08-15T14:14:47+09:00');
+  assert.match(iso, ISO_DATETIME_OFFSET_RE);
+});
+
+test('nowJstIso: 引数省略時は実時刻ベースでもISO_DATETIME_OFFSET_REに適合する（new Date().toISOString()の直接使用を防止する回帰テスト）', () => {
+  assert.match(nowJstIso(), ISO_DATETIME_OFFSET_RE);
 });

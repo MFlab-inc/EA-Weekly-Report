@@ -17,6 +17,7 @@ import { validateLedger } from '../lib/validate-ledger.js';
 import { auditLedgerHtml } from './ledger-html-audit.mjs';
 import { runStaticLint, extractHrefs, checkLinkReachability } from './policy-lint.mjs';
 import { checkMobileLayout, summarizeResults as summarizeMobileResults } from './mobile-layout-check.mjs';
+import { nowJstIso } from '../lib/tz-convert.js';
 
 function parseArgs(args) {
   const opts = {
@@ -84,7 +85,7 @@ async function main() {
   const payload = {
     schema_version: '1.0',
     decision,
-    checked_at_jst: new Date().toISOString(),
+    checked_at_jst: nowJstIso(),
     checks,
     rule: 'いずれかの検査でERRORが1件でもあればHOLD。HOLD時は完成版として配信・投稿せず、output/は更新しない。',
   };

@@ -119,3 +119,14 @@ task #13（検証スクリプト5本の移植＋新設3検査）、しょうさ�
   そのような短縮辞書を持たないため文言がやや長くなる
 - `sources[].http_status`は現状常にnull（harness.mjsが個別ソースのHTTPステータスをresult最上位に
   集約していないため）。今後の精緻化候補
+
+## 実バグ修正の記録（task #38・実ネットワーク検証で発見）
+
+`meta.generated_at`・`sources[].fetched_at`は「オフセット付きISO日時」必須（`ISO_DATETIME_OFFSET_RE`
+はミリ秒非対応）。`scripts/build-ledger.mjs`のCLIエントリが`new Date().toISOString()`
+（UTC・`Z`・ミリ秒付き）を直接使っていたため、実ネットワーク経路（fixtureで固定文字列を渡さない
+唯一の経路）で台帳生成が毎回スキーマ検証エラーになっていた。fixtureベースのテストは全て
+`generatedAt`を固定文字列で渡していたため検知できていなかった。`scripts/lib/tz-convert.js`に
+`nowJstIso()`（+09:00オフセット・ミリ秒なし）を新設して置き換え、`scripts/check/gate.mjs`の
+`checked_at_jst`（同じく`new Date().toISOString()`でUTCを格納していた命名ミス）も合わせて修正した
+（`test/tz-convert.test.js`に回帰テスト追加）。
