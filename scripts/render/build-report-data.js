@@ -14,8 +14,10 @@ function pct(min) {
 // day: { date, md, weekday, events: [{id,time,importance,countryJa,currency,displayName,comment,kind}],
 //        windowGroups: [{ firstTime, lastTime, labelItems:[{time,text}] }] }
 // extraBarIntervals: 翌日の発表枠のうち停止窓が丸ごと前日（＝この日）に収まるもの（task #47実バグ
-// 修正）を、この日のバーへ追加描画するための{start,end}区間（前日0時起点の分）。borrowedNotesはその
-// 由来を説明する注記文字列の配列（haltDayCard側でwindowLinesの後ろに追記する）
+// 修正）を、この日のバーへ追加描画するための{start,end}区間（前日0時起点の分）。borrowedNotesは
+// その由来を独立した1行として描画するための構造化情報（{time,label,start,end,countryJa,currency}。
+// html-renderer.js側でwindowLinesと同じ見た目の行として合成する。task #49でしょうさん指摘の
+// 読みやすさ改善に伴い、単純な注記文字列からこの形へ変更した）
 function buildDayHaltCard(day, extraBarIntervals = [], borrowedNotes = []) {
   const windows = (day.windowGroups || []).map((g) =>
     computeHaltWindow({ date: day.date, firstTime: g.firstTime, lastTime: g.lastTime })
@@ -57,7 +59,14 @@ function buildReportData(weekInput) {
       const group = rd.windowGroups[wi];
       extraBarsByIndex[idx - 1].push({ start: w.previousDayBarStartMin, end: w.previousDayBarEndMin });
       const label = (group?.labelItems || []).map((li) => li.text).join('・') || '';
-      borrowedNotesByIndex[idx - 1].push({ time: w.resumeAfter, label, start: w.rawPreviousDayStart, end: w.rawPreviousDayEnd });
+      borrowedNotesByIndex[idx - 1].push({
+        time: w.resumeAfter,
+        label,
+        start: w.rawPreviousDayStart,
+        end: w.rawPreviousDayEnd,
+        countryJa: group?.countryJa || '',
+        currency: group?.currency || '',
+      });
     });
   });
 

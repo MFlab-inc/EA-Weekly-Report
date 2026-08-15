@@ -165,8 +165,48 @@ test('renderer: 停止窓が丸ごと前日に収まる場合 — 前日(8/19)�
   // 15:00=900分=62.5%、8時間=480分=33.3%
   assert.equal(bars[0][0], '62.5');
   assert.equal(bars[0][1], '33.3');
-  assert.ok(block.includes('翌日03:00発表'), '翌日発表分である旨の注記が無い');
-  assert.ok(block.includes('FOMC議事録'), '注記に発表名が含まれていない');
+  // task #49（しょうさん指摘）: 翌日発表分は独立した1行として、他の発表枠と同じ見た目
+  // （国名・通貨ピル＋▲翌日HH:MM＋名称＋停止開始目安の範囲＋注記）で表示される
+  assert.ok(block.includes('翌日03:00'), '▲の時刻に「翌日」が前置されていない');
+  assert.ok(block.includes('FOMC議事録'), '発表名が含まれていない');
+  assert.ok(block.includes('15:00–23:00'), '翌日発表分の停止範囲が表示されていない');
+  assert.ok(block.includes('（翌日発表分）'), '翌日発表分である旨の注記が無い');
+  assert.ok(block.includes('米国'), '翌日発表分の国名ピルが無い');
+  // task #49: この日自身の★★★は0件だが翌日発表分の帯があるため見出しにその旨が出る
+  assert.ok(block.includes('（翌日発表分1件）'), '見出しの件数表示に翌日発表分が反映されていない');
+});
+
+test('renderer: 停止窓が丸ごと前日に収まる場合 — 発表日自身にも★★★があれば見出しは「★★★ N件（＋翌日発表分M件）」', () => {
+  const block = haltDayBlock(generatedEntirelyPrevDay, '2026-08-20');
+  assert.ok(block.includes('★★★ 1件'), '発表日自身の件数バッジが無い');
+  assert.ok(!block.includes('翌日発表分'), '発表日自身（帯の移設先ではない側）に翌日発表分の表示が出てはならない');
+});
+
+// 前日自身にも★★★イベントがあり、かつ翌日発表分の帯も同時に乗るケース（実際の8/17週で
+// GB CPI(8/19)＋FOMC議事録(8/20)の組み合わせとして発生した実例）。自分自身の発表枠が先、
+// 翌日発表分が後という順序と、件数表示が「★★★ N件（＋翌日発表分M件）」になることを確認する
+const weekDataOwnAndBorrowed = {
+  ...weekDataEntirelyPrevDay,
+  days: weekDataEntirelyPrevDay.days.map((d) =>
+    d.date === '2026-08-19'
+      ? {
+          ...d,
+          events: [{ id: 'gb-cpi-2026-08-19', time: '15:00', importance: 3, countryJa: '英国', currency: 'GBP', displayName: '消費者物価指数（CPI）' }],
+          windowGroups: [{ firstTime: '15:00', lastTime: '15:00', countryJa: '英国', currency: 'GBP', labelItems: [{ time: '15:00', text: '消費者物価指数（CPI）' }] }],
+        }
+      : d
+  ),
+};
+const generatedOwnAndBorrowed = renderReportHtml(buildReportData(weekDataOwnAndBorrowed), { reportPolicy, btcGuide });
+
+test('renderer: 発表日自身の★★★と翌日発表分の帯が両方ある日 — 見出しは合算表示、自分の行が先・翌日発表分の行が後', () => {
+  const block = haltDayBlock(generatedOwnAndBorrowed, '2026-08-19');
+  const { bars } = barsAndTriangles(block);
+  assert.equal(bars.length, 2, '自分自身の帯(GB CPI)と翌日発表分の帯(FOMC)の2本が描画されるはず');
+  assert.ok(block.includes('★★★ 1件（＋翌日発表分1件）'), '見出しが合算表示になっていない');
+  const ownIdx = block.indexOf('消費者物価指数（CPI）');
+  const borrowedIdx = block.indexOf('翌日03:00');
+  assert.ok(ownIdx >= 0 && borrowedIdx >= 0 && ownIdx < borrowedIdx, '自分自身の行が翌日発表分より先に来ていない');
 });
 
 // task #47実バグ修正: 月曜早朝発表（窓が丸ごと日曜に収まる）は対象週外（日曜）のため
