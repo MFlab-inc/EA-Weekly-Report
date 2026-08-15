@@ -95,7 +95,10 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     toRow: (r) => ({ title: r.title, utcInstant: r.utcInstant }),
   },
   gb_ons: {
-    primaryLabel: 'releases_api_upcoming_gdp',
+    // 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）:
+    // primaryLabelを外し、query=GDP・query=CPIの2ターゲットをマージする方式へ変更した
+    // （CPIは実APIレスポンスのfixture化・ライブ検証が未実施。task #41参照。既存GDPターゲットの
+    // 挙動は変わらず、fetch失敗したターゲットは黙ってスキップされるだけなので後方互換）
     parseFn: extractOnsReleases,
     toRow: (r) => ({ title: r.title, utcInstant: r.utcInstant }),
   },

@@ -13,7 +13,8 @@
         "cpi",
         "ppi",
         "employment_situation",
-        "employment_indicator"
+        "employment_indicator",
+        "gdp"
       ],
       "type": "date_api_fred",
       "recurring_check_refs": [
@@ -44,6 +45,11 @@
             "kind": "employment_indicator",
             "match_hint": "jolts",
             "note": "合否対象外（参考検証のみ）。2026-08-14検証で日程取得を確認済み"
+          },
+          {
+            "release_id": 53,
+            "kind": "gdp",
+            "note": "2026-08-15追加（しょうさん指摘: US GDPが未登録だった）。release_id=53はFRED『Gross Domestic Product』（BEA）。WebSearch経由での確認（fred.stlouisfed.org/release?rid=53等の複数独立ページで確認）。ライブ検証（実APIレスポンス確認）は未実施のため次回本番runで確認すること"
           }
         ]
       },
@@ -64,6 +70,10 @@
           "local_time": "10:00",
           "tz": "America/New_York",
           "note": "JOLTS。CPI/PPI/雇用統計本体（08:30 ET）とは異なる時刻（既刊実績23:00 JST=10:00 ETから逆算）"
+        },
+        "gdp": {
+          "local_time": "08:30",
+          "tz": "America/New_York"
         }
       },
       "notes": "docs/phase1-official-sources.md §5-4参照。BLS直接アクセスはrobots.txt 403のためFRED経由に統一"
@@ -234,7 +244,8 @@
       "status": "active",
       "country": "GB",
       "kinds": [
-        "gdp"
+        "gdp",
+        "cpi"
       ],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
@@ -244,6 +255,10 @@
           {
             "label": "releases_api_upcoming_gdp",
             "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP"
+          },
+          {
+            "label": "releases_api_upcoming_cpi",
+            "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=CPI"
           }
         ]
       },
@@ -251,9 +266,13 @@
         "gdp": {
           "local_time": "07:00",
           "tz": "Europe/London"
+        },
+        "cpi": {
+          "local_time": "07:00",
+          "tz": "Europe/London"
         }
       },
-      "notes": "抽出はscripts/checkers/extractors/ons.js（releases[].description.title/release_dateをJSON.parseで直接取得）。9元中最良の構造化JSON API（release_date・date_changes訂正履歴を含む）。統計実施規範により12ヶ月ローリング事前公表＋4週間前確定。既知の制約（2026-08-14実測で判明）: 本APIは`release-type=type-upcoming`のため実行時点より未来の日程しか返さない。そのため既刊ground truth（2026-08-13のGDP速報値）のような既に過去となった日付は本番同様の照合ができない（本番運用では対象週は常に未来のため実害はない） | 2026-08-15追記（しょうさん指示・恒久的な検証免除にしない）: 「未来日程は照合済み」の事実を明記する。実キャプチャ済みfixture（releases_api_upcoming_gdp.json）に含まれる実在リリース『GDP monthly estimate, UK: July 2026』（2026-09-11発表予定）の抽出をtest/harness.test.jsで回帰テスト化した。また、この過程でevent-names.jsonのGB/gdp matchキーワード（旧: gdp m/m・prelim gdp q/q、FF想定の表記）が、実際の担当ソースgb_onsが返す実タイトル形式『GDP first quarterly estimate, UK: {期間}』と一致しないバグをWebSearchでons.gov.uk実在ブリテン名を確認のうえ発見・修正した（config/event-names.json・test/match-event-name.test.js参照）。現行fixtureのAPIレスポンス窓（2026-09-11〜10-15）には次回のGDP first quarterly estimate（Q3=7-9月分、11月頃公表見込み）自体は含まれていないため、修正後のmatchキーワードは既刊実例の文言（第2四半期分）と架空でない実タイトル形式の両方で確認したうえでの訂正であり、次回API窓に入り次第そのまま機能する設計"
+      "notes": "抽出はscripts/checkers/extractors/ons.js（releases[].description.title/release_dateをJSON.parseで直接取得）。9元中最良の構造化JSON API（release_date・date_changes訂正履歴を含む）。統計実施規範により12ヶ月ローリング事前公表＋4週間前確定。既知の制約（2026-08-14実測で判明）: 本APIは`release-type=type-upcoming`のため実行時点より未来の日程しか返さない。そのため既刊ground truth（2026-08-13のGDP速報値）のような既に過去となった日付は本番同様の照合ができない（本番運用では対象週は常に未来のため実害はない） | 2026-08-15追記（しょうさん指示・恒久的な検証免除にしない）: 「未来日程は照合済み」の事実を明記する。実キャプチャ済みfixture（releases_api_upcoming_gdp.json）に含まれる実在リリース『GDP monthly estimate, UK: July 2026』（2026-09-11発表予定）の抽出をtest/harness.test.jsで回帰テスト化した。また、この過程でevent-names.jsonのGB/gdp matchキーワード（旧: gdp m/m・prelim gdp q/q、FF想定の表記）が、実際の担当ソースgb_onsが返す実タイトル形式『GDP first quarterly estimate, UK: {期間}』と一致しないバグをWebSearchでons.gov.uk実在ブリテン名を確認のうえ発見・修正した（config/event-names.json・test/match-event-name.test.js参照）。現行fixtureのAPIレスポンス窓（2026-09-11〜10-15）には次回のGDP first quarterly estimate（Q3=7-9月分、11月頃公表見込み）自体は含まれていないため、修正後のmatchキーワードは既刊実例の文言（第2四半期分）と架空でない実タイトル形式の両方で確認したうえでの訂正であり、次回API窓に入り次第そのまま機能する設計 | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: query=CPIターゲットを追加し、CPIをkindsへ追加した。harness.mjs側もprimaryLabelを外して両ターゲットをマージする方式へ変更。CPIの実APIレスポンスはこのサンドボックスからons.gov.ukへ直接フェッチ不可のためfixture化・ライブ検証は未実施（config/event-names.jsonのGB/cpiエントリ参照。次回本番runでのライブ検証が必要）"
     },
     {
       "id": "nz_statsnz",
@@ -292,7 +311,9 @@
       "country": "CA",
       "kinds": [
         "employment_situation",
-        "trade_balance"
+        "trade_balance",
+        "cpi",
+        "gdp"
       ],
       "type": "annual_schedule_config",
       "recurring_check_refs": [],
@@ -314,6 +335,14 @@
         "trade_balance": {
           "local_time": "08:30",
           "tz": "America/Toronto"
+        },
+        "cpi": {
+          "local_time": "08:30",
+          "tz": "America/Toronto"
+        },
+        "gdp": {
+          "local_time": "08:30",
+          "tz": "America/Toronto"
         }
       },
       "residual_monitor_weeks": 4,
@@ -328,16 +357,32 @@
           "kind": "employment_situation"
         },
         {
+          "date": "2026-01-19",
+          "kind": "cpi"
+        },
+        {
           "date": "2026-01-29",
           "kind": "trade_balance"
+        },
+        {
+          "date": "2026-01-30",
+          "kind": "gdp"
         },
         {
           "date": "2026-02-06",
           "kind": "employment_situation"
         },
         {
+          "date": "2026-02-17",
+          "kind": "cpi"
+        },
+        {
           "date": "2026-02-19",
           "kind": "trade_balance"
+        },
+        {
+          "date": "2026-02-27",
+          "kind": "gdp"
         },
         {
           "date": "2026-03-12",
@@ -348,12 +393,28 @@
           "kind": "employment_situation"
         },
         {
+          "date": "2026-03-16",
+          "kind": "cpi"
+        },
+        {
+          "date": "2026-03-31",
+          "kind": "gdp"
+        },
+        {
           "date": "2026-04-02",
           "kind": "trade_balance"
         },
         {
           "date": "2026-04-10",
           "kind": "employment_situation"
+        },
+        {
+          "date": "2026-04-20",
+          "kind": "cpi"
+        },
+        {
+          "date": "2026-04-30",
+          "kind": "gdp"
         },
         {
           "date": "2026-05-05",
@@ -364,6 +425,14 @@
           "kind": "employment_situation"
         },
         {
+          "date": "2026-05-19",
+          "kind": "cpi"
+        },
+        {
+          "date": "2026-05-29",
+          "kind": "gdp"
+        },
+        {
           "date": "2026-06-05",
           "kind": "employment_situation"
         },
@@ -372,12 +441,28 @@
           "kind": "trade_balance"
         },
         {
+          "date": "2026-06-22",
+          "kind": "cpi"
+        },
+        {
+          "date": "2026-06-30",
+          "kind": "gdp"
+        },
+        {
           "date": "2026-07-07",
           "kind": "trade_balance"
         },
         {
           "date": "2026-07-10",
           "kind": "employment_situation"
+        },
+        {
+          "date": "2026-07-20",
+          "kind": "cpi"
+        },
+        {
+          "date": "2026-07-31",
+          "kind": "gdp"
         },
         {
           "date": "2026-08-04",
@@ -390,12 +475,29 @@
           "note": "ground truth ca_labour_20260807と一致確認済み"
         },
         {
+          "date": "2026-08-17",
+          "kind": "cpi",
+          "note": "しょうさん指摘2026-08-15（task #38 PUBLISH_READY誤判定の根本原因調査）で発覚した欠損の実例。年次PDF実測で確認済み"
+        },
+        {
+          "date": "2026-08-28",
+          "kind": "gdp"
+        },
+        {
           "date": "2026-09-03",
           "kind": "trade_balance"
         },
         {
           "date": "2026-09-04",
           "kind": "employment_situation"
+        },
+        {
+          "date": "2026-09-14",
+          "kind": "cpi"
+        },
+        {
+          "date": "2026-09-29",
+          "kind": "gdp"
         },
         {
           "date": "2026-10-06",
@@ -406,12 +508,28 @@
           "kind": "employment_situation"
         },
         {
+          "date": "2026-10-19",
+          "kind": "cpi"
+        },
+        {
+          "date": "2026-10-30",
+          "kind": "gdp"
+        },
+        {
           "date": "2026-11-04",
           "kind": "trade_balance"
         },
         {
           "date": "2026-11-06",
           "kind": "employment_situation"
+        },
+        {
+          "date": "2026-11-16",
+          "kind": "cpi"
+        },
+        {
+          "date": "2026-11-30",
+          "kind": "gdp"
         },
         {
           "date": "2026-12-04",
@@ -422,12 +540,28 @@
           "kind": "trade_balance"
         },
         {
+          "date": "2026-12-14",
+          "kind": "cpi"
+        },
+        {
+          "date": "2026-12-23",
+          "kind": "gdp"
+        },
+        {
           "date": "2027-01-06",
           "kind": "trade_balance"
         },
         {
           "date": "2027-01-08",
           "kind": "employment_situation"
+        },
+        {
+          "date": "2027-01-18",
+          "kind": "cpi"
+        },
+        {
+          "date": "2027-01-29",
+          "kind": "gdp"
         },
         {
           "date": "2027-02-04",
@@ -438,11 +572,27 @@
           "kind": "employment_situation"
         },
         {
+          "date": "2027-02-16",
+          "kind": "cpi"
+        },
+        {
+          "date": "2027-03-01",
+          "kind": "gdp"
+        },
+        {
           "date": "2027-03-12",
           "kind": "employment_situation"
+        },
+        {
+          "date": "2027-03-15",
+          "kind": "cpi"
+        },
+        {
+          "date": "2027-03-31",
+          "kind": "gdp"
         }
       ],
-      "notes": "【2026-08-14再実測で訂正】前回記録（cal1-eng.htmは検索フォームで発表日程を含まない・年次PDFは中間HTML着地ページに転送され直接取得不可）のうち、年次PDF側の判断は誤りだったと判明した。cal1-eng.htm自身が年次PDF（n1/release-diffusion/2026-eng.pdf）へのリンクを含んでおり、このURLへ直接フェッチするとHTTP 200・content-type application/pdf・リダイレクト無しで『2026-2027 release dates Major economic releases』というタイトルのPDF本体（約159KB）が取得できることを確認した（前回の判断はcal1-eng.htm自体の到達性テストと混同していた可能性が高い）。PDFはStatistics Canadaが毎年公表する主要経済指標の年次発表日程表で、Labour Force Survey（雇用統計）・Canadian international merchandise trade（国際商品貿易）を含む全指標の発表日・対象期間が2026年1月〜2027年3月分まで掲載されている。しょうさん指示の優先順(a)API/RSS/ICS→(b)年次PDFのうち(b)で解決。scripts/checkers/extractors/statcan.jsで抽出し、既刊ground truth（CA国際商品貿易2026-08-04＝2026年6月分、CA雇用統計2026-08-07＝2026年7月分）と完全一致を確認した。typeをweekly_scrapeからannual_schedule_configへ再分類し、抽出結果（2026年1月〜2027年3月分、trade_balance15件・employment_situation15件）をscheduleへ投入済み"
+      "notes": "【2026-08-14再実測で訂正】前回記録（cal1-eng.htmは検索フォームで発表日程を含まない・年次PDFは中間HTML着地ページに転送され直接取得不可）のうち、年次PDF側の判断は誤りだったと判明した。cal1-eng.htm自身が年次PDF（n1/release-diffusion/2026-eng.pdf）へのリンクを含んでおり、このURLへ直接フェッチするとHTTP 200・content-type application/pdf・リダイレクト無しで『2026-2027 release dates Major economic releases』というタイトルのPDF本体（約159KB）が取得できることを確認した（前回の判断はcal1-eng.htm自体の到達性テストと混同していた可能性が高い）。PDFはStatistics Canadaが毎年公表する主要経済指標の年次発表日程表で、Labour Force Survey（雇用統計）・Canadian international merchandise trade（国際商品貿易）を含む全指標の発表日・対象期間が2026年1月〜2027年3月分まで掲載されている。しょうさん指示の優先順(a)API/RSS/ICS→(b)年次PDFのうち(b)で解決。scripts/checkers/extractors/statcan.jsで抽出し、既刊ground truth（CA国際商品貿易2026-08-04＝2026年6月分、CA雇用統計2026-08-07＝2026年7月分）と完全一致を確認した。typeをweekly_scrapeからannual_schedule_configへ再分類し、抽出結果（2026年1月〜2027年3月分、trade_balance15件・employment_situation15件）をscheduleへ投入済み | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: 同一PDFに掲載されているConsumer Price Index・Gross domestic product by industryの見出しをSUBJECT_HEADERSへ追加し、CPI・GDP(月次)をkindsへ追加した（trade_balance/employment_situationと同じ年次PDFから追加抽出。再フェッチ不要）。2026-08-17のCPI発表はまさに指摘元の欠損事例（8/17週のground truth候補）。四半期GDP（Gross domestic product, income and expenditure）は月次GDPと同日発表のため重複を避けて未採用"
     },
     {
       "id": "au_abs",
@@ -450,7 +600,9 @@
       "status": "active",
       "country": "AU",
       "kinds": [
-        "trade_balance"
+        "trade_balance",
+        "cpi",
+        "employment_situation"
       ],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
@@ -467,9 +619,17 @@
         "trade_balance": {
           "local_time": "11:30",
           "tz": "Australia/Sydney"
+        },
+        "cpi": {
+          "local_time": "11:30",
+          "tz": "Australia/Sydney"
+        },
+        "employment_situation": {
+          "local_time": "11:30",
+          "tz": "Australia/Sydney"
         }
       },
-      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする"
+      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: future-releases-calendarは元々ABSの全リリースを汎用抽出しており（抽出コード変更不要）、trade_balance以外はkinds未登録だったため取りこぼしていた。実fixtureで実在確認済みのCPI・雇用統計（Labour Force）をkindsへ追加。雇用統計は8/17週（2026-08-20発表）でまさに欠損していた事例。時刻は貿易収支と同じ11:30 Sydney（実fixtureのutcInstantでも01:30Z=11:30 AESTと確認済み）"
     },
     {
       "id": "us_ism",
@@ -860,11 +1020,8 @@
       "kinds": [
         "pmi_ism"
       ],
-      "recurring_check_refs": [
-        "中国PMI"
-      ],
-      "type": "weekly_scrape",
       "recurring_check_refs": [],
+      "type": "weekly_scrape",
       "access": {
         "robots_check": true,
         "targets": []
@@ -880,11 +1037,8 @@
       "kinds": [
         "pmi_ism"
       ],
-      "recurring_check_refs": [
-        "英国建設業PMI"
-      ],
-      "type": "weekly_scrape",
       "recurring_check_refs": [],
+      "type": "weekly_scrape",
       "access": {
         "robots_check": true,
         "targets": []
@@ -900,11 +1054,8 @@
       "kinds": [
         "employment_indicator"
       ],
-      "recurring_check_refs": [
-        "ADP雇用統計"
-      ],
-      "type": "weekly_scrape",
       "recurring_check_refs": [],
+      "type": "weekly_scrape",
       "access": {
         "robots_check": true,
         "targets": [
@@ -1536,30 +1687,105 @@
         "https://www.bankofcanada.ca/2026/07/bank-canada-publishes-2027-schedule-policy-interest-rate-announcements-other-major-publications/"
       ],
       "schedule": [
-        { "date": "2026-01-28", "kind": "policy_rate" },
-        { "date": "2026-01-28", "kind": "quarterly_report" },
-        { "date": "2026-03-18", "kind": "policy_rate" },
-        { "date": "2026-04-29", "kind": "policy_rate" },
-        { "date": "2026-04-29", "kind": "quarterly_report" },
-        { "date": "2026-06-10", "kind": "policy_rate" },
-        { "date": "2026-07-15", "kind": "policy_rate" },
-        { "date": "2026-07-15", "kind": "quarterly_report" },
-        { "date": "2026-09-02", "kind": "policy_rate", "note": "2026年分・2027年分の両プレスリリースで一致確認済み" },
-        { "date": "2026-10-28", "kind": "policy_rate", "note": "2026年分・2027年分の両プレスリリースで一致確認済み" },
-        { "date": "2026-10-28", "kind": "quarterly_report" },
-        { "date": "2026-12-09", "kind": "policy_rate", "note": "2026年分・2027年分の両プレスリリースで一致確認済み" },
-        { "date": "2027-01-27", "kind": "policy_rate" },
-        { "date": "2027-01-27", "kind": "quarterly_report" },
-        { "date": "2027-03-03", "kind": "policy_rate" },
-        { "date": "2027-04-28", "kind": "policy_rate" },
-        { "date": "2027-04-28", "kind": "quarterly_report" },
-        { "date": "2027-06-02", "kind": "policy_rate" },
-        { "date": "2027-07-21", "kind": "policy_rate" },
-        { "date": "2027-07-21", "kind": "quarterly_report" },
-        { "date": "2027-09-08", "kind": "policy_rate" },
-        { "date": "2027-10-27", "kind": "policy_rate" },
-        { "date": "2027-10-27", "kind": "quarterly_report" },
-        { "date": "2027-12-08", "kind": "policy_rate" }
+        {
+          "date": "2026-01-28",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-01-28",
+          "kind": "quarterly_report"
+        },
+        {
+          "date": "2026-03-18",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-04-29",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-04-29",
+          "kind": "quarterly_report"
+        },
+        {
+          "date": "2026-06-10",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-07-15",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2026-07-15",
+          "kind": "quarterly_report"
+        },
+        {
+          "date": "2026-09-02",
+          "kind": "policy_rate",
+          "note": "2026年分・2027年分の両プレスリリースで一致確認済み"
+        },
+        {
+          "date": "2026-10-28",
+          "kind": "policy_rate",
+          "note": "2026年分・2027年分の両プレスリリースで一致確認済み"
+        },
+        {
+          "date": "2026-10-28",
+          "kind": "quarterly_report"
+        },
+        {
+          "date": "2026-12-09",
+          "kind": "policy_rate",
+          "note": "2026年分・2027年分の両プレスリリースで一致確認済み"
+        },
+        {
+          "date": "2027-01-27",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-01-27",
+          "kind": "quarterly_report"
+        },
+        {
+          "date": "2027-03-03",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-04-28",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-04-28",
+          "kind": "quarterly_report"
+        },
+        {
+          "date": "2027-06-02",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-07-21",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-07-21",
+          "kind": "quarterly_report"
+        },
+        {
+          "date": "2027-09-08",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-10-27",
+          "kind": "policy_rate"
+        },
+        {
+          "date": "2027-10-27",
+          "kind": "quarterly_report"
+        },
+        {
+          "date": "2027-12-08",
+          "kind": "policy_rate"
+        }
       ]
     },
     {
@@ -1592,18 +1818,66 @@
       "confirmed_by": "しょうさん（一次ソース直接確認、Claude Chat経由）",
       "confirmed_source_url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028",
       "schedule": [
-        { "date": "2026-09-02", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
-        { "date": "2026-10-28", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)" },
-        { "date": "2026-12-09", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
-        { "date": "2027-02-10", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)。2027年から年7→8回体制へ増加に伴い、旧ページの2027年2月分程日程から1週間前倒し" },
-        { "date": "2027-03-17", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
-        { "date": "2027-05-05", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)" },
-        { "date": "2027-06-16", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
-        { "date": "2027-08-04", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)" },
-        { "date": "2027-09-15", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
-        { "date": "2027-10-27", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)" },
-        { "date": "2027-12-08", "kind": "policy_rate", "note": "Monetary Policy Statement (MPS)" },
-        { "date": "2028-02-09", "kind": "policy_rate", "note": "Monetary Policy Review (MPR)" }
+        {
+          "date": "2026-09-02",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Statement (MPS)"
+        },
+        {
+          "date": "2026-10-28",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Review (MPR)"
+        },
+        {
+          "date": "2026-12-09",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Statement (MPS)"
+        },
+        {
+          "date": "2027-02-10",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Review (MPR)。2027年から年7→8回体制へ増加に伴い、旧ページの2027年2月分程日程から1週間前倒し"
+        },
+        {
+          "date": "2027-03-17",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Statement (MPS)"
+        },
+        {
+          "date": "2027-05-05",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Review (MPR)"
+        },
+        {
+          "date": "2027-06-16",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Statement (MPS)"
+        },
+        {
+          "date": "2027-08-04",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Review (MPR)"
+        },
+        {
+          "date": "2027-09-15",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Statement (MPS)"
+        },
+        {
+          "date": "2027-10-27",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Review (MPR)"
+        },
+        {
+          "date": "2027-12-08",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Statement (MPS)"
+        },
+        {
+          "date": "2028-02-09",
+          "kind": "policy_rate",
+          "note": "Monetary Policy Review (MPR)"
+        }
       ]
     },
     {

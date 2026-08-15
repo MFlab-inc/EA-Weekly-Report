@@ -84,6 +84,34 @@ test('ABS(au_abs): 貿易収支(8/6)が既刊と日時・重要度・名称と�
   assert.equal(trade.displayName, '貿易収支');
 });
 
+// task #38実ネットワーク検証（しょうさん指摘2026-08-15）の回帰テスト: au_absは登録済み
+// ソースで抽出コード自体は全リリースを汎用抽出していたが、CPI・雇用統計がkind未登録のため
+// 取りこぼしていた（8/17週のAU雇用統計=8/20発表分がまさにその欠損事例）。同一fixtureから
+// 実際にAU CPI・雇用統計が拾えることを確認する
+test('ABS(au_abs): CPI・雇用統計も同一fixtureから拾える（8/17週の欠損事例の回帰テスト）', async () => {
+  const { checkWeeklyScrapeSource } = await import('../scripts/checkers/harness.mjs');
+  const absHtml = readFixture('au_abs', 'future_releases_calendar.html');
+  const fetchImpl = fixtureFetch({ 'future-releases-calendar': absHtml });
+  const source = sourcesConfig.sources.find((s) => s.id === 'au_abs');
+  const WEEK_20260817 = { targetWeekStart: '2026-08-17', targetWeekEnd: '2026-08-21', dates: ['2026-08-17', '2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21'].map((date) => ({ date })) };
+
+  const r = await checkWeeklyScrapeSource(source, WEEK_20260817, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
+  assert.equal(r.ok, true);
+  const employment = r.thisWeek.find((c) => c.kind === 'employment_situation');
+  assert.ok(employment, 'AU employment_situationが見つからない（8/17週の欠損事例が再現していない）');
+  assert.equal(employment.date, '2026-08-20');
+  assert.equal(employment.time, '10:30'); // 11:30 Sydney(AEST, UTC+10) → JST
+  assert.equal(employment.displayName, '雇用統計');
+  assert.equal(employment.importance, 3);
+
+  // CPIは2026-08-26発表分（8/17週の翌週）のため、より広い週で拾えることのみ確認する
+  const rNextWeek = await checkWeeklyScrapeSource(source, { targetWeekStart: '2026-08-24', targetWeekEnd: '2026-08-28', dates: [] }, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
+  const cpi = rNextWeek.thisWeek.find((c) => c.kind === 'cpi');
+  assert.ok(cpi, 'AU cpiが見つからない');
+  assert.equal(cpi.date, '2026-08-26');
+  assert.equal(cpi.displayName, '消費者物価指数（CPI）');
+});
+
 test('FRED(us_bls_fred): CPI/PPI/雇用統計/JOLTSの4件が既刊と日時・重要度・名称とも完全一致', async () => {
   const { checkFredSource } = await import('../scripts/checkers/harness.mjs');
   const source = sourcesConfig.sources.find((s) => s.id === 'us_bls_fred');
@@ -92,6 +120,9 @@ test('FRED(us_bls_fred): CPI/PPI/雇用統計/JOLTSの4件が既刊と日時・�
     46: readFixture('us_bls_fred', 'release_46_ppi.json'),
     50: readFixture('us_bls_fred', 'release_50_employment_situation.json'),
     192: readFixture('us_bls_fred', 'release_192_jolts.json'),
+    // release_id=53（US GDP、2026-08-15追加）: ライブfixture未取得のため、既刊2週の対象外で
+    // あることのみ表すスキーマ準拠の空応答スタブ（FRED release/dates APIの実レスポンス構造）
+    53: JSON.stringify({ release_dates: [] }),
   };
   const fetchImpl = async (url) => {
     const idM = /release_id=(\d+)/.exec(url);

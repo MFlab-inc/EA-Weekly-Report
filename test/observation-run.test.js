@@ -4,6 +4,11 @@
 // ここでは合成report（runChecks()の戻り値と同じ形）で組み立てロジックのみを検証する。
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+
+const realEventNames = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'event-names.json'), 'utf8')).entries;
+const realSourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
 
 test('annualEntryToCandidate: announce_time_by_kindのlocal_time+tzからJST時刻を正しく変換する', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
@@ -167,6 +172,23 @@ test('buildObservationSummary: manualEventsConfigの対象週内entriesを他ソ
   assert.equal(summary.candidates[0].sourceId, 'manual');
   assert.equal(summary.candidates[0].displayName, 'ブロックRBA総裁：下院経済委員会への出席');
   assert.ok(!summary.candidates.some((c) => c.displayName?.includes('含まれてはいけない')));
+});
+
+// task #38実ネットワーク検証（しょうさん指摘2026-08-15）の回帰テスト: ca_statcanは登録済み
+// ソースだったがCPI・GDPがkind未登録のため名称解決できなかった（8/17週のCA CPI=8/17発表分が
+// まさにその欠損事例）。config/official-sources.json・config/event-names.jsonの実データを使い、
+// annualEntryToCandidate経由でCA CPI/GDPの名称が正しく解決されることを確認する
+test('annualEntryToCandidate: CA CPI/GDP(月次)が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'ca_statcan');
+  const importanceRules = { importance_by_kind: { cpi: 3, gdp: 3 } };
+
+  const cpiCandidate = annualEntryToCandidate({ date: '2026-08-17', kind: 'cpi' }, source, importanceRules, realEventNames);
+  assert.equal(cpiCandidate.displayName, '消費者物価指数（CPI）');
+  assert.equal(cpiCandidate.time, '21:30'); // 08:30 America/Toronto(EDT, UTC-4) → JST
+
+  const gdpCandidate = annualEntryToCandidate({ date: '2026-08-28', kind: 'gdp' }, source, importanceRules, realEventNames);
+  assert.equal(gdpCandidate.displayName, '国内総生産（GDP）');
 });
 
 test('renderText: outcome・候補一覧・停止目安を含むテキストを生成する（例外を投げない）', async () => {

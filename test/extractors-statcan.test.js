@@ -44,3 +44,15 @@ test('extractStatCanSchedule: 見出しが見つからないsubjectは空配列�
   assert.deepEqual(schedule.trade_balance, []);
   assert.deepEqual(schedule.employment_situation, []);
 });
+
+// task #38実ネットワーク検証（しょうさん指摘2026-08-15）の回帰テスト: 登録済みソースの
+// 同一PDFに既に含まれていたConsumer Price Index・Gross domestic product by industryが
+// kind未登録のため取りこぼされていた（8/17週のCA CPI=8/17発表分がまさにその欠損事例）
+test('extractStatCanSchedule: CPI・GDP(月次)も同一PDFから抽出できる（8/17週の欠損事例の回帰テスト）', async () => {
+  const buf = readFileSync(fixturePath);
+  const { text } = await pdf(buf);
+  const schedule = extractStatCanSchedule(text);
+
+  assert.ok(schedule.cpi.some((e) => e.releaseDate === '2026-08-17' && e.referencePeriod === '2026-07'), 'CA CPI(8/17=7月分)が見つからない');
+  assert.ok(schedule.gdp.some((e) => e.releaseDate === '2026-08-28' && e.referencePeriod === '2026-06'), 'CA GDP月次(8/28=6月分)が見つからない');
+});

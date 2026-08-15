@@ -26,6 +26,9 @@ const FRED_FIXTURES = {
   46: readFixture('us_bls_fred', 'release_46_ppi.json'),
   50: readFixture('us_bls_fred', 'release_50_employment_situation.json'),
   192: readFixture('us_bls_fred', 'release_192_jolts.json'),
+  // release_id=53（US GDP、2026-08-15追加）: ライブfixture未取得のため、既刊2週の対象外で
+  // あることのみ表すスキーマ準拠の空応答スタブ（FRED release/dates APIの実レスポンス構造）
+  53: JSON.stringify({ release_dates: [] }),
 };
 
 // 全対象ソースを1つのfetchImplで賄うマスターモック。annual_schedule_config型（au_rba・jp_boj・us_ism・
