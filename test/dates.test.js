@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { getTargetWeek, parseYmd } = require('../scripts/lib/dates');
+const { getTargetWeek, getCurrentWeekMonday, parseYmd } = require('../scripts/lib/dates');
 
 // SPEC §2: 実行日（土曜）の翌月曜〜金曜がJST基準の対象週。
 // ground truth: reference/sample-report_20260808.html — 作成日2026-08-08(土)→対象週2026-08-10(月)〜08-14(金)、
@@ -57,6 +57,26 @@ test('月曜実行（手動再実行の異常系）→ 今週ではなく来週�
   const wk = getTargetWeek(now);
   assert.equal(wk.collectionDate, '2026-08-10');
   assert.equal(wk.targetWeekStart, '2026-08-17');
+});
+
+// getCurrentWeekMonday（SPEC §3.3月曜事後突合、task #39用）: getTargetWeekと違い
+// 「今日を含む週」の月曜を返す。2026-08-17(月)に実行した実測（task #2/#39）の実例で検証
+test('getCurrentWeekMonday: 月曜実行時は当日そのものを返す（2026-08-17実測ground truth）', () => {
+  // 2026-08-16T23:02:02Z = 2026-08-17 08:02 JST（月曜）
+  const now = new Date('2026-08-16T23:02:02Z');
+  assert.equal(getCurrentWeekMonday(now), '2026-08-17');
+});
+
+test('getCurrentWeekMonday: 週の他の曜日でも同じ週の月曜を返す（金曜実行）', () => {
+  // 2026-08-21（金）
+  const now = new Date('2026-08-21T03:00:00Z');
+  assert.equal(getCurrentWeekMonday(now), '2026-08-17');
+});
+
+test('getCurrentWeekMonday: 日曜実行時は前日までの週（直前の月曜）を返す', () => {
+  // 2026-08-16（日）はISO週的には08-10週の最終日
+  const now = new Date('2026-08-16T03:00:00Z');
+  assert.equal(getCurrentWeekMonday(now), '2026-08-10');
 });
 
 test('parseYmdの往復整合性', () => {

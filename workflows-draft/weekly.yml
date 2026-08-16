@@ -6,6 +6,7 @@ on:
   schedule:
     - cron: '6 23 * * 5'    # 土曜 08:06 JST（本番）
     - cron: '41 23 * * 5'   # 土曜 08:41 JST（保険。冪等ガードで二重生成防止）
+    - cron: '23 23 * * 0'   # 月曜 08:23 JST（SPEC §3.3月曜事後突合。人気分[0/5の倍数・15・30・45]を回避）
   workflow_dispatch: {}
 permissions:
   contents: write
@@ -14,6 +15,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
+    # workflow_dispatch（手動）またはSaturdayの2本のcron（本番・保険）でのみ実行する。
+    # 月曜cron（FF事後突合専用）ではこのジョブを起動しない
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule != '23 23 * * 0'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,3 +51,31 @@ jobs:
           git add output/ data/ docs/
           git diff --cached --quiet || git commit -m "weekly report $(date -u +%Y-%m-%d)"
           git push
+
+  # SPEC §3.3「月曜事後突合」（task #39、2026-08-17実データで初回実行・動作確認済み）。
+  # 対象週が実際の当該週になった月曜朝、ff_calendar_thisweek.json（この時点では対象週分を
+  # 指す。docs/phase0-findings.md 項目2の実測で確認済み）と土曜配信済みの台帳
+  # （data/ledger/<この週の月曜>.json）を突合する。相違ゼロなら静かに成功、相違があれば
+  # discrepancy-report.jsonを出力してジョブを失敗させる（失敗＝GitHub Actionsの標準通知で
+  # しょうさんへ届く。ジョブ失敗は自動配信のstatusには影響しない=別ジョブのため）
+  monday-ff-cross-check:
+    if: github.event.schedule == '23 23 * * 0'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: FF月曜事後突合
+        run: |
+          WEEK_MONDAY=$(node -e "console.log(require('./scripts/lib/dates').getCurrentWeekMonday())")
+          echo "week_monday=${WEEK_MONDAY}"
+          node scripts/check/ff-cross-check.mjs "data/ledger/${WEEK_MONDAY}.json" --result discrepancy-report.json
+      - name: Upload discrepancy report（相違があった場合のみ生成される）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: discrepancy-report
+          path: discrepancy-report.json
+          retention-days: 14
+          if-no-files-found: ignore

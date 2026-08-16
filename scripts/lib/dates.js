@@ -66,8 +66,20 @@ function getTargetWeek(now = new Date()) {
   };
 }
 
+// 月曜事後突合（SPEC §3.3、task #39）用: 実行時点を含むISO週の月曜日を返す。
+// getTargetWeek（「今日を含まない直近の月曜＝次週」）とは異なり、こちらは「今日を含む週の月曜
+// （＝土曜配信時にgetTargetWeekが返した対象週そのもの）」を返す。月曜朝に実行することで、
+// 配信済み台帳ファイル（data/ledger/<この値>.json）を特定できる
+function getCurrentWeekMonday(now = new Date()) {
+  const today = jstCalendarDate(now);
+  const iso = isoWeekdayOf(today);
+  const monday = addDays(today, 1 - iso);
+  return formatYmd(monday);
+}
+
 module.exports = {
   getTargetWeek,
+  getCurrentWeekMonday,
   jstCalendarDate,
   addDays,
   isoWeekdayOf,
