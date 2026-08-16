@@ -1,0 +1,8 @@
+{
+  "_unused_warning": "task #56（2026-08-16、しょうさん指示）でconfig/country-currency-map.jsonから.unusedへリネーム済み（実体を編集しても表示には一切反映されないため、config/直下から外して誤解を防ぐ)。元の経緯: task #53（2026-08-15）config棚卸しで発覚: このファイルはどのコードからもreadFileSync/requireされておらず、実際には使われていない。実体はscripts/lib/build-ledger.jsのCURRENCY_BY_COUNTRY（ISO国コード→通貨コード）とscripts/render/ledger-to-week-input.jsのCOUNTRY_JA_BY_ISO（ISO国コード→日本語国名）という2つの独立したハードコード辞書（task #54のDEDE表示バグの原因そのもの）。このJSONは日本語国名がキー（『日本』『米国』等）だが実際の呼び出し元はISO国コード（『JP』『US』等）しか持っていないため、キー体系そのものが現行パイプラインと不整合＝単に配線し忘れているのではなく、このままでは配線できない。国×通貨・国×日本語名の対応を変更する場合はbuild-ledger.js/ledger-to-week-input.jsの2箇所を直接編集すること（要ISO統一の再設計、未着手。docs/annual-schedule-maintenance.md「config更新時のチェックリスト」5番参照）",
+  "_comment": "国名ピル（濃緑）＋通貨コードピル（淡緑・等幅）の対応表。辞書にない国は通貨コードのみ表示にフォールバック（HOLDしない）※上記_unused_warning参照",
+  "日本": "JPY", "米国": "USD", "英国": "GBP", "豪州": "AUD",
+  "ユーロ圏": "EUR", "ドイツ": "EUR", "フランス": "EUR",
+  "NZ": "NZD", "カナダ": "CAD", "スイス": "CHF",
+  "中国": "CNY", "南ア": "ZAR", "トルコ": "TRY", "メキシコ": "MXN"
+}

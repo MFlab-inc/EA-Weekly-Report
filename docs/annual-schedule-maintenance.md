@@ -176,3 +176,4 @@ Manus生成レポートとの突合で、登録済み（statusがactive/draft_sc
 2. `config/official-sources.json` の当該ソースエントリを更新（既存の過去日程は履歴として残すか削除するかは容量次第で判断）
 3. `npm test` で既存テストに影響がないことを確認
 4. コミットメッセージに更新元URLと公表日を明記
+5. 新しい国コードを追加した場合は、国×通貨・国×日本語名の対応辞書2箇所（`scripts/lib/build-ledger.js`のCURRENCY_BY_COUNTRY、`scripts/render/ledger-to-week-input.js`のCOUNTRY_JA_BY_ISO）の両方に追加する。`test/validate-country-currency-coverage.test.js`（`scripts/lib/validate-country-currency-coverage.js`）が両dictへの登録漏れをCIで検出する（task #54再発防止ゲート）。**`config/country-currency-map.json.unused`は実体ではない**（どのコードからも読み込まれていない削除予定の旧資料。task #56参照）ため編集しても無意味
