@@ -52,6 +52,35 @@ jobs:
           git diff --cached --quiet || git commit -m "weekly report $(date -u +%Y-%m-%d)"
           git push
 
+  # GitHub Pagesプレビュー公開（task #42、2026-08-17実装）。output/配下の配信済みレポートのみを
+  # 一覧ページ（scripts/render/build-pages-index.js）と共に公開する。config/scripts等の内部
+  # ファイルは含めない。しょうさん側の前提: リポジトリSettings→Pages→Source を
+  # 「GitHub Actions」に設定しておくこと（docs/setup-guide.md参照）
+  deploy-pages:
+    needs: build
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: pages-dist生成
+        run: node scripts/render/build-pages-dist.mjs output pages-dist
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages-dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
   # SPEC §3.3「月曜事後突合」（task #39、2026-08-17実データで初回実行・動作確認済み）。
   # 対象週が実際の当該週になった月曜朝、ff_calendar_thisweek.json（この時点では対象週分を
   # 指す。docs/phase0-findings.md 項目2の実測で確認済み）と土曜配信済みの台帳
