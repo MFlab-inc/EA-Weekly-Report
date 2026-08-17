@@ -18,8 +18,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule != '23 23 * * 0'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: '20' }
       - run: npm ci
       - name: Install Playwright Chromium (モバイル多幅レイアウト検証に使用)
@@ -87,18 +87,18 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: '20' }
       - run: npm ci
       - name: pages-dist生成
         run: node scripts/render/build-pages-dist.mjs output pages-dist
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: pages-dist
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   # SPEC §3.3「月曜事後突合」（task #39、2026-08-17実データで初回実行・動作確認済み）。
   # 対象週が実際の当該週になった月曜朝、ff_calendar_thisweek.json（この時点では対象週分を
@@ -110,8 +110,8 @@ jobs:
     if: github.event.schedule == '23 23 * * 0'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: '20' }
       - run: npm ci
       - name: FF月曜事後突合
@@ -121,7 +121,7 @@ jobs:
           node scripts/check/ff-cross-check.mjs "data/ledger/${WEEK_MONDAY}.json" --result discrepancy-report.json
       - name: Upload discrepancy report（相違があった場合のみ生成される）
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: discrepancy-report
           path: discrepancy-report.json
