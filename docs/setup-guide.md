@@ -12,14 +12,20 @@
 
 `weekly.yml`（毎週の自動生成本体）は、これまで本番の`.github/workflows/`ではなく
 `workflows-draft/`に置いていました（誤って毎週動き出さないための安全策）。これを本番へ
-移すPRを作成しますので、レビューしてマージしてください。
+移すPRをレビューしてマージしてください。
 
-1. Claude（このセッション）に「weekly.ymlを本番へ移設するPRを作成してください」と伝えてください（このドキュメントの生成と同時にPRを作らなかったのは、勝手にPRを作らない方針のためです）
-2. GitHubでリポジトリを開き、上部タブの **「Pull requests」** を開く
-3. 該当PRを開き、変更内容（`.github/workflows/weekly.yml`が新設され、`workflows-draft/weekly.yml`が削除される差分）を確認
-4. 問題なければ緑色の **「Merge pull request」** ボタン → **「Confirm merge」** を押す
+> **2026-08-17追記**: 最初のPR（#2）は実装全体をマージしましたが、`weekly.yml`自体の
+> `workflows-draft/`→`.github/workflows/`への実際の移設が漏れていました（Claude側の
+> 見落とし）。この移設漏れと、確認のご依頼を受けて検証した結果判明した保険cron
+> （08:41 JST）の冪等ガード不備（台帳の`generated_at`が実行のたびに変わるため、
+> 当初の実装では実際には二重コミットしてしまう構造だった）をあわせて、別PRで是正します。
+> PR番号は本メッセージの後段でお知らせします。
 
-このPRがマージされると、以下の3ジョブが有効になります（`workflows-draft/weekly.yml`のコメント参照）:
+1. GitHubでリポジトリを開き、上部タブの **「Pull requests」** を開く
+2. 該当PRを開き、変更内容（`.github/workflows/weekly.yml`が新設され、`workflows-draft/weekly.yml`が削除される差分）を確認
+3. 問題なければ緑色の **「Merge pull request」** ボタン → **「Confirm merge」** を押す
+
+このPRがマージされると、以下の3ジョブが有効になります（`.github/workflows/weekly.yml`のコメント参照）:
 
 | ジョブ | 実行タイミング | 内容 |
 |---|---|---|

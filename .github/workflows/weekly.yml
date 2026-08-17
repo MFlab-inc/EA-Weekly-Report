@@ -1,6 +1,4 @@
-# 週次レポート自動生成（ドラフト）
-# 実装完了までは workflows-draft/ に置く（この場所ではActionsは起動しない）。
-# Phase 2で .github/workflows/weekly.yml へ移設して有効化する。
+# 週次レポート自動生成（本番）。2026-08-17、PR #2マージ後に .github/workflows/ へ移設して有効化。
 name: weekly-report
 on:
   schedule:
@@ -26,6 +24,26 @@ jobs:
       - run: npm ci
       - name: Install Playwright Chromium (モバイル多幅レイアウト検証に使用)
         run: npx playwright install --with-deps chromium
+      # 冪等チェック（2026-08-17是正、しょうさん指摘: 保険cron[08:41]の二重生成防止が
+      # 実働するか確認してほしいとの依頼を受けて検証した結果、当初の実装
+      # [commit outputsステップのgit diff --cached --quietのみに依存]は不十分と判明したため
+      # 修正。台帳meta.generated_atが実行のたびに異なる値になるため、pipelineを2回とも
+      # 最後まで実行してからでは差分が必ず非空になり、08:41の保険runが常に重複コミットを
+      # 作ってしまう構造的な欠陥があった。concurrency: group: weekly-report（同一workflow内で
+      # cancel-in-progress: false）により08:06のrunが完全終了する[pushまで含む]まで08:41は
+      # 開始しないため、この時点のcheckoutで対象週の台帳ファイルが既にリポジトリに存在するかを
+      # 判定すれば安全に重複実行を検出できる
+      - name: 冪等チェック（対象週の台帳が既にコミット済みなら以降のpipelineをスキップ）
+        id: idempotency
+        run: |
+          TARGET_WEEK_START=$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart)")
+          echo "target_week_start=${TARGET_WEEK_START}" >> "$GITHUB_OUTPUT"
+          if [ -f "data/ledger/${TARGET_WEEK_START}.json" ]; then
+            echo "already_generated=true" >> "$GITHUB_OUTPUT"
+            echo "対象週(${TARGET_WEEK_START})の台帳は既にコミット済み。今回のrunはスキップします（保険cronの二重生成防止）"
+          else
+            echo "already_generated=false" >> "$GITHUB_OUTPUT"
+          fi
       # 2026-08-15: 検証パイプラインをPython+Playwrightから移設した際にsetup-python/pipを撤去し、
       # Node.js一本（.github/workflows/ci.ymlと同一ランタイム）に統一した
       # （docs/validate-scripts-guide.md参照）。collect→build-ledger→renderの3ステップは
@@ -35,16 +53,17 @@ jobs:
       # scripts/render.mjsのautoHeroSummary/autoHeroPills参照。人手キュレーションが必要な場合のみ
       # --narrativeで上書き可能）。発表枠の束ね（bundle_id、task #34）も配線済み
       - name: pipeline
+        if: steps.idempotency.outputs.already_generated == 'false'
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
+          TARGET_WEEK_START="${{ steps.idempotency.outputs.target_week_start }}"
           node scripts/collect.mjs
           node scripts/build-ledger.mjs
-          TARGET_WEEK_START=$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart)")
           node scripts/render.mjs "data/ledger/${TARGET_WEEK_START}.json" --out "output/ea-weekly-${TARGET_WEEK_START//-/}.html"
           node scripts/check/gate.mjs --ledger "data/ledger/${TARGET_WEEK_START}.json" --html "output/ea-weekly-${TARGET_WEEK_START//-/}.html" --result gate-result.json
       - name: commit outputs
-        if: success()
+        if: steps.idempotency.outputs.already_generated == 'false' && success()
         run: |
           git config user.name "ea-weekly-bot"
           git config user.email "actions@users.noreply.github.com"
