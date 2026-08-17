@@ -8,5 +8,162 @@
       "required_kind": "policy_rate"
     }
   ],
-  "additional_required": []
+  "additional_required": [
+    {
+      "country": "JP",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15（task #38コード名: 国×kind必須マトリクス）。総務省統計局。2026-08-15時点でca_statcan/au_absと同型のannual_schedule_config候補（e-Stat/各省庁ページ実測が必要、task #41）"
+    },
+    {
+      "country": "JP",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。内閣府/ESRI。task #41で実装予定"
+    },
+    {
+      "country": "JP",
+      "kind": "trade_balance",
+      "note": "しょうさん承認2026-08-15。財務省税関。task #41で実装予定"
+    },
+    {
+      "country": "US",
+      "kind": "minutes_summary",
+      "note": "しょうさん承認2026-08-15。task #41-1で実装済み（既存us_frb_policy_rateへ会合終了+21日固定オフセットで算出したschedule追加）"
+    },
+    {
+      "country": "EU",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15（ユーロ圏HICP）。task #41-3で実装済み（eurostat_hicp、速報値のみ2026年8ヶ月分）"
+    },
+    {
+      "country": "EU",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。task #41-3で実装済み（eurostat_gdp、2026年上半期4件）"
+    },
+    {
+      "country": "EU",
+      "kind": "pmi_ism",
+      "note": "しょうさん承認2026-08-15（フラッシュPMI）。task #41-3で実装（eu_flash_pmi）。task #53で規則生成＋年1回手動確認方式へ切替（S&P Globalの事前一括公表が存在しないため、月末5英国営業日前の規則をGOV.UK公式祝日データで検証し2026年8月〜2027年11月分をschedule収録。12月は規則性が無いため手動確定が必要、詳細はeu_flash_pmi notes/confirmed_note参照）"
+    },
+    {
+      "country": "EU",
+      "kind": "minutes_summary",
+      "note": "しょうさん承認2026-08-15（ECB Accounts of the monetary policy meeting）。task #41-1で実装済み（既存ecb_policy_rateへWebSearch確認済みの実日付6件を追加）"
+    },
+    {
+      "country": "GB",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15。task #38で実装済み（gb_ons、query=CPIターゲット追加）。ライブ検証は次回本番run"
+    },
+    {
+      "country": "GB",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。既存gb_ons（gdp）で充足済み。API仕様上の過去週検証不可という既知の制約あり（official-sources.json gb_ons notes参照）"
+    },
+    {
+      "country": "GB",
+      "kind": "pmi_ism",
+      "note": "しょうさん承認2026-08-15（フラッシュPMI・製造業/サービス業）。task #41-3で実装（gb_flash_pmi、既存gb_construction_pmi[建設業PMI]とはsubtypeで区別）。task #53で規則生成＋年1回手動確認方式へ切替（詳細はeu_flash_pmi notes参照、EU/GB/DEは同一規則・同一暦日）"
+    },
+    {
+      "country": "AU",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15。task #38で実装済み（au_abs）"
+    },
+    {
+      "country": "AU",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。task #41-4で実装済み（au_absのkindsへgdp追加。ABS正式名『Australian National Accounts』。既存weekly_scrape機構のためhardcodeなしのlive fetchで対応、ライブ検証は次回本番run）"
+    },
+    {
+      "country": "AU",
+      "kind": "employment_situation",
+      "note": "しょうさん承認2026-08-15。task #38で実装済み（au_abs、8/17週の欠損事例そのもの）"
+    },
+    {
+      "country": "AU",
+      "kind": "minutes_summary",
+      "note": "しょうさん承認2026-08-15。task #41-1で実装済み（既存au_rbaへ会合2週間後固定オフセットで算出したschedule追加）"
+    },
+    {
+      "country": "NZ",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15。task #41-4で実装済み（nz_stats_cpi、2026年3件・四半期リリース）"
+    },
+    {
+      "country": "NZ",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。task #41-4で実装済み（nz_stats_gdp、2026年2件・四半期リリース）"
+    },
+    {
+      "country": "CA",
+      "kind": "cpi",
+      "note": "しょうさん承認2026-08-15。task #38で実装済み（ca_statcan、8/17週の欠損事例そのもの）"
+    },
+    {
+      "country": "CA",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15。task #38で実装済み（ca_statcan、月次GDP）"
+    },
+    {
+      "country": "CA",
+      "kind": "minutes_summary",
+      "note": "しょうさん承認2026-08-15（BOC Summary of Governing Council Deliberations）。task #41-1で実装済み（既存boc_policy_rateへWebSearch確認済みの2026年通年8件を追加）"
+    },
+    {
+      "country": "CN",
+      "kind": "industrial_production",
+      "note": "しょうさん承認2026-08-15（AUD系ペアの停止判断に直結するため必須）。NBS（国家統計局）担当。task #16（S&P Global系PMIブロッカー）とは無関係の別トラック。新設kind（config/importance-rules.jsonのimportance_by_kindに追加済み）。task #41-4で実装済み（cn_nbs_data、2026年1-7月分6回）"
+    },
+    {
+      "country": "CN",
+      "kind": "retail_sales",
+      "note": "しょうさん承認2026-08-15。NBS担当。task #41-4で実装済み（cn_nbs_data）"
+    },
+    {
+      "country": "CN",
+      "kind": "gdp",
+      "note": "しょうさん承認2026-08-15（四半期GDP）。NBS担当。task #41-4で実装済み（cn_nbs_data、2026年1-7月分3回）"
+    },
+    {
+      "country": "GB",
+      "kind": "employment_situation",
+      "note": "しょうさん指摘2026-08-15（task #50/52、Manus突合: 当初『任意』分類が誤りだったとの訂正）。task #51で実装済み（gb_ons、query=Labour追加。8/18発表分が8/17週の欠損事例そのもの）"
+    },
+    {
+      "country": "GB",
+      "kind": "retail_sales",
+      "note": "しょうさん指摘2026-08-15（task #50/52、retail_salesを新規必須kindとして追加）。task #51で実装済み（gb_ons、query=Retail追加。8/21発表分が8/17週の欠損事例そのもの）"
+    },
+    {
+      "country": "CA",
+      "kind": "retail_sales",
+      "note": "しょうさん指摘2026-08-15（task #50/52、retail_salesを新規必須kindとして追加）。task #51で実装済み（ca_statcan、年次PDFのSUBJECT_HEADERS未マッピングが原因。8/21発表分が8/17週の欠損事例そのもの）"
+    },
+    {
+      "country": "US",
+      "kind": "retail_sales",
+      "note": "しょうさん指摘2026-08-15（task #50/52、retail_salesを新規必須kindとして追加。米小売売上高は既刊8/10週で★★★実績あり）。既存us_census（Advance Monthly Sales for Retail and Food Services）で充足済み（task #9・Phase 0から実装済み）"
+    },
+    {
+      "country": "AU",
+      "kind": "retail_sales",
+      "note": "しょうさん指摘2026-08-15（task #50/52、retail_salesを新規必須kindとして追加。一括監査で発覚した未マッピング事例）。task #50/51で実装済み（au_abs、Monthly Household Spending Indicator＝ABSの旧Retail Trade後継指標）"
+    },
+    {
+      "country": "DE",
+      "kind": "sentiment",
+      "note": "しょうさん承認2026-08-15（task #50/52、DE国追加。ドイツ製造業PMI・ZEW・Ifo等はEURペアで★★★級との指摘）。ZEW Indicator of Economic Sentimentをde_zewとして実装済み（2026-08-15ライブ検証、zew.de公式プレスリリースの年次一括公表を確認）。Ifo Business Climate Index（実測継続中、次点候補）は未実装。ドイツ製造業PMIはtask #53で別途pmi_ismとして実装済み（下記参照）"
+    },
+    {
+      "country": "DE",
+      "kind": "pmi_ism",
+      "note": "しょうさん承認2026-08-15（フラッシュPMI・task #53で新規実装）。de_flash_pmi。S&P Globalの直接取得が4経路（press_release_hub・markiteconomics.com・hcob-bank.com・Ifo『Calendar of Events and Release Dates』）すべて不成立と確定したため、規則生成＋年1回手動確認方式を採用（月末5英国営業日前、GOV.UK公式祝日データで24ヶ月中22ヶ月を検証。詳細はde_flash_pmi notes/confirmed_note参照。EU/GBと同一規則・同一暦日）"
+    }
+  ],
+  "_pending_not_yet_added": {
+    "_comment": "しょうさんの指摘（task #50/52）で必須化が承認されたが、担当ソースが未実装のため意図的にadditional_requiredへはまだ追加していない項目。実装完了後にここから昇格させること（fail-closed設計のため、担当ソース不在のままadditional_requiredへ追加するとCIが恒久的に赤くなる。task #41の中銀8/8件で採用したのと同じ『スナップショット→全件充足後に厳格化』の段階移行方針を踏襲）",
+    "JP retail_sales": "しょうさん承認2026-08-15。候補はMETI（経済産業省）だが2026-08-15ライブ検証でrobots.txt自体がHTTP 403で取得失敗のため慎重側に倒しSKIP確定（構造的ブロッカー。task #16のBLS/ISM/RatingDog等と同種）。代替経路（関連統計を公表する別省庁等）は未調査",
+    "EU retail_sales": "しょうさん承認2026-08-15。Eurostat個別リリースページの経路B（w/4-DDMMYYYY-ap、EU GDPのw/2-...と同型）を2026-08-15ライブ検証で確認済み（2026-08-06公表分ページで『Next release: 4 September 2026』を確認、HTTP 200）。経路自体は生きているが、EU GDPと同様の月次巡回実装（次回リリースURLの継続追跡）がまだ未着手のためsource未実装",
+    "CN cpi": "task #50一括監査（2026-08-15）で新規発覚。しょうさん指摘: 中国CPIはAUD系ペアに効くため次回候補として優先度は中。cn_nbs_dataは鉱工業生産・小売売上高・GDPを同日統合発表分から収録しているが、中国のCPIは通常別日（毎月9〜10日頃）に単独発表されるため『既に取得済みデータの未マッピング』ではなく新規の日程調査が必要（gb_ons/ca_statcan/au_absの回で解消した故障パターンとは異なる）。優先度: 中（承認待ち・未着手）"
+  }
 }

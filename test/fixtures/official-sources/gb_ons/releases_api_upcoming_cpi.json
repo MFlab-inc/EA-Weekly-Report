@@ -1,0 +1,106 @@
+{
+  "took": 0,
+  "breakdown": {},
+  "releases": [
+    {
+      "uri": "/releases/consumerpriceinflationukjuly2026",
+      "date_changes": null,
+      "description": {
+        "title": "Consumer price inflation, UK: July 2026",
+        "release_date": "2026-08-19T06:00:00.000Z",
+        "cancelled": false,
+        "postponed": false
+      }
+    },
+    {
+      "uri": "/releases/consumerpriceinflationukjuly2026timeseries",
+      "date_changes": null,
+      "description": {
+        "title": "Consumer price inflation, UK: July 2026 time series",
+        "release_date": "2026-08-19T06:00:00.000Z",
+        "cancelled": false,
+        "postponed": false
+      }
+    },
+    {
+      "uri": "/releases/contributionstothe12monthrateofcpihbyimportintensityjuly2026",
+      "date_changes": null,
+      "description": {
+        "title": "Contributions to the 12-month rate of CPI(H) by import intensity: July 2026",
+        "release_date": "2026-08-19T08:30:00.000Z",
+        "cancelled": false,
+        "postponed": false
+      }
+    },
+    {
+      "uri": "/releases/consumerpriceinflationukaugust2026",
+      "date_changes": null,
+      "description": {
+        "title": "Consumer price inflation, UK: August 2026",
+        "release_date": "2026-09-16T06:00:00.000Z",
+        "cancelled": false,
+        "postponed": false
+      }
+    },
+    {
+      "uri": "/releases/contributionstothe12monthrateofcpihbyimportintensityaugust2026",
+      "date_changes": null,
+      "description": {
+        "title": "Contributions to the 12-month rate of CPI(H) by import intensity: August 2026",
+        "release_date": "2026-09-16T08:30:00.000Z",
+        "cancelled": false,
+        "postponed": false
+      }
+    },
+    {
+      "uri": "/releases/consumerpriceinflationukseptember2026",
+      "date_changes": null,
+      "description": {
+        "title": "Consumer price inflation, UK: September 2026",
+        "release_date": "2026-10-21T06:00:00.000Z",
+        "cancelled": false,
+        "postponed": false
+      }
+    },
+    {
+      "uri": "/releases/contributionstothe12monthrateofcpihbyimportintensityseptember2026",
+      "date_changes": null,
+      "description": {
+        "title": "Contributions to the 12-month rate of CPI(H) by import intensity: September 2026",
+        "release_date": "2026-10-21T08:30:00.000Z",
+        "cancelled": false,
+        "postponed": false
+      }
+    },
+    {
+      "uri": "/releases/consumerpriceinflationukoctober2026",
+      "date_changes": null,
+      "description": {
+        "title": "Consumer price inflation, UK: October 2026",
+        "release_date": "2026-11-18T07:00:00.000Z",
+        "cancelled": false,
+        "postponed": false
+      }
+    },
+    {
+      "uri": "/releases/contributionstothe12monthrateofcpihbyimportintensityoctober2026",
+      "date_changes": null,
+      "description": {
+        "title": "Contributions to the 12-month rate of CPI(H) by import intensity: October 2026",
+        "release_date": "2026-11-18T09:30:00.000Z",
+        "cancelled": false,
+        "postponed": false
+      }
+    },
+    {
+      "uri": "/releases/consumerpriceinflationuknovember2026",
+      "date_changes": null,
+      "description": {
+        "title": "Consumer price inflation, UK: November 2026",
+        "release_date": "2026-12-16T07:00:00.000Z",
+        "cancelled": false,
+        "postponed": false
+      }
+    }
+  ]
+}

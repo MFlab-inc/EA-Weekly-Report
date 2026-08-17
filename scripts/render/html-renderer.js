@@ -27,7 +27,14 @@ function haltDayCard(day, reportPolicy) {
     .map((t) => `<div style="position:absolute;top:-8px;left:${t.leftPct}%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #1a3a2e;transform:translateX(-50%);"></div>`)
     .join('');
 
-  const starLabel = day.halt.star3Count > 0 ? `★★★ ${day.halt.star3Count}件` : '';
+  // task #49（2026-08-15、しょうさん指摘）: 帯の本数と見出しの件数表示を一致させるため、
+  // 翌日発表分（entirelyPreviousDayの窓が前日側へ帯を移設したもの）がある日は
+  // 「★★★ N件（＋翌日発表分M件）」の形にする（この日自身の★★★が0件でも翌日発表分の帯だけは
+  // ある場合があるため、その場合は「（翌日発表分M件）」のみを出す）
+  const borrowedCount = (day.halt.borrowedNotes || []).length;
+  const starLabel = day.halt.star3Count > 0
+    ? `★★★ ${day.halt.star3Count}件${borrowedCount > 0 ? `（＋翌日発表分${borrowedCount}件）` : ''}`
+    : (borrowedCount > 0 ? `（翌日発表分${borrowedCount}件）` : '');
 
   function labelHtmlOf(group) {
     return (group?.labelItems || [])
@@ -35,6 +42,19 @@ function haltDayCard(day, reportPolicy) {
       .join('　');
   }
   function annotationHtmlOf(w, group) {
+    // 停止窓が丸ごと前日に収まるケース（task #47実バグ修正）: 範囲自体はrangeHtmlOfで
+    // 「前日 ◯曜HH:MM–HH:MM」と明示済みのため、ここでは月曜（前日=日曜）の場合のみ
+    // 「週明けの取引開始時点から」という実務上の注記を追加する（重複表記を避ける）
+    if (w.entirelyPreviousDay) {
+      if (w.isMondayWeekendCross) {
+        return `<span style="font-size:11.5px;color:#5b6f66;">（${esc(reportPolicy.halt_monday_entirely_prevday_note)}）</span>`;
+      }
+      if (group?.bundleLastEventLabel) {
+        const note = reportPolicy.halt_window_bundle_note.replace('{LAST_EVENT}', group.bundleLastEventLabel);
+        return `<span style="font-size:11.5px;color:#5b6f66;">（${esc(note)}）</span>`;
+      }
+      return '';
+    }
     if (w.crossesPreviousDay) {
       const note = w.isMondayWeekendCross
         ? reportPolicy.halt_monday_note.replace('{TIME}', w.rawPreviousDayStart)
@@ -48,21 +68,45 @@ function haltDayCard(day, reportPolicy) {
     return '';
   }
   function rangeHtmlOf(w) {
+    // 停止窓が丸ごと前日に収まるケース（task #47実バグ修正、8/17週フルパイプライン実ネットワーク
+    // 検証で発見）: 当日にクランプしたdisplayStart–displayEndをそのまま使うと「00:00–23:00」等の
+    // 不自然な表示（実質24時間停止に見える）になる。前日の実時刻をそのまま明示する
+    if (w.entirelyPreviousDay) {
+      return `<span style="color:#b45309;font-weight:700;">停止開始目安 前日 ${esc(w.previousDayLabel)}曜<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">${w.rawPreviousDayStart}–${w.rawPreviousDayEnd}</span></span>`;
+    }
     return `<span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">${w.displayStart}–${w.displayEnd}</span></span>`;
   }
 
-  const windowLines = day.halt.windows.map((w, wi) => {
+  // task #49（2026-08-15、しょうさん指摘）: 翌日発表分の帯の注記が、この日自身の最後の発表枠の
+  // 行にぶら下がって見え（括弧が二重）読みにくかった。翌日発表分は独立した1行として、他の発表枠と
+  // 同じ見た目（国名・通貨ピル＋▲時刻＋名称＋停止開始目安の範囲）で並べる。▲の時刻には「翌日」を
+  // 前置し、この日自身の発表ではないことを明示する
+  function borrowedLineHtml(n) {
+    const pillHtml = `${countryPill(n.countryJa)}${currencyPill(n.currency)}`;
+    const labelHtml = `▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">翌日${esc(n.time)}</span>　${esc(n.label)}`;
+    const rangeHtml = `<span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">${n.start}–${n.end}</span></span>`;
+    const annotationHtml = `<span style="font-size:11.5px;color:#5b6f66;">（${esc(reportPolicy.halt_borrowed_bar_note)}）</span>`;
+    return { labelHtml, lineHtml: `${pillHtml}　${labelHtml}　${rangeHtml}${annotationHtml}` };
+  }
+
+  const ownLines = day.halt.windows.map((w, wi) => {
     const group = day.windowGroups ? day.windowGroups[wi] : null;
     const pillHtml = `${countryPill(group?.countryJa || '')}${currencyPill(group?.currency || '')}`;
     const labelHtml = labelHtmlOf(group);
     const rangeHtml = rangeHtmlOf(w);
     const annotationHtml = annotationHtmlOf(w, group);
-    if (day.halt.windows.length === 1) {
-      return `${pillHtml}　${labelHtml}<br>${rangeHtml}${annotationHtml}`;
-    }
-    return `${pillHtml}　${labelHtml}　${rangeHtml}${annotationHtml}`;
+    return { pillHtml, labelHtml, rangeHtml, annotationHtml };
   });
-  const bodyHtml = windowLines.length > 0 ? windowLines.join('<br>') : esc(reportPolicy.halt_no_star3_note);
+  const borrowedLines = (day.halt.borrowedNotes || []).map(borrowedLineHtml);
+  // 発表枠（own）と翌日発表分（borrowed）を合わせた総行数が1行だけの場合のみ、ラベルと範囲を
+  // 改行して見せる既存のコンパクト表示を使う。2行以上ある場合は枠ごとに1行へまとめる
+  const totalLineCount = ownLines.length + borrowedLines.length;
+  const windowLines = ownLines.map(({ pillHtml, labelHtml, rangeHtml, annotationHtml }) =>
+    totalLineCount === 1 ? `${pillHtml}　${labelHtml}<br>${rangeHtml}${annotationHtml}` : `${pillHtml}　${labelHtml}　${rangeHtml}${annotationHtml}`
+  );
+  const borrowedWindowLines = borrowedLines.map(({ lineHtml }) => lineHtml);
+  const allLines = [...windowLines, ...borrowedWindowLines];
+  const bodyHtml = allLines.length > 0 ? allLines.join('<br>') : esc(reportPolicy.halt_no_star3_note);
 
   return `    <div class="ea-halt-day" data-ea-date="${day.date}" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px 11px;margin-bottom:10px;">
       <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;">

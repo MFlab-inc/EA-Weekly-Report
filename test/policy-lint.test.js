@@ -69,6 +69,50 @@ test('lintLinkDomains: 不正なURL・非http(s)スキームを検出する', as
   assert.equal(errors.length, 2);
 });
 
+// task #54（2026-08-15、しょうさん指摘: DE国追加時にCOUNTRY_JA_BY_ISOへの登録漏れで
+// 国名ピル・ヒーロー文言が「DE」のまま漏れ「DEDE」と二重表示された）の回帰テスト。
+// 国名ピル<span>DE</span>通貨ピル<span>DE</span>はstripTags（各タグを空白1個に置換）を
+// 経由すると「DE DE」相当のテキストになる（実際のrunStaticLint内部の処理を反映した入力）
+test('lintLeakedCountryCodes: 読者可視テキストに生のISO国コードが漏れていれば検出する（ピル同士が隣接するケース）', async () => {
+  const { lintLeakedCountryCodes } = await loadPolicyLint();
+  const errors = lintLeakedCountryCodes('DE DE ▲18:05 ZEW景況感指数', ['DE', 'GB', 'JP']);
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /DE/);
+});
+
+test('lintLeakedCountryCodes: 日本語国名（ドイツ・英国等）のみならエラー無し', async () => {
+  const { lintLeakedCountryCodes } = await loadPolicyLint();
+  const errors = lintLeakedCountryCodes('ドイツZEW景況感指数 8/18、英国雇用統計 8/18', ['DE', 'GB', 'JP']);
+  assert.deepEqual(errors, []);
+});
+
+test('lintLeakedCountryCodes: 通貨コード（JPY・USD等の3文字）とは単語境界で衝突しない', async () => {
+  const { lintLeakedCountryCodes } = await loadPolicyLint();
+  const errors = lintLeakedCountryCodes('米国雇用統計（USD高） 日本のCPI（JPY安）', ['US', 'JP']);
+  assert.deepEqual(errors, []);
+});
+
+// 既知の限界（policy-lint.mjsのコメント参照）: リーク値の直後に区切り無しで別のラテン文字列が
+// 続く場合（修正漏れの「DE」+「ZEW景況感指数」）は単語境界が内部に無く検出できない。
+// この完全な取りこぼしはvalidate-country-currency-coverage.jsのrawCodeLeakチェックで捕捉する
+test('lintLeakedCountryCodes: 既知の限界 — リーク値の直後に区切り無しでラテン文字列が続くと検出できない', async () => {
+  const { lintLeakedCountryCodes } = await loadPolicyLint();
+  const errors = lintLeakedCountryCodes('DEZEW景況感指数 8/18', ['DE']);
+  assert.deepEqual(errors, []); // 本来は漏れだが、この関数の設計上は検出不可（コメント参照）
+});
+
+// runStaticLintのデフォルトcountryCodesはCOUNTRY_JA_BY_ISOからNZ（意図的に生コードのまま
+// 表示する既刊実例）を除外している。含めてしまうと「NZ雇用統計」等の正常表記を誤検出する
+test('runStaticLint: デフォルトの国コード検査はNZを除外する（意図的な非日本語化のため誤検出しない）', async () => {
+  const { runStaticLint } = await loadPolicyLint();
+  const html = '<div>NZ雇用統計 8/5 免責文言 出典文言</div>';
+  const errors = runStaticLint(html, {
+    reportPolicy: { forbidden_reader_terms: [], forbidden_sections: [], footer_disclaimer: '免責文言', footer_source_statement: '出典文言' },
+    btcGuide: { allowed_domains: [] },
+  });
+  assert.deepEqual(errors.filter((e) => e.startsWith('LEAKED_COUNTRY_CODE')), []);
+});
+
 test('runStaticLint: 妥当なHTMLはエラー無し', async () => {
   const { runStaticLint } = await loadPolicyLint();
   const html = '<div>発表は21:30 日本時間です。免責文言 出典文言 <a href="https://coinpost.jp/">CoinPost</a></div>';

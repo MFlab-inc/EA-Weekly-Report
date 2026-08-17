@@ -68,13 +68,37 @@ test('validateExpectedCoverage: 未充足があればok:false・missingに列挙
 // schedule確定）・SNB（weekly_scrape・event-scheduleページの平文リスト抽出）の担当ソースが解決したため、
 // 8/8中銀すべてがactive/draft_scheduleのpolicy_rate担当ソースを持つ状態になった（期待カバレッジCIグリーン化。
 // docs/annual-schedule-maintenance.md参照）。以後、新たな中銀の担当ソースが意図せず欠落した場合は
-// missingが非空になりこのテストが落ちる（回帰検知）
+// missingが非空になりこのテストが落ちる（回帰検知）。derived_rules（policy_rate）のみを対象にし、
+// 下記の国×kindマトリクス（additional_required）とは独立に検証する
 test('validateExpectedCoverage: 実config — 8/8中銀すべてpolicy_rate担当ソースを充足している', () => {
   const sourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
   const officials = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'officials.json'), 'utf8'));
   const expectedCoverageConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'expected-coverage.json'), 'utf8'));
-  const r = validateExpectedCoverage(sourcesConfig, officials, expectedCoverageConfig);
+  const derivedOnlyConfig = { ...expectedCoverageConfig, additional_required: [] };
+  const r = validateExpectedCoverage(sourcesConfig, officials, derivedOnlyConfig);
   assert.equal(r.required.length, 8, 'officials.json登録中銀8行から導出される必須カバレッジは8件のはず');
   assert.equal(r.ok, true, '8/8中銀すべて充足しているはず（新規欠落の回帰検知）');
+  assert.deepEqual(r.missing, []);
+});
+
+// task #38（実ネットワーク検証、しょうさん指摘2026-08-15）の是正: 中銀policy_rate以外の
+// 定例統計発表元がexpected-coverageで一切検査されておらず、対象週の主要イベントが軒並み
+// 欠落してもPUBLISH_READYが出てしまう「サイレント欠落」があった。国×kindの必須マトリクスを
+// config/expected-coverage.jsonのadditional_requiredへ追加し（しょうさん承認2026-08-15）、
+// 担当ソースが無い組み合わせをコミット時点（npm test）で検出できるようにした。
+//
+// 【スナップショット方式からの切替（task #41完了、2026-08-15）】導入当初はCIを恒常的に赤くしない
+// ためのスナップショット方式（既知の欠損リストを明示列挙）を採用していたが、task #41（中銀議事要旨
+// 4件→日本3件→Eurostat/フラッシュPMI4件→NZ/AU GDP/CN 3件の順で新規ソースを実装、各段階の詳細は
+// git履歴参照）が完了し国×kindマトリクスが全件充足したため、しょうさん指示（2026-08-15、
+// 「全件解消したらassert.deepEqual(r.missing, [])の厳格版へ切り替えること」）どおり
+// 厳格版へ切り替えた。以後、担当ソースの欠落（新規追加忘れ・既存ソースの後退）は即座にこのテストで
+// 検知される
+test('validateExpectedCoverage: 実config — 国×kind必須マトリクス（しょうさん承認2026-08-15）が全件充足している（task #41完了）', () => {
+  const sourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
+  const officials = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'officials.json'), 'utf8'));
+  const expectedCoverageConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'expected-coverage.json'), 'utf8'));
+  const r = validateExpectedCoverage(sourcesConfig, officials, expectedCoverageConfig);
+  assert.equal(r.ok, true, '国×kind必須マトリクスに新規の欠落がある（担当ソースの追加漏れ、または既存ソースの後退）');
   assert.deepEqual(r.missing, []);
 });

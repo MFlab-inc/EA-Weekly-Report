@@ -4,6 +4,11 @@
 // ここでは合成report（runChecks()の戻り値と同じ形）で組み立てロジックのみを検証する。
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+
+const realEventNames = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'event-names.json'), 'utf8')).entries;
+const realSourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
 
 test('annualEntryToCandidate: announce_time_by_kindのlocal_time+tzからJST時刻を正しく変換する', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
@@ -167,6 +172,314 @@ test('buildObservationSummary: manualEventsConfigの対象週内entriesを他ソ
   assert.equal(summary.candidates[0].sourceId, 'manual');
   assert.equal(summary.candidates[0].displayName, 'ブロックRBA総裁：下院経済委員会への出席');
   assert.ok(!summary.candidates.some((c) => c.displayName?.includes('含まれてはいけない')));
+});
+
+// task #38実ネットワーク検証（しょうさん指摘2026-08-15）の回帰テスト: ca_statcanは登録済み
+// ソースだったがCPI・GDPがkind未登録のため名称解決できなかった（8/17週のCA CPI=8/17発表分が
+// まさにその欠損事例）。config/official-sources.json・config/event-names.jsonの実データを使い、
+// annualEntryToCandidate経由でCA CPI/GDPの名称が正しく解決されることを確認する
+test('annualEntryToCandidate: CA CPI/GDP(月次)が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'ca_statcan');
+  const importanceRules = { importance_by_kind: { cpi: 3, gdp: 3 } };
+
+  const cpiCandidate = annualEntryToCandidate({ date: '2026-08-17', kind: 'cpi' }, source, importanceRules, realEventNames);
+  assert.equal(cpiCandidate.displayName, '消費者物価指数（CPI）');
+  assert.equal(cpiCandidate.time, '21:30'); // 08:30 America/Toronto(EDT, UTC-4) → JST
+
+  const gdpCandidate = annualEntryToCandidate({ date: '2026-08-28', kind: 'gdp' }, source, importanceRules, realEventNames);
+  assert.equal(gdpCandidate.displayName, '国内総生産（GDP）');
+});
+
+// task #41-1（しょうさん承認済み国×kindマトリクス）の回帰テスト: FOMC議事録・RBA議事要旨を
+// 既存の中銀ソース（新規フェッチ不要・会合日程から固定オフセットで算出）へ追加した。
+// 2026-07-29のFOMC会合→米東部時間2026-08-19 14:00の議事録公表は、まさに8/17週の欠損事例
+// （しょうさん指摘）そのもの（JST変換すると日付繰り上がりで2026-08-20 03:00になる。下記参照）。
+// minutes_summaryはSPEC §4.2の規則生成kindのため、displayNameの解決はannualEntryToCandidate
+// （resolveAnnualDictionaryName経由）ではなくresolveRuleGeneratedName（scripts/lib/build-ledger.js）
+// の責務（RULE_GENERATED_KINDSにより常にnullを返す。36行目「displayNameはnull」テスト参照）。
+// 2026-08-15: 当初annualEntryToCandidate側でdisplayNameを検証する誤ったテストを書いており
+// （resolveAnnualDictionaryNameがminutes_summaryを解決しないため失敗）、責務どおりに修正した際、
+// c.dateの期待値も誤り（JST日付繰り上がりを考慮していなかった）と判明したため合わせて修正した
+test('annualEntryToCandidate + resolveRuleGeneratedName: FOMC議事録（US minutes_summary）が実configから正しく組み立てられる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const { resolveRuleGeneratedName } = require('../scripts/lib/build-ledger');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'us_frb_policy_rate');
+  const importanceRules = { importance_by_kind: { minutes_summary: 2 }, country_overrides: [{ kind: 'minutes_summary', country: 'US', importance: 3 }] };
+  const entry = source.schedule.find((e) => e.kind === 'minutes_summary' && e.date === '2026-08-19');
+  assert.ok(entry, '2026-08-19のFOMC議事録scheduleエントリが見つからない');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, null); // rule_generated kindのためresolveAnnualDictionaryNameは対象外
+  assert.equal(c.time, '03:00'); // 14:00 ET(EDT, UTC-4、8月はサマータイム中) → 翌日03:00 JST
+  assert.equal(c.date, '2026-08-20'); // JST変換で日付が繰り上がる（8/17週内・木曜のまま）
+  assert.equal(c.importance, 3); // country_overrides（US/minutes_summary）で★★★
+  assert.equal(resolveRuleGeneratedName({ kind: c.kind, country: c.country }, null), 'FOMC議事録');
+});
+
+test('annualEntryToCandidate + resolveRuleGeneratedName: RBA議事要旨（AU minutes_summary）が実configから正しく組み立てられる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const { resolveRuleGeneratedName } = require('../scripts/lib/build-ledger');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'au_rba');
+  const importanceRules = { importance_by_kind: { minutes_summary: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'minutes_summary' && e.date === '2026-08-25');
+  assert.ok(entry, '2026-08-25のRBA議事要旨scheduleエントリが見つからない（8/11会合の2週間後）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, null); // rule_generated kindのためresolveAnnualDictionaryNameは対象外
+  assert.equal(c.importance, 2); // country_overrides無し（既定の★★のまま）
+  assert.equal(resolveRuleGeneratedName({ kind: c.kind, country: c.country }, null), 'RBA議事要旨');
+});
+
+// task #41-1完了分の回帰テスト: ECB Accounts of the monetary policy meeting・BOC Summary of
+// Governing Council Deliberationsは、FOMC/RBAと異なり固定オフセット計算ではなく各中銀が単発
+// 告知する実日付をWebSearch経由で個別収録した（config/official-sources.jsonの該当notes参照）。
+// ここでは収録した実日付の1件が正しく解決されることを確認する
+test('annualEntryToCandidate + resolveRuleGeneratedName: ECB議事要旨（EU minutes_summary）が実configから正しく組み立てられる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const { resolveRuleGeneratedName } = require('../scripts/lib/build-ledger');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'ecb_policy_rate');
+  const importanceRules = { importance_by_kind: { minutes_summary: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'minutes_summary' && e.date === '2026-08-27');
+  assert.ok(entry, '2026-08-27のECB Accounts scheduleエントリが見つからない（accounts索引ページのnext release表記で確認済み）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, null); // rule_generated kindのためresolveAnnualDictionaryNameは対象外
+  assert.equal(c.time, null); // announce_time_by_kind.minutes_summary未設定（公表時刻がWebSearchで確認できなかったため推測値を入れていない）
+  assert.equal(resolveRuleGeneratedName({ kind: c.kind, country: c.country }, null), 'ECB議事要旨');
+});
+
+test('annualEntryToCandidate + resolveRuleGeneratedName: BOC議事要旨（CA minutes_summary）が実configから正しく組み立てられる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const { resolveRuleGeneratedName } = require('../scripts/lib/build-ledger');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'boc_policy_rate');
+  const importanceRules = { importance_by_kind: { minutes_summary: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'minutes_summary' && e.date === '2026-09-16');
+  assert.ok(entry, '2026-09-16のBOC Summary scheduleエントリが見つからない（2026-09-02決定分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, null); // rule_generated kindのためresolveAnnualDictionaryNameは対象外
+  assert.equal(c.time, '02:30'); // 13:30 ET(EDT, UTC-4) → 翌日02:30 JST
+  assert.equal(c.date, '2026-09-17'); // JST変換で日付が繰り上がる
+  assert.equal(resolveRuleGeneratedName({ kind: c.kind, country: c.country }, null), 'BOC議事要旨');
+});
+
+// task #41-2（しょうさん承認済み国×kindマトリクス）の回帰テスト: 総務省統計局CPI・内閣府GDP・
+// 財務省貿易統計を新規annual_schedule_config型ソースとして追加した。3件とも8/17週の欠損事例
+// （しょうさん指摘の『日本GDP速報』『日本の全国CPI』『日本 7月貿易統計』）に該当する日付
+test('annualEntryToCandidate: 全国消費者物価指数（JP cpi）が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'jp_stat_cpi');
+  const importanceRules = { importance_by_kind: { cpi: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'cpi' && e.date === '2026-08-21');
+  assert.ok(entry, '2026-08-21のCPI scheduleエントリが見つからない（2026年7月分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '全国消費者物価指数（CPI）');
+  assert.equal(c.time, '08:30'); // Asia/TokyoはDST無しのためJSTそのまま
+  assert.equal(c.date, '2026-08-21');
+});
+
+test('annualEntryToCandidate: GDP【速報値】（JP gdp）が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'jp_esri_gdp');
+  const importanceRules = { importance_by_kind: { gdp: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'gdp' && e.date === '2026-08-17');
+  assert.ok(entry, '2026-08-17のGDP scheduleエントリが見つからない（2026年04-06月期1次速報）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'GDP【速報値】');
+  assert.equal(c.time, '08:50');
+  assert.equal(c.date, '2026-08-17');
+});
+
+test('annualEntryToCandidate: 貿易収支（JP trade_balance）が実configから名称解決できる（8/17週の欠損事例の回帰テスト。2026-08-15ライブ検証で時刻08:50が確定した）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'jp_customs_trade');
+  const importanceRules = { importance_by_kind: { trade_balance: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'trade_balance' && e.date === '2026-08-20');
+  assert.ok(entry, '2026-08-20の貿易統計scheduleエントリが見つからない（2026年7月分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '貿易収支');
+  assert.equal(c.time, '08:50'); // ライブ検証（task #41、2026-08-15）でcalend.htmの表組みヘッダー『月分』列=午前8時50分を直接確認し確定
+});
+
+// task #50/51（2026-08-15、しょうさんのManus突合指摘）の回帰テスト: ca_statcanは登録済みだが
+// retail_sales（小売売上高）がkind未登録のため8/21発表分が欠落していた
+test('annualEntryToCandidate: 小売売上高（CA retail_sales）が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'ca_statcan');
+  const importanceRules = { importance_by_kind: { retail_sales: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'retail_sales' && e.date === '2026-08-21');
+  assert.ok(entry, '2026-08-21のCA小売売上高scheduleエントリが見つからない（2026年6月分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '小売売上高＆【除自動車】');
+  assert.equal(c.time, '21:30'); // 08:30 America/Toronto → 21:30 JST（既存4kindと同一のStatCan標準発表時刻）
+});
+
+// task #50/52（2026-08-15、しょうさんのDE国追加指摘）の回帰テスト: ZEW景況感指数（de_zew）が
+// 実configから名称解決でき、8/17週該当分（2026-08-18）のJST時刻が正しく計算できることを確認する
+test('annualEntryToCandidate: ZEW景況感指数（DE sentiment）が実configから名称解決できる（DE国追加・8/17週該当分）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'de_zew');
+  assert.ok(source, 'de_zewソースが見つからない');
+  const importanceRules = { importance_by_kind: { sentiment: 2 }, country_overrides: [{ kind: 'sentiment', country: 'DE', importance: 3 }] };
+  const entry = source.schedule.find((e) => e.date === '2026-08-18');
+  assert.ok(entry, '2026-08-18のZEW scheduleエントリが見つからない（8/17週該当分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'ZEW景況感指数');
+  assert.equal(c.time, '18:05'); // 11:05 Europe/Berlin（8月はCEST=UTC+2）→ 18:05 JST
+  assert.equal(c.importance, 3); // country_overridesでsentimentの既定値(★★)から引き上げ
+});
+
+// task #41-3（しょうさん承認済み国×kindマトリクス）の回帰テスト: Eurostat HICP・GDP速報値、
+// EU/GBフラッシュPMIを新規annual_schedule_config型ソースとして追加した
+test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）が実configから名称解決できる（時刻はしょうさん発見のECB statscal静的ページで確定）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_hicp');
+  const importanceRules = { importance_by_kind: { cpi: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'cpi' && e.date === '2026-07-31');
+  assert.ok(entry, '2026-07-31のHICP速報値scheduleエントリが見つからない（2026年7月分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '消費者物価指数（HICP）');
+  assert.equal(c.time, '22:00'); // 15:00 CEST(夏時間、UTC+2) → 同日22:00 JST。ECB statscal（sthicp.en.html）で直接確認
+  assert.equal(c.date, '2026-07-31');
+});
+
+test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）8月分以降の新規追加分（ECB statscal由来）も名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_hicp');
+  const importanceRules = { importance_by_kind: { cpi: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'cpi' && e.date === '2026-09-01');
+  assert.ok(entry, '2026-09-01のHICP速報値scheduleエントリが見つからない（2026年8月分、ECB statscalで新規確認）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '消費者物価指数（HICP）');
+  assert.equal(c.time, '22:00'); // 15:00 CEST → 同日22:00 JST
+});
+
+test('annualEntryToCandidate: GDP【速報値】（EU gdp）が実configから名称解決できる（8/10週の既刊fixtureと重なる実例）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_gdp');
+  const importanceRules = { importance_by_kind: { gdp: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'gdp' && e.date === '2026-08-14');
+  assert.ok(entry, '2026-08-14のGDP統合速報scheduleエントリが見つからない（2026年04-06月期）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'GDP【速報値】');
+  assert.equal(c.time, null); // announce_time_by_kind.gdp未設定
+});
+
+// task #46（2026-08-15、しょうさん指示の経路A/B）の回帰テスト: EurostatのSPAカレンダーを迂回し、
+// 経路A(QNA_release_calendar.pdf・年間骨格)と経路B(ニュースリリース本文のNext release記載)を
+// ライブ検証してeurostat_gdpのschedule 2026Q3・Q4分を新規追加した
+test('annualEntryToCandidate: GDP【速報値】（EU gdp）2026Q3分（経路A・B両方で確認済み）も名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_gdp');
+  const importanceRules = { importance_by_kind: { gdp: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'gdp' && e.date === '2026-11-13');
+  assert.ok(entry, '2026-11-13のGDP統合速報scheduleエントリが見つからない（2026年07-09月期、task #46で新規追加）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'GDP【速報値】');
+  assert.equal(c.time, null); // 経路A・Bのいずれにも時刻記載がなかったため推測せずnullのまま
+});
+
+// GB pmi_ismは既存の建設業PMI（gb_construction_pmi、subtype:construction）とkind衝突するため、
+// resolveAnnualDictionaryNameのsubtype照合による曖昧性解消（task #41-3で一般化）が正しく機能し、
+// 両者が別々の表示名に解決されることを確認する
+test('annualEntryToCandidate: 英フラッシュPMI（GB pmi_ism, subtype:flash）が建設業PMI（subtype:construction）と混同されずに名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'gb_flash_pmi');
+  const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
+  // task #53で規則生成方式へ切替、schedule収録範囲が2026-08〜2027-11へ変更（2026-07-24は収録外）
+  const entry = source.schedule.find((e) => e.kind === 'pmi_ism' && e.date === '2026-08-21');
+  assert.ok(entry, '2026-08-21のフラッシュPMI scheduleエントリが見つからない');
+  assert.equal(entry.subtype, 'flash');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '英フラッシュPMI（製造業＆サービス業）');
+});
+
+test('annualEntryToCandidate: ユーロ圏フラッシュPMI（EU pmi_ism）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'eu_flash_pmi');
+  const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'pmi_ism' && e.date === '2026-08-21');
+  assert.ok(entry, '2026-08-21のフラッシュPMI scheduleエントリが見つからない');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'ユーロ圏フラッシュPMI（製造業＆サービス業）');
+});
+
+test('annualEntryToCandidate: 独フラッシュPMI（DE pmi_ism、task #53新規追加）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'de_flash_pmi');
+  assert.ok(source, 'de_flash_pmiがofficial-sources.jsonに見つからない');
+  const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
+  const entry = source.schedule.find((e) => e.kind === 'pmi_ism' && e.date === '2026-08-21');
+  assert.ok(entry, '2026-08-21のフラッシュPMI scheduleエントリが見つからない');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '独フラッシュPMI（製造業＆サービス業）');
+});
+
+test('DE/EU/GBフラッシュPMIは全て同一暦日（8/21）に発表される（task #53の規則検証どおり同一調査元・同日エンバーゴ）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
+  for (const id of ['de_flash_pmi', 'eu_flash_pmi', 'gb_flash_pmi']) {
+    const source = realSourcesConfig.sources.find((s) => s.id === id);
+    const entry = source.schedule.find((e) => e.date === '2026-08-21');
+    assert.ok(entry, `${id}: 2026-08-21のscheduleエントリが見つからない`);
+  }
+});
+
+// task #41-4（しょうさん承認済み国×kindマトリクス、着手順4・最後）の回帰テスト:
+// NZ CPI/GDP・AU GDP・CN 3件を実装した。これでtask #41完了条件（国×kindマトリクス全件充足）を満たす
+test('annualEntryToCandidate: 消費者物価指数（CPI）（NZ cpi）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'nz_stats_cpi');
+  const importanceRules = { importance_by_kind: { cpi: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'cpi' && e.date === '2026-07-21');
+  assert.ok(entry, '2026-07-21のCPI scheduleエントリが見つからない（2026年6月期）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '消費者物価指数（CPI）');
+  assert.equal(c.time, '07:45'); // 10:45 NZST(2026-07-21は冬時間、UTC+12) → 同日07:45 JST
+  assert.equal(c.date, '2026-07-21');
+});
+
+test('annualEntryToCandidate: GDP（NZ gdp）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'nz_stats_gdp');
+  const importanceRules = { importance_by_kind: { gdp: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'gdp' && e.date === '2026-06-18');
+  assert.ok(entry, '2026-06-18のGDP scheduleエントリが見つからない（2026年3月期）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, 'GDP');
+});
+
+test('classifyRowKind経由: GDP（AU gdp）がau_absの新規kindsエントリとevent-names.jsonのmatchで分類できる', async () => {
+  // au_absはweekly_scrape型のためhardcoded scheduleではなくclassifyRowKind（harness.mjs）の
+  // match keyword経由で分類される。ここではevent-names.jsonのmatch定義自体を直接検証する
+  const auGdpEntry = realEventNames.find((e) => e.country === 'AU' && e.kind === 'gdp');
+  assert.ok(auGdpEntry, 'AU:gdpのevent-names.jsonエントリが見つからない');
+  assert.ok(
+    auGdpEntry.match.some((k) => 'australian national accounts: national income, expenditure and product'.includes(k.toLowerCase())),
+    'ABS公式タイトルがmatchキーワードに一致しない'
+  );
+  const auAbsSource = realSourcesConfig.sources.find((s) => s.id === 'au_abs');
+  assert.ok(auAbsSource.kinds.includes('gdp'), 'au_abs.kindsにgdpが登録されていない');
+});
+
+test('annualEntryToCandidate: 鉱工業生産指数・小売売上高・GDP（CN）が実configから名称解決できる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'cn_nbs_data');
+  const importanceRules = { importance_by_kind: { industrial_production: 3, retail_sales: 3, gdp: 3 } };
+
+  const ipEntry = source.schedule.find((e) => e.kind === 'industrial_production' && e.date === '2026-04-16');
+  assert.ok(ipEntry, '2026-04-16の鉱工業生産scheduleエントリが見つからない（2026年3月分）');
+  const ipCandidate = annualEntryToCandidate(ipEntry, source, importanceRules, realEventNames);
+  assert.equal(ipCandidate.displayName, '鉱工業生産指数');
+
+  const rsEntry = source.schedule.find((e) => e.kind === 'retail_sales' && e.date === '2026-04-16');
+  const rsCandidate = annualEntryToCandidate(rsEntry, source, importanceRules, realEventNames);
+  assert.equal(rsCandidate.displayName, '小売売上高');
+
+  const gdpEntry = source.schedule.find((e) => e.kind === 'gdp' && e.date === '2026-04-16');
+  const gdpCandidate = annualEntryToCandidate(gdpEntry, source, importanceRules, realEventNames);
+  assert.equal(gdpCandidate.displayName, 'GDP');
+  // 2026-01-19（Q4/通年GDP・12月分IP/小売）・2026-03-16（1-2月統合分IP/小売）等、同日3イベントが
+  // 想定どおり収録されていることも確認する
+  const jan19Entries = source.schedule.filter((e) => e.date === '2026-01-19');
+  assert.deepEqual(jan19Entries.map((e) => e.kind).sort(), ['gdp', 'industrial_production', 'retail_sales']);
 });
 
 test('renderText: outcome・候補一覧・停止目安を含むテキストを生成する（例外を投げない）', async () => {

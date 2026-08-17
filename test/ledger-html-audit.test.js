@@ -64,6 +64,52 @@ test('auditRootMeta: layout-versionが違うとエラー', async () => {
   assert.ok(errors.some((e) => e.includes('LAYOUT_VERSION_MISMATCH')));
 });
 
+// task #47（2026-08-15、しょうさん監査指摘）: ルートラッパー（data-ea-report-meta等の必須属性）が
+// HTMLから丸ごと欠落した場合の検出を明示的に確認する。この監査自体は既存実装（auditRootMeta）で
+// 対応済みだったが、明示的な回帰テストが無かったため追加する
+test('auditRootMeta: ルート要素自体（data-ea-report-meta属性を持つdiv）が丸ごと欠落するとROOT_META_MISSINGでHOLD', async () => {
+  const { auditRootMeta } = await loadAudit();
+  const html = baseHtml().replace(/^<div data-ea-report-meta="[^"]*"[^>]*>\n/, '<div>\n');
+  const errors = auditRootMeta(html, baseLedger());
+  assert.ok(errors.some((e) => e.includes('ROOT_META_MISSING')), `ROOT_META_MISSINGが検出されていない: ${JSON.stringify(errors)}`);
+});
+
+test('auditRootMeta: data-ea-report-metaが台帳のtarget_week_startと不一致だとROOT_REPORT_META_MISMATCH', async () => {
+  const { auditRootMeta } = await loadAudit();
+  const html = baseHtml().replace('ea-weekly-20260817', 'ea-weekly-20260810');
+  const errors = auditRootMeta(html, baseLedger());
+  assert.ok(errors.some((e) => e.includes('ROOT_REPORT_META_MISMATCH')));
+});
+
+test('auditRootMeta: data-ea-target-startが台帳と不一致だとROOT_TARGET_START_MISMATCH', async () => {
+  const { auditRootMeta } = await loadAudit();
+  const html = baseHtml().replace('data-ea-target-start="2026-08-17"', 'data-ea-target-start="2026-08-10"');
+  const errors = auditRootMeta(html, baseLedger());
+  assert.ok(errors.some((e) => e.includes('ROOT_TARGET_START_MISMATCH')));
+});
+
+test('auditRootMeta: data-ea-section-countが4以外だとSECTION_COUNT_MISMATCH', async () => {
+  const { auditRootMeta } = await loadAudit();
+  const html = baseHtml().replace('data-ea-section-count="4"', 'data-ea-section-count="3"');
+  const errors = auditRootMeta(html, baseLedger());
+  assert.ok(errors.some((e) => e.includes('SECTION_COUNT_MISMATCH')));
+});
+
+test('auditRootMeta: data-ea-reader-time-termが「日本時間」以外だとREADER_TIME_TERM_MISMATCH', async () => {
+  const { auditRootMeta } = await loadAudit();
+  const html = baseHtml().replace('data-ea-reader-time-term="日本時間"', 'data-ea-reader-time-term="JST"');
+  const errors = auditRootMeta(html, baseLedger());
+  assert.ok(errors.some((e) => e.includes('READER_TIME_TERM_MISMATCH')));
+});
+
+test('auditRootMeta: data-ea-halt-guidanceがpre4to12h以外だとHALT_GUIDANCE_MISMATCH', async () => {
+  const { auditRootMeta } = await loadAudit();
+  const html = baseHtml().replace('data-ea-halt-guidance="pre4to12h"', 'data-ea-halt-guidance="pre1to4h"');
+  const errors = auditRootMeta(html, baseLedger());
+  assert.ok(errors.some((e) => e.includes('HALT_GUIDANCE_MISMATCH')));
+});
+
+
 test('必須ケース: 台帳から1件抜く（台帳に無いイベントがHTMLに残る）→ HTML_EVENT_UNKNOWNでHOLD', async () => {
   const { auditLedgerHtml } = await loadAudit();
   const ledger = baseLedger();

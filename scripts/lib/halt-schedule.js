@@ -51,13 +51,24 @@ function computeHaltWindow({ date, firstTime, lastTime }) {
   const endMin = basisMin - 4 * 60;
 
   const crossesPreviousDay = startMin < 0;
+  // 2026-08-15追記（task #47実バグ修正、8/17週フルパイプライン実ネットワーク検証で発見）:
+  // 発表が早朝（04:00以前）の場合、窓[t-12h, t-4h]が両端とも前日に収まる（例: 03:00発表→
+  // 前日15:00-23:00）。この場合、単純にstartMinを当日0時へクランプするとdisplayEndMinが
+  // 依然として負値のまま（前日基準の時刻）残り、「00:00–23:00」という当日23時間停止に
+  // 見える誤表示になる。entirelyPreviousDayはこの「窓が丸ごと前日」ケースを表すフラグ。
+  const entirelyPreviousDay = endMin <= 0;
   const displayStartMin = Math.max(startMin, 0);
   const displayEndMin = endMin;
 
   let previousDayLabel = null;
   let rawPreviousDayStart = null;
+  let rawPreviousDayEnd = null;
   let isMondayWeekendCross = false;
   let annotation = null;
+  // entirelyPreviousDayの場合のみ設定。前日の0時起点（0〜1440分）で表した窓の範囲。
+  // 呼び出し側（build-report-data.js）がこの窓の帯を前日のバーへ描画する際に使う
+  let previousDayBarStartMin = null;
+  let previousDayBarEndMin = null;
 
   if (crossesPreviousDay) {
     const eventDate = parseYmd(date);
@@ -65,9 +76,19 @@ function computeHaltWindow({ date, firstTime, lastTime }) {
     previousDayLabel = weekdayJa(prevDate);
     rawPreviousDayStart = formatMinutes(startMin);
     isMondayWeekendCross = previousDayLabel === '日';
-    annotation = isMondayWeekendCross
-      ? `前日 ${previousDayLabel}曜${rawPreviousDayStart}〜を含むため、週明けの取引開始時点からの停止が目安`
-      : `前日 ${previousDayLabel}曜${rawPreviousDayStart}〜を含む`;
+
+    if (entirelyPreviousDay) {
+      rawPreviousDayEnd = formatMinutes(endMin);
+      previousDayBarStartMin = startMin + 1440;
+      previousDayBarEndMin = endMin + 1440;
+      annotation = isMondayWeekendCross
+        ? `前日 ${previousDayLabel}曜${rawPreviousDayStart}〜${rawPreviousDayEnd}（週をまたぐため、週明けの取引開始時点からの停止が目安）`
+        : `前日 ${previousDayLabel}曜${rawPreviousDayStart}〜${rawPreviousDayEnd}`;
+    } else {
+      annotation = isMondayWeekendCross
+        ? `前日 ${previousDayLabel}曜${rawPreviousDayStart}〜を含むため、週明けの取引開始時点からの停止が目安`
+        : `前日 ${previousDayLabel}曜${rawPreviousDayStart}〜を含む`;
+    }
   }
 
   return {
@@ -78,8 +99,12 @@ function computeHaltWindow({ date, firstTime, lastTime }) {
     displayStart: formatMinutes(displayStartMin),
     displayEnd: formatMinutes(displayEndMin),
     crossesPreviousDay,
+    entirelyPreviousDay,
     previousDayLabel,
     rawPreviousDayStart,
+    rawPreviousDayEnd,
+    previousDayBarStartMin,
+    previousDayBarEndMin,
     isMondayWeekendCross,
     annotation,
     resumeAfter: lastTime || firstTime,

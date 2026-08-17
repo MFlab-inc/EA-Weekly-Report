@@ -21,7 +21,28 @@ validate_daily_event_layout.py・validate_ledger.py）は、存在しない属�
 | `scripts/check/ledger-html-audit.mjs` | 台帳×HTML突合検査（1対1対応・ルート属性・日付グループ整合） |
 | `scripts/check/policy-lint.mjs` | 禁止語・禁止セクション・免責/出典文言の存在・外部リンクの許可ドメイン照合＋到達性 |
 | `scripts/check/mobile-layout-check.mjs` | モバイル5幅（320/360/375/390/414px）での横スクロール検出（Playwright） |
-| `scripts/check/gate.mjs` | 上記全てをオーケストレーションしPUBLISH_READY/HOLDを判定・記録 |
+| `scripts/lib/validate-event-volume.js` | イベント件数の下限チェック（2026-08-15新設・task #38）。純粋関数 |
+| `scripts/check/gate.mjs` | 上記全てをオーケストレーションしPUBLISH_READY/REVIEW_REQUIRED/HOLDを判定・記録 |
+
+## 判定の3状態（2026-08-15改定・task #38）
+
+しょうさん指摘: 実ネットワーク検証で「対象週(8/17-21)の主要イベントが軒並み欠落（入札3件・★★★0件）
+していたにもかかわらずPUBLISH_READYが出た」事例が見つかった。台帳×HTML突合等の検査は
+「台帳とHTMLの整合性」しか見ておらず、「台帳自体の中身が薄すぎる」ケースを検出できていなかった
+（config/expected-coverage.jsonの国×kind必須マトリクスとは別の、二段構えの安全網として新設）。
+
+- **PUBLISH_READY**: 1〜5の検査すべてERROR無し かつ イベント件数下限チェックもクリア →
+  `output/`へコミット
+- **REVIEW_REQUIRED**（新設）: 1〜5はERROR無しだが件数下限チェックに抵触 → `output/`へコミット
+  しない（artifact/プレビューにのみ出力）。人間が内容を確認し、妥当なら`--acknowledge-low-volume`
+  フラグを付けて再実行することでPUBLISH_READY相当に格上げできる（HOLDは上書きしない）。
+  weekly.yml移設時にworkflow_dispatch入力から本フラグへ渡す設計を想定（weekly.ymlは2026-08-15時点
+  workflows-draft/に据え置きのため未配線）
+- **HOLD**: 1〜5のいずれかにERRORがある（従来どおり）
+
+件数下限の閾値は`config/volume-check-policy.json`で設定する（既定: 掲載対象イベント4件未満、
+または★★★0件）。gate-result.jsonの`decision`フィールドが3値のいずれかを取り、
+`schema_version`は`"1.1"`へ更新した。
 
 ## モバイル検証のPython→Node置き換えについて
 
@@ -81,6 +102,7 @@ chromium`でインストールした既定のブラウザを使う設計にし�
 | 禁止語を入れる | `policy-lint.mjs`（FORBIDDEN_READER_TERM） | `test/policy-lint.test.js`・`test/gate.test.js` |
 | リンクを許可外ドメインにする | `policy-lint.mjs`（LINK_DOMAIN_NOT_ALLOWLISTED） | 同上 |
 | 横スクロールが出る幅指定を入れる | `mobile-layout-check.mjs`（HORIZONTAL_SCROLL） | `test/mobile-layout-check.test.js` |
+| イベント件数が下限を下回る（例: 8/17週の入札3件・★★★0件） | `validate-event-volume.js`（REVIEW_REQUIRED、ERRORではないためHOLDにはならない） | `test/validate-event-volume.test.js`・`test/gate.test.js` |
 
 いずれも`npm test`（CI）に含まれ、全件PASSがコミット条件（HANDOFF.md §7）。
 
@@ -91,10 +113,145 @@ node scripts/check/gate.mjs \
   --ledger data/ledger/2026-08-17.json \
   --html output/ea-weekly-20260817.html \
   --result gate-result.json
+  # REVIEW_REQUIRED後、人間が内容を確認して妥当と判断した場合のみ:
+  # --acknowledge-low-volume を追加して再実行するとPUBLISH_READY相当に格上げされる
 ```
 
 `--skip-mobile`（Playwright起動を省略）・`--skip-link-reachability`（外部ネットワークアクセスを
 省略）はローカル動作確認・オフライン環境向けのオプション。本番週次runでは省略しないこと。
+
+## WebSearch経由の確認について（ライブフェッチ不可な発表元名の限界）
+
+一部の発表元（NZ Stats NZ、GB CPI、US GDP等）は、開発サンドボックスから当該サイトへ直接
+フェッチできないため、`event-names.json`の`match`/`display_name`をWebSearch経由の間接確認
+（検索エンジンにインデックスされたページ内容からの確認）だけで登録している
+（`source_verified`はfalse、`note`に確認方法を明記）。
+
+**2026-08-15追記（task #41-1）**: この限界は`display_name`だけでなく、`schedule[]`の
+**日付そのもの**にも同様に当てはまる。ECB Accounts of the monetary policy meeting
+（`ecb_policy_rate`）・BOC Summary of Governing Council Deliberations（`boc_policy_rate`）は、
+FOMC/RBAの議事要旨と異なり会合日からの固定オフセット計算ができない（各中銀がその都度個別に
+次回日程を告知する運用）。実日付6件（ECB）・8件（BOC）はいずれもWebSearch経由でのみ確認し、
+`config/official-sources.json`の該当`schedule[]`エントリに`note`で確認方法を明記した。
+さらにECBは公表時刻（何時に公表されるか）自体もWebSearchで確認できなかったため、
+`announce_time_by_kind.minutes_summary`を未設定のままにし、`time: null`で扱っている
+（推測時刻を入れてfabricationするより、未確定であることを明示する方を優先した）。
+
+**この方式は過去に実バグの原因になった**: GB GDPの旧`match`キーワード（`gdp m/m`・
+`prelim gdp q/q`）はFF（Forex Factory）想定の表記であり、実際の担当ソースgb_ons（ONS
+releases API）の実タイトル『GDP first quarterly estimate, UK: {期間}』とは一致していなかった。
+これは実fixtureを取得して初めて発覚した（2026-08-15）。
+
+### 教訓1: WebSearchで矛盾する情報が出た場合、条件の違いを疑う（しょうさん指摘2026-08-15）
+
+task #41-3でユーロ圏HICPの公表時刻を調査した際、WebSearch結果間で「11:00 CET」「15:00 CET」
+という2つの異なる時刻情報が見つかり、どちらかが誤りだと判断して両方を採用せず
+`announce_time_by_kind`を空のままにした（time:null）。
+
+その後しょうさんが一次ソース（ECB Statistical calendars、
+`ecb.europa.eu/press/calendars/statscal/ges/html/sthicp.en.html`）を直接確認したところ、
+**両方とも正しく、単に対象が違っていた**ことが判明した: 速報値（flash estimate）は15:00 CET、
+確報値（seasonally adjusted、final）は12:00 CET（当初のWebSearch結果の「11:00」はこれの近似値
+だった可能性がある）。
+
+**教訓**: WebSearch経由で矛盾する複数の情報（時刻・日付・名称等）が見つかった場合、
+「どちらかが誤り」と即断せず、**発表段階（速報/確報）・対象範囲（全国/地域）・算出方法
+（原数値/季節調整値）等の条件が違うために両方とも正しい可能性を先に検討すること**。
+安易にtime:nullへ倒す前に、一次ソースで両方の条件を突き合わせる一手間が有効な場合がある。
+
+### 教訓2: SPA構造で直接取得できない公式サイトでも、関連する別の公式機関が同じ情報を
+静的公開している場合がある（しょうさん発見2026-08-15）
+
+`eurostat_hicp`/`eurostat_gdp`のrelease-calendarページ（ec.europa.eu/eurostat）は
+JavaScriptによる動的読み込み（SPA構造）のため、実ネットワーク経由でも静的HTMLからは
+日程データを取得できなかった（task #41ライブ検証）。
+
+しかし、EU統計とその金融政策的な利用先であるECB（European Central Bank）は密接な関係にあり、
+**ECBが独自にStatistical calendars（`ecb.europa.eu/press/calendars/statscal/`配下）という
+静的HTMLページで、Eurostat発表分を含む複数の統計リリース日程・時刻を公開している**ことが
+判明した。これはSPA構造を迂回する代替経路として機能する。
+
+**教訓**: ある公式発表元のページがSPA構造・API専用等で直接取得できない場合、
+「その発表元自身の別ページ」だけでなく、**当該統計を業務上利用している関連公的機関
+（中央銀行、上位省庁、国際機関等）が同じ情報を独自に静的公開していないか**を探索パターン
+として持っておくこと。既知の構造的ブロッカー（NZ Stats NZのrelease-calendar/、中国NBSの
+詳細ドキュメント未到達等）に対しても、同様の迂回経路（関連機関の静的ページ）がないか
+今後探索する価値がある。
+
+### 教訓3: 同一発表元でもSPAカレンダーとは別に、静的PDF・個別発表ページが存在する場合がある
+（task #46、2026-08-15）
+
+教訓2はSPA構造の代替として「関連する別の公式機関」を探す方法だったが、`eurostat_gdp`では
+ECB statscal配下にGDP相当の静的ページが存在しないことが確認され（`ges`カテゴリの索引ページに
+HICP・Negotiated wagesの2件のみ）、その手法では解決しなかった。
+
+代わりに**Eurostat自身**の中に2つの静的経路が見つかった:
+- **経路A**: 年間骨格を示す静的PDF（`QNA_release_calendar.pdf`「Overview on Main Aggregates
+  releases」）。SPAのrelease-calendarページとは別に、同じ発表元が印刷・配布用の年間スケジュール
+  PDFを公開していた。ただしPDF本文に「dates are PROVISIONAL until confirmed in Eurostat weekly
+  release calendar」と明記されており、確度は中扱いとすべき。
+- **経路B**: 個別のニュースリリースページ本文（URL日付スタンプ規則`2-DDMMYYYY-ap/bp`で機械的に
+  特定可能）。本文中に「Next release: {日付}」という直近1件の確定日程が明記されている。
+
+ライブ検証で経路Aと経路Bの日付が完全一致することを確認し（2026Q3分: 経路Aの10/30・11/13を
+経路Bの実本文『Next release』記載が独立に裏付け）、経路Aの年間骨格を高確度で採用できた。
+
+**教訓**: 発表元自身のメインカレンダーがSPA/JS動的読み込みで直接取得できない場合、
+「関連する別機関」（教訓2）だけでなく、**同じ発表元が公開している別形式の静的資料
+（印刷用年間PDF、個別発表ページの本文、RSS/APIの補助エンドポイント等）」も探索すること**。
+特に「次回発表日」は個別の発表本文自体に地の文で書かれていることが多く、これはメインの
+カレンダーUIとは独立した取得経路になり得る。年間骨格（PDF等）は確度中、個別発表本文
+（直近1件の確定日程）は確度高、と役割分担して二段構えで運用すると良い。
+
+### 教訓4: 既存2週サンプルのみのテストでは踏めないレアケースがある。新しい対象週での
+実ネットワーク検証は毎回、新しい発表時刻パターンを試す機会として使う（task #47、
+しょうさん監査指摘2026-08-15）
+
+8/17週フルパイプライン実ネットワーク検証で生成したHTMLをしょうさんが監査した結果、
+「FOMC議事録（8/20木曜03:00発表）の停止目安が『00:00–23:00（前日水曜15:00〜を含む）』という
+23時間停止の誤表示になっている」という実バグが発覚した（`scripts/lib/halt-schedule.js`の
+`computeHaltWindow`。停止窓[t-12h, t-4h]が両端とも前日に収まる早朝発表のケースで、
+当日0時へのクランプ処理が破綻していた）。
+
+このバグは`templates/design-mock_v1.2.html`のground truth・既刊2週サンプル
+（`test/renderer.test.js`のweek-data-20260810/20260803）のいずれにも該当パターンが
+無かったため、単体テスト・レンダラー回帰テストのどちらでも検出できなかった。FOMC議事録は
+日本時間03:00発表・年8回という高頻度の実イベントであり、既刊2週に偶然含まれていなかった
+だけで、実運用では確実に再発するケースだった。
+
+**教訓**: 既刊2週サンプルは有用なground truthだが、**発表時刻のバリエーション網羅という
+観点では母集団が小さすぎる**。停止目安計算のような時刻演算ロジックは、既刊サンプルに
+無いパターン（早朝発表・深夜発表・月曜0時またぎ等）を意図的に単体テストで網羅すること
+（`test/halt-schedule.test.js`の`entirelyPreviousDay`関連テスト参照）。また、新しい対象週で
+実ネットワーク検証を行うたびに、その週特有の発表時刻パターン（今回は03:00という既刊2週に
+無かった早朝時刻）が新しいエッジケースを露呈する可能性を意識し、生成結果を機械的な
+gate判定だけでなく人手で目視確認すること。
+
+## 既刊レポートの位置づけ（正解データではない。しょうさん指示2026-08-15）
+
+`reference/sample-report_20260808.html`等の既刊2週は、Manusが実際に出力した結果であって、
+その週の「正解の全イベント一覧」ではない。したがって：
+
+- **「既刊2週100%捕捉」は必要条件であって十分条件ではない**。新パイプラインが既刊に
+  含まれないイベントを検出した場合、それは既刊との「差分（不一致・regression）」ではなく
+  **「既刊側の掲載漏れ（Manusの既存の欠落）を今回のパイプラインが発見した」可能性**として扱う。
+- 既刊に無く新パイプラインにあるイベントを発見した場合、テストや報告では「回帰」と呼ばず、
+  「既刊側の掲載漏れの疑い」として別分類で報告すること。
+
+**最初の事例（2026-08-15、task #41-3）**: `eurostat_gdp`（ユーロ圏GDP速報値）を追加した際、
+2026-08-14発表分（2026年04-06月期・統合速報）が既刊サンプル週である2026-08-10週の実データ
+経路再生成で新たに検出された（イベント数10件→11件）。8/17週の欠損（しょうさん指摘の主題）
+だけでなく、既刊サンプル週そのものにも同種の未検出イベントが存在したことになる。これは
+「既刊2週に対する回帰」ではなく「既刊2週自体の掲載漏れをこのパイプラインが発見した最初の
+事例」として記録する。既刊との差分が見つかった場合は、まずこの区別を確認してから対応方針を
+決めること（差分＝バグとは限らない）。
+
+**したがって、WebSearch経由でしか確認できていない`match`/`display_name`は、実データ
+（本番run・fixture取得）でのライブ検証が完了するまで「未確定」として扱うこと。** 次回本番run
+で該当ソースの実レスポンスを確認し、`source_verified: true`へ更新する。もし実タイトルが
+WebSearch確認時の想定と食い違っていた場合は、GB GDPの前例と同様の実バグとして扱い、
+このセクションに追記して教訓として残すこと（「WebSearch確認だけで確定させない」という
+運用ルールの根拠を蓄積する）。
 
 ## 既知の残課題
 

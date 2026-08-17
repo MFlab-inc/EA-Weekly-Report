@@ -115,3 +115,133 @@ test('renderer: 同一時刻（同一leftPct）の▲は重複描画されない
   const { triangles } = barsAndTriangles(block);
   assert.equal(triangles.length, 1, '21:30の▲は1つにまとめられているはず');
 });
+
+// task #47実バグ修正（2026-08-15、しょうさん監査指摘）: 8/17週フルパイプライン実ネットワーク
+// 検証でFOMC議事録8/20(木)03:00の停止窓が丸ごと前日8/19(水)に収まり、修正前は8/20のバーに
+// 「停止開始目安 00:00–23:00（前日 水曜15:00〜を含む）」という23時間停止の誤表示が出ていた。
+// 実際のFOMC議事録ケースを模した5日分の合成weekInputで、(a)発表日(8/20)自身にはバーが無く
+// 「前日 水曜15:00–23:00」という正しいレンジ文言になること、(b)前日(8/19)のバーに実際の
+// 停止帯（15:00-23:00）が描画されること、(c)前日のカードに翌日発表分である旨の注記が
+// 付くこと、を検証する
+const weekDataEntirelyPrevDay = {
+  reportMeta: 'ea-weekly-test-entirely-prevday',
+  createdDateJa: '2026年8月15日（土）',
+  targetWeekStart: '2026-08-17',
+  targetWeekEnd: '2026-08-21',
+  heroSummary: 'FOMC議事録を確認する週',
+  heroPills: ['FOMC議事録 8/20'],
+  days: [
+    { date: '2026-08-17', md: '8/17', weekday: '月', events: [], windowGroups: [] },
+    { date: '2026-08-18', md: '8/18', weekday: '火', events: [], windowGroups: [] },
+    { date: '2026-08-19', md: '8/19', weekday: '水', events: [], windowGroups: [] },
+    {
+      date: '2026-08-20', md: '8/20', weekday: '木',
+      events: [
+        { id: 'us-fomc-minutes-2026-08-20', time: '03:00', importance: 3, countryJa: '米国', currency: 'USD', displayName: 'FOMC議事録' },
+      ],
+      windowGroups: [
+        { firstTime: '03:00', lastTime: '03:00', countryJa: '米国', currency: 'USD', labelItems: [{ time: '03:00', text: 'FOMC議事録' }] },
+      ],
+    },
+    { date: '2026-08-21', md: '8/21', weekday: '金', events: [], windowGroups: [] },
+  ],
+};
+const generatedEntirelyPrevDay = renderReportHtml(buildReportData(weekDataEntirelyPrevDay), { reportPolicy, btcGuide });
+
+test('renderer: 停止窓が丸ごと前日に収まる場合（FOMC 8/20 03:00）— 発表日自身のバーは空で、レンジ文言は前日を明示', () => {
+  const block = haltDayBlock(generatedEntirelyPrevDay, '2026-08-20');
+  const { bars, triangles } = barsAndTriangles(block);
+  assert.deepEqual(bars, [], '発表日自身には停止窓の帯が描画されないはず（窓は丸ごと前日）');
+  assert.equal(triangles.length, 1, '発表時刻の▲は発表日自身に残るはず');
+  assert.ok(block.includes('停止開始目安 前日 水曜'), 'レンジ文言が前日を明示していない');
+  assert.ok(block.includes('15:00–23:00'), '前日の実際の停止範囲(15:00-23:00)が表示されていない');
+  assert.ok(!block.includes('00:00–23:00'), '修正前の誤表示（00:00–23:00）が残っている');
+});
+
+test('renderer: 停止窓が丸ごと前日に収まる場合 — 前日(8/19)のバーに実際の停止帯が描画され、翌日発表分の注記が付く', () => {
+  const block = haltDayBlock(generatedEntirelyPrevDay, '2026-08-19');
+  const { bars } = barsAndTriangles(block);
+  assert.equal(bars.length, 1, '前日のバーに帯が1本描画されるはず');
+  // 15:00=900分=62.5%、8時間=480分=33.3%
+  assert.equal(bars[0][0], '62.5');
+  assert.equal(bars[0][1], '33.3');
+  // task #49（しょうさん指摘）: 翌日発表分は独立した1行として、他の発表枠と同じ見た目
+  // （国名・通貨ピル＋▲翌日HH:MM＋名称＋停止開始目安の範囲＋注記）で表示される
+  assert.ok(block.includes('翌日03:00'), '▲の時刻に「翌日」が前置されていない');
+  assert.ok(block.includes('FOMC議事録'), '発表名が含まれていない');
+  assert.ok(block.includes('15:00–23:00'), '翌日発表分の停止範囲が表示されていない');
+  assert.ok(block.includes('（翌日発表分）'), '翌日発表分である旨の注記が無い');
+  assert.ok(block.includes('米国'), '翌日発表分の国名ピルが無い');
+  // task #49: この日自身の★★★は0件だが翌日発表分の帯があるため見出しにその旨が出る
+  assert.ok(block.includes('（翌日発表分1件）'), '見出しの件数表示に翌日発表分が反映されていない');
+});
+
+test('renderer: 停止窓が丸ごと前日に収まる場合 — 発表日自身にも★★★があれば見出しは「★★★ N件（＋翌日発表分M件）」', () => {
+  const block = haltDayBlock(generatedEntirelyPrevDay, '2026-08-20');
+  assert.ok(block.includes('★★★ 1件'), '発表日自身の件数バッジが無い');
+  assert.ok(!block.includes('翌日発表分'), '発表日自身（帯の移設先ではない側）に翌日発表分の表示が出てはならない');
+});
+
+// 前日自身にも★★★イベントがあり、かつ翌日発表分の帯も同時に乗るケース（実際の8/17週で
+// GB CPI(8/19)＋FOMC議事録(8/20)の組み合わせとして発生した実例）。自分自身の発表枠が先、
+// 翌日発表分が後という順序と、件数表示が「★★★ N件（＋翌日発表分M件）」になることを確認する
+const weekDataOwnAndBorrowed = {
+  ...weekDataEntirelyPrevDay,
+  days: weekDataEntirelyPrevDay.days.map((d) =>
+    d.date === '2026-08-19'
+      ? {
+          ...d,
+          events: [{ id: 'gb-cpi-2026-08-19', time: '15:00', importance: 3, countryJa: '英国', currency: 'GBP', displayName: '消費者物価指数（CPI）' }],
+          windowGroups: [{ firstTime: '15:00', lastTime: '15:00', countryJa: '英国', currency: 'GBP', labelItems: [{ time: '15:00', text: '消費者物価指数（CPI）' }] }],
+        }
+      : d
+  ),
+};
+const generatedOwnAndBorrowed = renderReportHtml(buildReportData(weekDataOwnAndBorrowed), { reportPolicy, btcGuide });
+
+test('renderer: 発表日自身の★★★と翌日発表分の帯が両方ある日 — 見出しは合算表示、自分の行が先・翌日発表分の行が後', () => {
+  const block = haltDayBlock(generatedOwnAndBorrowed, '2026-08-19');
+  const { bars } = barsAndTriangles(block);
+  assert.equal(bars.length, 2, '自分自身の帯(GB CPI)と翌日発表分の帯(FOMC)の2本が描画されるはず');
+  assert.ok(block.includes('★★★ 1件（＋翌日発表分1件）'), '見出しが合算表示になっていない');
+  const ownIdx = block.indexOf('消費者物価指数（CPI）');
+  const borrowedIdx = block.indexOf('翌日03:00');
+  assert.ok(ownIdx >= 0 && borrowedIdx >= 0 && ownIdx < borrowedIdx, '自分自身の行が翌日発表分より先に来ていない');
+});
+
+// task #47実バグ修正: 月曜早朝発表（窓が丸ごと日曜に収まる）は対象週外（日曜）のため
+// バー自体は描画されず、注記のみで「週明けの取引開始時点からの停止が目安」を伝える
+const weekDataMondayEntirelyPrevDay = {
+  ...weekDataEntirelyPrevDay,
+  days: [
+    {
+      date: '2026-08-17', md: '8/17', weekday: '月',
+      events: [
+        { id: 'jp-test-midnight-2026-08-17', time: '00:30', importance: 3, countryJa: '日本', currency: 'JPY', displayName: 'テスト深夜発表イベント' },
+      ],
+      windowGroups: [
+        { firstTime: '00:30', lastTime: '00:30', countryJa: '日本', currency: 'JPY', labelItems: [{ time: '00:30', text: 'テスト深夜発表イベント' }] },
+      ],
+    },
+    { date: '2026-08-18', md: '8/18', weekday: '火', events: [], windowGroups: [] },
+    { date: '2026-08-19', md: '8/19', weekday: '水', events: [], windowGroups: [] },
+    { date: '2026-08-20', md: '8/20', weekday: '木', events: [], windowGroups: [] },
+    { date: '2026-08-21', md: '8/21', weekday: '金', events: [], windowGroups: [] },
+  ],
+};
+const generatedMondayEntirelyPrevDay = renderReportHtml(buildReportData(weekDataMondayEntirelyPrevDay), { reportPolicy, btcGuide });
+
+test('renderer: 月曜00:30発表（窓が丸ごと日曜に収まる）— 対象週内にバーは一切描画されず、週明け特例文言のみ', () => {
+  const mondayBlock = haltDayBlock(generatedMondayEntirelyPrevDay, '2026-08-17');
+  const { bars: mondayBars } = barsAndTriangles(mondayBlock);
+  assert.deepEqual(mondayBars, [], '月曜自身にも窓丸ごと収まりの帯は描画されない');
+  assert.ok(mondayBlock.includes('停止開始目安 前日 日曜'), 'レンジ文言が前日(日曜)を明示していない');
+  assert.ok(mondayBlock.includes('12:30–20:30'), '前日の実際の停止範囲(12:30-20:30)が表示されていない');
+  assert.ok(mondayBlock.includes('週明けの取引開始時点からの停止が目安'));
+  // 日曜は対象週外のため描画対象日が無く、他の4日間にも帯・注記は一切出ない
+  for (const date of ['2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21']) {
+    const block = haltDayBlock(generatedMondayEntirelyPrevDay, date);
+    const { bars } = barsAndTriangles(block);
+    assert.deepEqual(bars, [], `${date}にはこのイベント由来の帯が出ないはず`);
+  }
+});

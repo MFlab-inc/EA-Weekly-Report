@@ -80,7 +80,12 @@ function bondAuctionNameUs(tenorJa) {
 }
 
 // country（ISO国コード）→ 中銀略称。policy_rate/quarterly_reportのように人名を伴わない
-// テンプレートで使う（会見・発言・議会はofficials.jsonのrole_ja自体に略称を含むため別途不要）
+// テンプレートで使う（会見・発言・議会はofficials.jsonのrole_ja自体に略称を含むため別途不要）。
+// 登録漏れの挙動: build-ledger.jsのresolveRuleGeneratedNameが未登録国にnullを返し
+// FALLBACK_KIND_LABELの汎用ラベル（「政策金利発表」等）へ落ちる（生コード漏れにはならない）。
+// ただし検出網が無いと気づかれず表示品質が静かに劣化するため、
+// scripts/lib/validate-naming-coverage.js（test/validate-naming-coverage.test.jsの実configゲート、
+// task #56）でofficial-sources.json登録国とのカバレッジを検証する
 const BANK_ABBR_BY_COUNTRY = {
   JP: '日銀', US: 'FRB', AU: 'RBA', EU: 'ECB',
   GB: 'BOE', CA: 'BOC', NZ: 'RBNZ', CH: 'SNB',

@@ -20,6 +20,8 @@
   "halt_legend": "バーは各日の0時〜24時を表します。色帯＝停止開始の目安時間帯、▲＝発表予定時刻。複数枠がある日は帯を連結表示しています。",
   "halt_monday_note": "前日 日曜{TIME}〜を含むため、週明けの取引開始時点からの停止が目安",
   "halt_prevday_note": "前日 {WEEKDAY}{TIME}〜を含む",
+  "halt_monday_entirely_prevday_note": "週をまたぐため、週明けの取引開始時点からの停止が目安",
+  "halt_borrowed_bar_note": "翌日発表分",
   "halt_window_bundle_note": "再開確認は{LAST_EVENT}の終了後から",
   "no_time_note": "時刻未公表（停止目安の対象外）",
   "halt_no_star3_note": "この日は最重要（★★★）イベントはありません（★★は下記「対象週の注目イベント」欄をご確認ください）",

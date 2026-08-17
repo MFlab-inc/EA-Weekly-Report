@@ -11,6 +11,7 @@
     "ppi": 3,
     "gdp": 3,
     "retail_sales": 3,
+    "industrial_production": 3,
     "employment_situation": 3,
     "minutes_summary": 2,
     "employment_indicator": 2,
@@ -27,15 +28,17 @@
     "minutes_summary": "中銀の定例議事要旨・議事録（例: 日銀 金融政策決定会合議事要旨）。opinions_summaryより一段軽い扱いが既定値",
     "employment_situation": "政府統計機関が発表する公式の月次雇用統計本体（例: 米雇用統計・カナダ雇用統計・NZ雇用統計）",
     "employment_indicator": "雇用の先行・代替指標（例: JOLTS求人件数、ADP雇用者数）。employment_situationより軽い扱い",
-    "pmi_ism": "PMI・景況指数全般（ISM・Caixin/RatingDog・CIPS建設業PMI・Ivey等）。米ISMのみcountry_overridesで★★★に引き上げ",
+    "pmi_ism": "PMI・景況指数全般（ISM・Caixin/RatingDog・CIPS建設業PMI・Ivey・DE/EU/GBフラッシュPMI[S&P Global/HCOB、task #53]等）。米ISMのみcountry_overridesで★★★に引き上げ（既刊実績・米指標としての影響度）。DE/EU/GBフラッシュPMIは意図的に★★のまま据え置き（2026-08-16しょうさん決定、Manus版8/17週突合を受けた確認）: (1)月末に必ず発生する定例イベントのため★★★にすると停止スケジュールの帯が毎月確実に3本増え、政策金利・中銀総裁発言と同格に扱うと『止めるべき時』の輪郭がぼやけ停止判断の説得力が落ちる、(2)相場インパクトも政策金利・要人発言と比べ『やや警戒』程度という認識、(3)Manus版が★★★としていたのは参考にしたが、Manusは★★イベントを一切掲載しない仕様のため『★★★にしないと載らない』制約下での判断だった可能性があり、★★も注目イベント欄に掲載する本パイプラインが同じ結論を取る必要はないと判断した。DE_ZEW（sentiment kind、下記country_overrides参照）とは異なり個別の反応実績データも無い。★★のためセクション2『注目イベント』には掲載されるが、停止スケジュール（importance=3のみ対象）には出ない",
     "trade_balance": "貿易収支。豪州のみcountry_overridesで★★★に引き上げ（既刊実績・AUD系EA運用実態）",
     "official_speech": "中銀理事・地区連銀総裁等の発言（議長本人の発言はpress_conference/testimonyへ分類）",
-    "bond_auction": "国債入札（日本・米国等）"
+    "bond_auction": "国債入札（日本・米国等）",
+    "industrial_production": "鉱工業生産指数。2026-08-15新設（しょうさん承認・国×kind必須マトリクス、CN=NBS担当）"
   },
   "country_overrides": [
     { "kind": "pmi_ism", "country": "US", "importance": 3, "reason": "ISM製造業/非製造業景況指数。既刊2週で★★★（Phase 0実測）", "downgrade_ok": true },
     { "kind": "trade_balance", "country": "AU", "importance": 3, "reason": "既刊8/3週で★★★。Q2決定により恒常ルールとして採用（AUD系EA運用実態に合致）", "downgrade_ok": true },
-    { "kind": "minutes_summary", "country": "US", "importance": 3, "reason": "FOMC議事録。Q2決定により日銀『主な意見』（opinions_summary）と同格の★★★として統一", "downgrade_ok": true }
+    { "kind": "minutes_summary", "country": "US", "importance": 3, "reason": "FOMC議事録。Q2決定により日銀『主な意見』（opinions_summary）と同格の★★★として統一", "downgrade_ok": true },
+    { "kind": "sentiment", "country": "DE", "importance": 3, "reason": "2026-08-15しょうさん指摘（Manus突合）: ZEW景況感指数はEURペアで★★★級の反応がある。sentiment kindの既定値（★★）から引き上げ", "downgrade_ok": true }
   ],
   "bundling_rule": "同一発表元・同一発表枠（同日・同時刻・同一指標の系列: 前月比/前年比/コア等）は1つの発表枠に束ね、枠の重要度は構成イベントの重要度の最大値を採る（例: 米雇用統計＝非農業部門雇用者数【★★★】＋平均時給【★★】→枠は★★★）",
   "recurring_checks": [

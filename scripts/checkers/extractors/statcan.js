@@ -18,6 +18,17 @@ const MONTHS = {
 const SUBJECT_HEADERS = {
   trade_balance: 'Canadian international merchandise trade',
   employment_situation: 'Labour Force Survey',
+  // 2026-08-15追加（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）。
+  // 年次PDF実測（annual_release_dates_pdf.pdf）でこの2見出しの実在を確認済み。
+  // 「Gross domestic product, income and expenditure」（四半期GDP）は同日発表となる
+  // 月次GDP（by industry）と重複するため、月次側のみをgdpとして採用する
+  cpi: 'Consumer Price Index',
+  gdp: 'Gross domestic product by industry',
+  // 2026-08-15追加（task #50/51、しょうさんのManus突合指摘: CA小売売上高が未マッピングのまま
+  // 欠落していた）。「Retail trade」見出しは既存fixture（annual_release_dates_pdf.pdf）に
+  // 2025年11月〜2027年1月分まで既に含まれており、新規ライブ検証なしで発見できた
+  // （SUBJECT_HEADERSに追加を忘れていただけの実バグ）
+  retail_sales: 'Retail trade',
 };
 
 function pad2(n) {

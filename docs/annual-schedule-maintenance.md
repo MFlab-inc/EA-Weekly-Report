@@ -81,9 +81,94 @@ Stats NZはopen data API（api.stats.govt.nz）が2024-08-30に閉鎖済み、�
 
 **初回実施記録（2026-08-14）**: 前四半期（2026年3月期）ページの埋め込みテキストが「Labour market statistics: June 2026 quarter will be released on 5 August 2026」を予告しており、ground truth（nz_labour_q2_20260805）と完全一致することを確認した。
 
+### DE/EU/GBフラッシュPMI固有の手順（task #53・2026-08-15、しょうさん承認済み規則。年1回・手動照合が必須）
+
+S&P Global/HCOB Flash Manufacturing & Services PMI（DE/EU/GBの3ヶ国、`de_flash_pmi`・`eu_flash_pmi`・`gb_flash_pmi`）は、ISM・RBNZと同じ理由（公式サイトが自動取得不可）で年次スケジュールconfig方式を採るが、**先行一括公表ページそのものが存在しない**点がISM/RBNZと異なる。ISM/RBNZは「サイトはブロックされているが年間分の日程は公式に公表されている」のに対し、S&P Globalは4経路（`pmi.spglobal.com`・旧ドメイン`markiteconomics.com`・自社サイト`hcob-bank.com`・Ifo公式サイトの『Calendar of Events and Release Dates』）すべてで日程データそのものに到達できないことを確認済み（詳細は`config/official-sources.json`のde_flash_pmi/eu_flash_pmi/gb_flash_pmi notesを参照）。よって他ソースのような「ドラフト生成→公式ページと目視突合」ではなく、**ドラフト生成→翌月の実際の発表（ニュース報道）で答え合わせ**という運用にした。
+
+**規則（`scripts/lib/flash-pmi-schedule.js`）**: 月末から5英国営業日前（営業日は週末＋England and Wales銀行休業日を除外。祝日データは`config/gb-bank-holidays.json`＝GOV.UK公式`bank-holidays.json`）。DE/EU/GBの3ヶ国は毎月同一暦日に発表される（S&P Globalが単一カレンダーで運用しておりEngland and Wales祝日を基準にしていることが示唆される）ため、3ソース共通のルールで生成する。発表時刻はDE 09:30・EU 10:00（いずれもCET/CEST）・GB 09:30（BST/GMT）で、pmi.spglobal.comのエンバーゴヘッダー（`Embargoed until HH:MM TZ`）をWebSearchスニペット経由で複数月・複数年分直接確認した（高確度）。
+
+**検証**: WebSearch研究agent3系統（DE/EU/GB個別）＋GOV.UK公式データでの機械計算という独立2経路で、2024年通年＋2025年8月〜2026年7月の直近24ヶ月を突合し、12月を除く22/22ヶ月で完全一致することを確認した（2026年3月・2024年3月のGood Friday前倒しケース、2024年5月のEarly May+Spring Bank Holiday2件重複ケースを含む）。
+
+**12月の扱い（規則の唯一の例外）**: 12月はクリスマス休暇を避けるため意図的に大きく前倒しされる（2024年12/16・2025年12/16、いずれも実績確認済み）が、機械的な規則が見出せなかったため`flashPmiDraftForMonth(y, 12)`は常に`null`を返す設計にした。**12月分はscheduleに含めない**（他の月と違い、この穴は残量監視WARN（`residual_monitor_weeks`）では検知できない——12月の前後の月にscheduleエントリがあるため「対象週から数週先までに日程が1件も無い」という残量監視の判定条件に引っかからない）。よって12月の対象週に到達する前に、年次確認の一環として以下を必ず実施すること:
+
+1. 11月中（対象週の3〜4週前を目安に）、DE/EU/GB flash PMIの直近報道（Reuters/investingLive/ForexLive等の同日速報記事）を検索し、実際の12月発表日を確認する
+2. `config/official-sources.json`のde_flash_pmi/eu_flash_pmi/gb_flash_pmiのschedule配列へ、確認した日付を3ソース同時に追記する（3ヶ国は同一暦日のため一括で反映できる）
+3. 未追記のまま12月の対象週に到達した場合は`checkAnnualScheduleSource`が日程未検出として扱い、通常の週次ゲート（欠落WARN/HOLD）で検知される（安全側フォールバック。誤った日付を黙って出力するよりも、検知して手動確認を促す設計）
+
+**月曜FF事後突合への組み込み（しょうさん条件4）**: このソースは規則生成＋年1回手動確認という他の完全確定ソースより精度限界のある方式のため、`config/official-sources.json`の各エントリのnotes/confirmed_noteに「規則生成・年次手動確認・月曜FF突合でのクロスチェック対象」と明記した。月曜のFF事後突合run（task #39）で、DE/EU/GB flash PMIの実際の発表日・時刻がscheduleの値と一致するかを確認し、不一致があれば`docs/coverage-gap-2026-08-15.md`系のdiscrepancy-reportに計上する運用とする。
+
+**GB調査で判明した表示上の重要な発見**: 実際の発表は製造業PMI単独ではなく、製造業PMI・サービス業Business Activity Index・総合Output Indexが同一エンバーゴ時刻で一体公表される単一リリース（`S&P Global Flash UK PMI`という1つの文書）。DE/EUも同型と推定される。既存の束ねルール（bundle_id、同一国×同一source_id×同一日×90分以内）はこのソースがscheduleに単一行（subtype:flash）しか登録しないため元々発火対象外であり、代わりに`config/event-names.json`の`bundle_as_one_line`表記（US/CA/GB/AU小売売上高の「＆」併記と同型）でdisplay_nameに複数系列を反映した（例: 「英フラッシュPMI（製造業＆サービス業）」）。
+
+**初回実施記録（2026-08-15）**: Claude Codeが上記2経路の検証を実施し、しょうさんが規則の採用を承認。`schedule_status: "confirmed"`・`confirmed_at: "2026-08-15"`で2026年8月〜2027年11月分（12月除く）を`config/official-sources.json`へ反映した。次回の年次確認目安は2027年11月頃（scheduleの残量が`residual_monitor_weeks`＝4週を下回った時点でWARNが出る）。ただし12月分の穴は上記の別手順で毎年11月中に埋めること。
+
 ### ECBのcountry="EU"採用について（task #19・2026-08-15）
 
 `official-sources.json`のcountryフィールドは他ソースでは全てISO国コード（US/JP/GB/AU/CA/NZ/CH/CN）だが、ECB（ユーロ圏）は単一国に対応しないため`"EU"`とした。影響範囲を確認済み: `scripts/lib/naming.js`のpolicyRateName()等はbankAbbr（"ECB"）を直接受け取る設計でcountry値に依存しない。`resolveCandidateEvent`のruleGenerated分岐（SPEC §4.2の規則生成命名kind向け）を使うためevent-names.json辞書照合（country+kindキー）も経由しない。よって"EU"という非ISOコードによる実害は無いと判断した。`scripts/phase0/phase0.mjs`のCOUNTRY_JA_TO_CODEマップで「ユーロ圏」→「EU」の対応が既に前例としてあり整合的。
+
+### 残量監視WARNの2つの原因パターン（task #49、しょうさん指示の切り分け、2026-08-15）
+
+8/17週のフルパイプライン実ネットワーク検証で残量監視WARNが8件発生し、しょうさんの指示で
+「configの日程追加で解消するもの」と「恒久的に解消しない構造的ブロッカー由来のもの」に
+切り分けた。結果、原因は2パターンに分かれることが分かった：
+
+**パターンA: しきい値ミスマッチ（config自体は十分。日程データ不足ではない）**
+
+`checkResidualMonitoring`の既定`residual_monitor_weeks`（4週）は、月次・週次カデンスの
+発表元を想定した値であり、**会合間隔・発表間隔がそれより長い発表元では、日程データが
+将来まで正しく確定していても、対象週がたまたま「前回発表の直後」に当たると必ず
+（誤って）WARNが出る**。これは日程データの欠落ではなく、しきい値が発表元の実際の頻度に
+対して短すぎることが原因。該当ソースの`residual_monitor_weeks`を、既存scheduleの最大間隔
+（週）以上に引き上げることで解消する（新しい日程の取得・ライブ検証は不要）。
+
+2026-08-15時点で対応済み:
+
+| ソース | 会合/発表間隔の最大値 | 引き上げ後の値 |
+|---|---|---|
+| `jp_boj` | 54日（約7.7週） | 9週 |
+| `boe_policy_rate` | 49日（7.0週） | 8週 |
+| `eurostat_gdp` | 78日（約11.1週、予備速報→統合速報ペア間の間隔） | 13週 |
+
+**パターンB: 構造的ブロッカー（真に日程データが不足。config追加では解消しない）**
+
+以下は`schedule[]`自体が実際に2026年半ば以降で終わっており、しきい値の調整では解消しない。
+いずれも既存の実測（task #41ライブ検証等）で構造的アクセス制約が確認済み:
+
+| ソース | 最終確定日 | ブロッカーの内容 |
+|---|---|---|
+| `nz_stats_cpi` | 2026-07-21 | Stats NZ release-calendar/がSPA構造（JavaScript動的読み込み）で取得不可。教訓2（本ドキュメント上部のnz_statsnz固有の手順と同根）のパターンをCPI/GDP側でも試す余地は残っている（未着手） |
+| `nz_stats_gdp` | 2026-06-18 | 同上 |
+| `cn_nbs_data` | 2026-07-16 | 国家統計局トップページは到達可能（HTTP 200・robots許可）だが年次文書一覧のみで実スケジュール本文が無い |
+| `eu_flash_pmi` | 2026-07-24 | S&P Global press-release-hubのrobots.txt自体がHTTP 403（インフラ側ブロック）。UA偽装による回避は方針上不採用 |
+| `gb_flash_pmi` | 2026-07-24 | 同上（S&P Global） |
+
+これらは「WARNが出続ける想定内の状態」として扱う。解消するには新しい取得経路の発見
+（教訓2「関連する別機関の静的公開」・教訓3「同一発表元の別形式静的資料」参照）が必要で、
+現時点では見つかっていない。EU HICPで有効だった教訓2/3パターンをNZ Stats・中国NBSにも
+試す価値はあるが、しょうさんの明示的な依頼があるまでは新規の調査には着手しない
+（2026-08-15時点の判断。必要になれば別タスクとして着手する）。
+
+## 「登録済みソースの取りこぼし」の2つの故障パターン（task #50/51、しょうさん指摘・2026-08-15）
+
+Manus生成レポートとの突合で、登録済み（statusがactive/draft_scheduleの）ソースなのに特定のkindだけ発表が欠落する事故が繰り返し発生した（CA CPI・AU雇用統計・GB雇用統計/小売売上高・CA小売売上高・AU小売売上高）。原因を突き詰めると2つの異なるパターンに分かれる:
+
+**パターン1: 単純な未マッピング（同一データ内に既に存在していた）**
+
+ソースが取得している生データ（年次PDF・weekly_scrape対象ページ）自体には該当kindのデータが最初から含まれていたが、`kinds[]`配列・`event-names.json`の辞書エントリが漏れていたために分類・表示されなかったケース。修正は「既存fixtureを再確認し、辞書エントリを追加するだけ」で完結し、新規のライブ調査は不要（CA小売売上高がこの典型例）。
+
+**パターン2: 発表元の統計改編への追随漏れ（AU小売売上高で新規発覚）**
+
+パターン1と違い、発表元自体が指標の名称・構造を変更しており、旧名称でmatchしていたコードが新統計を認識できなくなっていたケース。AU小売売上高では、豪州統計局（ABS）が2025-07-31付けで月次「Retail Trade」の単独公表を終了し「Monthly Household Spending Indicator」（MHSI）へ統合した（Retail Trade Replacement Program）。これは抽出コードのバグではなく、**発表元側の制度変更に config が追随できていなかった**ことが原因。同じ轍を踏む可能性がある例: 各国統計局の指数改定・基準年変更（例: jp_stat_cpiの2025年基準改定が2027年2月分から予定されている。同ソースnotes参照）、指標の統合・分割・名称変更全般。
+
+**再発防止策（task #50一括監査で試験導入）**: 登録済み全ソースについて「発表元が公表している全リリース種別」と「configで実際にマッピング済みのkinds[]」の差分を年1回棚卸しする。手順は既存のISM/RBNZ手動照合（本文上記）と同様の「人間が公式ページを一次確認する」枠組みを流用できる:
+
+1. 各ソースのaccess.targetsの取得先ページ（またはその上位インデックスページ）を開き、そのソースが実際に公表している統計の一覧を確認する
+2. `kinds[]`に含まれないが★★以上に相当しそうな項目が無いか確認する
+3. 見つかった場合は、まず該当ソースの既存fixture（`test/fixtures/official-sources/{id}/`）に該当データが既に含まれていないか確認する（含まれていればパターン1、含まれていなければ発表元側の変更＝パターン2の可能性を疑い、WebSearchで名称変更・統合の有無を確認する）
+4. `config/official-sources.json`のkinds[]・`config/event-names.json`のエントリを追加し、回帰テストを追加する
+
+**初回実施記録（task #50、2026-08-15）**: 全31ソースを棚卸しし、上記の再発事例（GB雇用統計・GB小売売上高・CA小売売上高・AU小売売上高）を発見・修正した。加えて中国CPI（NBS）が未追跡と判明したが、こちらは「既存データ内の未マッピング」ではなく別日程の別リリースであり本監査の対象外の新規調査事項として別途記録した（`config/expected-coverage.json`の`_pending_not_yet_added`参照）。
+
+**次回実施目安**: 年1回（次回目安2027年8月頃）、または新規ソース追加時・Manus等の外部レポートとの突合で新たな欠落が見つかった時。
 
 ## config更新時のチェックリスト（Claude Code向け）
 
@@ -91,3 +176,4 @@ Stats NZはopen data API（api.stats.govt.nz）が2024-08-30に閉鎖済み、�
 2. `config/official-sources.json` の当該ソースエントリを更新（既存の過去日程は履歴として残すか削除するかは容量次第で判断）
 3. `npm test` で既存テストに影響がないことを確認
 4. コミットメッセージに更新元URLと公表日を明記
+5. 新しい国コードを追加した場合は、国×通貨・国×日本語名の対応辞書2箇所（`scripts/lib/build-ledger.js`のCURRENCY_BY_COUNTRY、`scripts/render/ledger-to-week-input.js`のCOUNTRY_JA_BY_ISO）の両方に追加する。`test/validate-country-currency-coverage.test.js`（`scripts/lib/validate-country-currency-coverage.js`）が両dictへの登録漏れをCIで検出する（task #54再発防止ゲート）。**`config/country-currency-map.json.unused`は実体ではない**（どのコードからも読み込まれていない削除予定の旧資料。task #56参照）ため編集しても無意味
