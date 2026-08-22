@@ -89,3 +89,31 @@ jobs:
               }
             })();
           '
+          sleep 1.5
+      - name: /release-calendar/calendar-export と export-release エンドポイントの実体を確認
+        run: |
+          node -e '
+            (async () => {
+              const targets = [
+                "https://www.stats.govt.nz/release-calendar/calendar-export",
+                "https://www.stats.govt.nz/release-calendar/calendar-export/",
+                "https://www.stats.govt.nz/release-calendar/calendar-export?month=8&year=2026",
+              ];
+              for (const url of targets) {
+                try {
+                  const r = await fetch(url, { headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; nz-stats-api-recon)" } });
+                  console.log("===", url, "status:", r.status, "content-type:", r.headers.get("content-type"));
+                  if (r.ok) {
+                    const body = await r.text();
+                    console.log("length:", body.length);
+                    console.log(body.slice(0, 1500));
+                    const idx = body.toLowerCase().indexOf("retail trade");
+                    console.log("contains retail trade:", idx >= 0);
+                  }
+                } catch (e) {
+                  console.log("===", url, "error:", String(e.message || e));
+                }
+                await new Promise((r2) => setTimeout(r2, 1500));
+              }
+            })();
+          '
