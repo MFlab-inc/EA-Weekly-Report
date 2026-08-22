@@ -25,7 +25,7 @@
   "kind_definitions": {
     "_note": "分類の目安。実装（公式ソースchecker→kind変換）はこの定義に従う",
     "opinions_summary": "中銀会合後の『主な意見』相当の公表文書（例: 日銀 金融政策決定会合における主な意見）。定例の議事要旨（minutes_summary）とは別kind。米FOMC議事録はcountry_overridesでこのkind相当（★★★）に引き上げる",
-    "minutes_summary": "中銀の定例議事要旨・議事録（例: 日銀 金融政策決定会合議事要旨）。opinions_summaryより一段軽い扱いが既定値",
+    "minutes_summary": "中銀の定例議事要旨・議事録（例: 日銀 金融政策決定会合議事要旨）。既定値は★★だが、政策判断の根拠を示す文書という性質は米FOMC議事録と変わらないため、AU/EU/CAはcountry_overridesで★★★に統一（2026-08-22しょうさん決定、Manus版8/24週突合を受けた確認）。日本（JP）のみこの昇格の対象外: BOJは会合終了後まもなく公表される『主な意見』（kind=opinions_summary、既に★★★）で政策論議の骨子が先出しされており、後日公表される議事要旨（kind=minutes_summary）は相対的に既知情報の追認という位置づけのため、既定値★★のまま据え置く",
     "employment_situation": "政府統計機関が発表する公式の月次雇用統計本体（例: 米雇用統計・カナダ雇用統計・NZ雇用統計）",
     "employment_indicator": "雇用の先行・代替指標（例: JOLTS求人件数、ADP雇用者数）。employment_situationより軽い扱い",
     "pmi_ism": "PMI・景況指数全般（ISM・Caixin/RatingDog・CIPS建設業PMI・Ivey・DE/EU/GBフラッシュPMI[S&P Global/HCOB、task #53]等）。米ISMのみcountry_overridesで★★★に引き上げ（既刊実績・米指標としての影響度）。DE/EU/GBフラッシュPMIは意図的に★★のまま据え置き（2026-08-16しょうさん決定、Manus版8/17週突合を受けた確認）: (1)月末に必ず発生する定例イベントのため★★★にすると停止スケジュールの帯が毎月確実に3本増え、政策金利・中銀総裁発言と同格に扱うと『止めるべき時』の輪郭がぼやけ停止判断の説得力が落ちる、(2)相場インパクトも政策金利・要人発言と比べ『やや警戒』程度という認識、(3)Manus版が★★★としていたのは参考にしたが、Manusは★★イベントを一切掲載しない仕様のため『★★★にしないと載らない』制約下での判断だった可能性があり、★★も注目イベント欄に掲載する本パイプラインが同じ結論を取る必要はないと判断した。DE_ZEW（sentiment kind、下記country_overrides参照）とは異なり個別の反応実績データも無い。★★のためセクション2『注目イベント』には掲載されるが、停止スケジュール（importance=3のみ対象）には出ない",
@@ -38,6 +38,9 @@
     { "kind": "pmi_ism", "country": "US", "importance": 3, "reason": "ISM製造業/非製造業景況指数。既刊2週で★★★（Phase 0実測）", "downgrade_ok": true },
     { "kind": "trade_balance", "country": "AU", "importance": 3, "reason": "既刊8/3週で★★★。Q2決定により恒常ルールとして採用（AUD系EA運用実態に合致）", "downgrade_ok": true },
     { "kind": "minutes_summary", "country": "US", "importance": 3, "reason": "FOMC議事録。Q2決定により日銀『主な意見』（opinions_summary）と同格の★★★として統一", "downgrade_ok": true },
+    { "kind": "minutes_summary", "country": "AU", "importance": 3, "reason": "2026-08-22しょうさん指摘（Manus版8/24週突合）: RBA議事要旨（Minutes of the Monetary Policy Meeting）はManus版★★★・自動版★★で相違。FOMC議事録と同格に扱うべきとの判断で引き上げ。JPと異なりRBAには『主な意見』相当の先出し文書が無い", "downgrade_ok": true },
+    { "kind": "minutes_summary", "country": "EU", "importance": 3, "reason": "2026-08-22しょうさん決定: ECB Accounts of the monetary policy meetingをFOMC議事録・RBA議事要旨と同格の★★★に統一", "downgrade_ok": true },
+    { "kind": "minutes_summary", "country": "CA", "importance": 3, "reason": "2026-08-22しょうさん決定: BOC Summary of Governing Council DeliberationsをFOMC議事録・RBA議事要旨と同格の★★★に統一", "downgrade_ok": true },
     { "kind": "sentiment", "country": "DE", "importance": 3, "reason": "2026-08-15しょうさん指摘（Manus突合）: ZEW景況感指数はEURペアで★★★級の反応がある。sentiment kindの既定値（★★）から引き上げ", "downgrade_ok": true }
   ],
   "bundling_rule": "同一発表元・同一発表枠（同日・同時刻・同一指標の系列: 前月比/前年比/コア等）は1つの発表枠に束ね、枠の重要度は構成イベントの重要度の最大値を採る（例: 米雇用統計＝非農業部門雇用者数【★★★】＋平均時給【★★】→枠は★★★）",
