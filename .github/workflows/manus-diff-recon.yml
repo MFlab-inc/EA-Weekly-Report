@@ -35,12 +35,11 @@ jobs:
               // 1回目のライブ確認でShift_JIS想定decodeが文字化けした（boj.or.jpは実際はUTF-8の可能性）。
               // res.text()はHTTPヘッダのcharsetかデフォルトUTF-8で復号するため、まずこちらを試す。
               const text = await res.text();
-              const plain = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-              console.log("total plain length:", plain.length);
-              // 1回目はslice(0,3000)が「27日（木） 10:30」の直後で切れてしまった。
-              // 27日の項目全体（前後の28日分も含め文脈がわかるよう）を広めに抜粋する
-              const idx27 = plain.indexOf("27日（木）");
-              console.log("=== 27日（木）以降の抜粋（1500文字） ===");
-              console.log(idx27 >= 0 ? plain.slice(idx27, idx27 + 1500) : "(27日（木）という文字列が見つかりませんでした)");
+              console.log("raw html length:", text.length);
+              // extractor実装のため、フラット化前の生HTML構造（テーブルのタグ・class名）を確認する。
+              // 「氷見野」を含む<tr>要素の周辺タグ構造をそのまま出力する
+              const idx = text.indexOf("氷見野");
+              console.log("=== 氷見野を含む生HTML抜粋（前後1500文字） ===");
+              console.log(idx >= 0 ? text.slice(Math.max(0, idx - 1500), idx + 500) : "(見つかりません)");
             })();
           '
