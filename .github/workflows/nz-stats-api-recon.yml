@@ -1,0 +1,91 @@
+# Stats NZ release-calendarページのカレンダー描画APIエンドポイント調査用の一時ワークフロー
+# （しょうさん指示2026-08-22、task #70）。WebFetchがwww.stats.govt.nzをブロックしているため、
+# 既存のmanus-diff-recon等と同じ方式（GitHub Actions実ネットワーク）で調査する。
+# 30分で見つからなければ構造的ブロッカーとして確定する運用のため、本ワークフローは
+# 調査完了後（見つかった/見つからなかったに関わらず）削除する。
+# 起動方式: 開発ブランチへの `.nz-stats-api-recon-trigger` 変更pushで起動する
+name: nz-stats-api-recon
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths: ['.nz-stats-api-recon-trigger']
+permissions:
+  contents: read
+concurrency:
+  group: nz-stats-api-recon
+  cancel-in-progress: false
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - name: release-calendarページの生HTMLからscript src・インラインAPI参照を抽出
+        run: |
+          node -e '
+            (async () => {
+              const res = await fetch("https://www.stats.govt.nz/release-calendar/", {
+                headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; nz-stats-api-recon)" },
+              });
+              console.log("status:", res.status);
+              const html = await res.text();
+              console.log("html length:", html.length);
+
+              console.log("=== <script src=...> 一覧 ===");
+              const srcRe = /<script[^>]+src="([^"]+)"/g;
+              let m; const scripts = [];
+              while ((m = srcRe.exec(html))) { scripts.push(m[1]); console.log(m[1]); }
+
+              console.log("=== インラインscript内のapi/json/ajax/graphql/fetch/endpoint参照 ===");
+              const inlineRe = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
+              let im; let idx = 0;
+              while ((im = inlineRe.exec(html))) {
+                idx++;
+                const body = im[1];
+                const hits = body.match(/[^\s"\x27]*(api|\.json|ajax|graphql|endpoint)[^\s"\x27]*/gi) || [];
+                if (hits.length) console.log(`inline#${idx}:`, [...new Set(hits)].slice(0, 30).join(" | "));
+              }
+
+              console.log("=== data-* 属性でapi/json/ajax/endpointを含むもの ===");
+              const dataAttrHits = html.match(/data-[a-z-]+="[^"]*(api|\.json|ajax|endpoint)[^"]*"/gi) || [];
+              console.log([...new Set(dataAttrHits)].slice(0, 30).join("\n"));
+
+              global.__scripts = scripts;
+            })();
+          ' > /tmp/step1.log
+          cat /tmp/step1.log
+          sleep 1.5
+      - name: 主要scriptバンドルからAPI/JSON参照を抽出（該当しそうなファイルのみ）
+        run: |
+          node -e '
+            (async () => {
+              const res = await fetch("https://www.stats.govt.nz/release-calendar/", {
+                headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; nz-stats-api-recon)" },
+              });
+              const html = await res.text();
+              const srcRe = /<script[^>]+src="([^"]+)"/g;
+              let m; const scripts = [];
+              while ((m = srcRe.exec(html))) scripts.push(m[1]);
+              // themeやmain関連の自社バンドルっぽいものを優先（jquery等の汎用ライブラリは除外）
+              const candidates = scripts.filter((s) => /theme|main|calendar|app|bundle/i.test(s) && !/jquery|bootstrap|fontawesome/i.test(s));
+              console.log("candidates:", JSON.stringify(candidates, null, 2));
+              for (const src of candidates.slice(0, 5)) {
+                const url = src.startsWith("http") ? src : new URL(src, "https://www.stats.govt.nz/").toString();
+                try {
+                  const r = await fetch(url, { headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; nz-stats-api-recon)" } });
+                  console.log("---", url, "status:", r.status);
+                  if (r.ok) {
+                    const body = await r.text();
+                    console.log("length:", body.length);
+                    const hits = body.match(/[^\s"\x27(){}]*(api\/[a-z0-9_-]+|\.json|graphql|release-calendar[^\s"\x27]*)/gi) || [];
+                    console.log("hits:", [...new Set(hits)].slice(0, 40).join(" | "));
+                  }
+                } catch (e) {
+                  console.log("---", url, "error:", String(e.message || e));
+                }
+                await new Promise((r2) => setTimeout(r2, 1000));
+              }
+            })();
+          '
