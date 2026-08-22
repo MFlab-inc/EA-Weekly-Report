@@ -1,0 +1,174 @@
+# 8/24週Manus突合（しょうさん指摘2026-08-22）で判明した欠落項目の一次情報源ライブ確認用の
+# 一時ワークフロー。task #41ライブ検証と同じ方式（GitHub Actions実ネットワーク、Shift_JISデコード等）。
+# 対象: (1)東京都区部CPI公表ルール(stat.go.jp) (2)日銀講演・挨拶等カレンダー(boj.or.jp)
+# (3)Stats NZ release-calendarの再実測 (4)FRED release_id=54(PCE)・53(GDP)の実際の発表日確認
+# 起動方式: 開発ブランチへの `.manus-diff-recon-trigger` 変更pushで起動する
+# 本ワークフローは確認完了後に削除する。
+name: manus-diff-recon
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths: ['.manus-diff-recon-trigger']
+permissions:
+  contents: read
+concurrency:
+  group: manus-diff-recon
+  cancel-in-progress: false
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - name: 東京都区部CPI公表ルール確認 (stat.go.jp/data/cpi/4-1.html)
+        run: |
+          node -e '
+            (async () => {
+              const res = await fetch("https://www.stat.go.jp/data/cpi/4-1.html", {
+                headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; manus-diff-recon)" },
+              });
+              console.log("status:", res.status, "content-type:", res.headers.get("content-type"));
+              const buf = Buffer.from(await res.arrayBuffer());
+              let text;
+              try {
+                text = new TextDecoder("shift_jis").decode(buf);
+              } catch (e) {
+                text = buf.toString("utf8");
+              }
+              const plain = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+              const idx = plain.indexOf("東京都区部");
+              console.log("=== 東京都区部を含む本文抜粋（前後800文字） ===");
+              console.log(idx >= 0 ? plain.slice(Math.max(0, idx - 400), idx + 800) : "(東京都区部という文字列が見つかりませんでした)");
+              console.log("=== 19日 を含む本文抜粋（比較用、全国CPIルール） ===");
+              const idx2 = plain.indexOf("19日");
+              console.log(idx2 >= 0 ? plain.slice(Math.max(0, idx2 - 200), idx2 + 400) : "(見つかりません)");
+            })();
+          '
+          sleep 1.5
+      - name: 東京都区部CPI 最新結果ページ確認 (stat.go.jp/data/cpi/sokuhou/tsuki/index-t.html)
+        run: |
+          node -e '
+            (async () => {
+              const res = await fetch("https://www.stat.go.jp/data/cpi/sokuhou/tsuki/index-t.html", {
+                headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; manus-diff-recon)" },
+              });
+              console.log("status:", res.status);
+              const buf = Buffer.from(await res.arrayBuffer());
+              let text;
+              try { text = new TextDecoder("shift_jis").decode(buf); } catch (e) { text = buf.toString("utf8"); }
+              const plain = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+              console.log(plain.slice(0, 2000));
+            })();
+          '
+          sleep 1.5
+      - name: 日銀 公表予定カレンダー確認 (boj.or.jp/about/calendar/index.htm)
+        run: |
+          node -e '
+            (async () => {
+              const res = await fetch("https://www.boj.or.jp/about/calendar/index.htm", {
+                headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; manus-diff-recon)" },
+              });
+              console.log("status:", res.status);
+              const buf = Buffer.from(await res.arrayBuffer());
+              let text;
+              try { text = new TextDecoder("shift_jis").decode(buf); } catch (e) { text = buf.toString("utf8"); }
+              const plain = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+              console.log(plain.slice(0, 3000));
+            })();
+          '
+          sleep 1.5
+      - name: 日銀 講演挨拶等一覧ページ確認 (koen_2026)
+        run: |
+          node -e '
+            (async () => {
+              for (const url of [
+                "https://www.boj.or.jp/about/press/koen_2026/index.htm",
+                "https://www.boj.or.jp/about/r_menu_koen/index.htm",
+              ]) {
+                try {
+                  const res = await fetch(url, {
+                    headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; manus-diff-recon)" },
+                  });
+                  console.log("URL:", url, "status:", res.status);
+                  if (res.ok) {
+                    const buf = Buffer.from(await res.arrayBuffer());
+                    let text;
+                    try { text = new TextDecoder("shift_jis").decode(buf); } catch (e) { text = buf.toString("utf8"); }
+                    const plain = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+                    const idx = plain.indexOf("埼玉");
+                    console.log(idx >= 0 ? ("埼玉を含む抜粋: " + plain.slice(Math.max(0,idx-300), idx+300)) : "埼玉という文字列は見つかりませんでした。本文冒頭2000文字:");
+                    if (idx < 0) console.log(plain.slice(0, 2000));
+                  }
+                } catch (e) {
+                  console.log("URL:", url, "error:", String(e.message || e));
+                }
+                await new Promise(r => setTimeout(r, 1500));
+              }
+            })();
+          '
+      - name: Stats NZ release-calendar 再実測
+        run: |
+          node -e '
+            (async () => {
+              const robotsRes = await fetch("https://www.stats.govt.nz/robots.txt", {
+                headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; manus-diff-recon)" },
+              });
+              const robotsText = await robotsRes.text();
+              console.log("=== robots.txt status:", robotsRes.status, "===");
+              console.log(robotsText.slice(0, 1500));
+              await new Promise(r => setTimeout(r, 1500));
+              const res = await fetch("https://www.stats.govt.nz/release-calendar/", {
+                headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; manus-diff-recon)" },
+              });
+              console.log("=== release-calendar status:", res.status, "content-type:", res.headers.get("content-type"), "===");
+              if (res.ok) {
+                const text = await res.text();
+                console.log("bytes:", text.length);
+                const idx = text.toLowerCase().indexOf("retail trade");
+                console.log(idx >= 0 ? text.slice(Math.max(0, idx - 300), idx + 500).replace(/<[^>]+>/g, " ") : "(retail tradeという文字列が見つかりませんでした。本文冒頭)");
+                if (idx < 0) console.log(text.slice(0, 1500));
+              }
+            })();
+          '
+      - name: FRED release_id=53(GDP)・54(PCE) 実際の発表日確認
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          node -e '
+            (async () => {
+              const apiKey = process.env.FRED_API_KEY;
+              if (!apiKey) { console.log("FRED_API_KEY未設定のためスキップ"); return; }
+              for (const [label, releaseId] of [["GDP(53)", 53], ["Personal Income and Outlays(54)", 54]]) {
+                const url = new URL("https://api.stlouisfed.org/fred/release/dates");
+                url.searchParams.set("release_id", String(releaseId));
+                url.searchParams.set("api_key", apiKey);
+                url.searchParams.set("file_type", "json");
+                url.searchParams.set("sort_order", "asc");
+                url.searchParams.set("realtime_start", "2026-07-25");
+                url.searchParams.set("realtime_end", "2026-09-25");
+                url.searchParams.set("include_release_dates_with_no_data", "true");
+                const res = await fetch(url.toString());
+                console.log("===", label, "status:", res.status, "===");
+                if (res.ok) {
+                  const body = await res.json();
+                  console.log(JSON.stringify(body.release_dates, null, 2));
+                }
+                await new Promise(r => setTimeout(r, 1000));
+              }
+              // release自体の正式名称も確認
+              for (const releaseId of [53, 54]) {
+                const url = new URL("https://api.stlouisfed.org/fred/release");
+                url.searchParams.set("release_id", String(releaseId));
+                url.searchParams.set("api_key", apiKey);
+                url.searchParams.set("file_type", "json");
+                const res = await fetch(url.toString());
+                if (res.ok) {
+                  const body = await res.json();
+                  console.log("release_id", releaseId, "name:", body.releases?.[0]?.name);
+                }
+                await new Promise(r => setTimeout(r, 1000));
+              }
+            })();
+          '
