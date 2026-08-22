@@ -136,6 +136,29 @@ test('ABS(au_abs): 民間設備投資(8/27)が同一fixtureから拾える（Man
   assert.ok(retail, 'AU retail_salesが見つからない（capex追加により誤って消えていないか確認）');
 });
 
+// task #66/#70（しょうさん指摘・指示、Manus版8/24週突合＋NZ Stats構造的ブロッカー再調査）の
+// 回帰テスト: calendar-export ICSエンドポイントから小売売上高（Retail trade survey）が
+// 拾えることを確認する。NZは南半球のためこの時期はNZST（UTC+12、非DST）
+test('Stats NZ(nz_stats_calendar): 小売売上高(8/24)が実fixtureと日時・重要度・名称とも完全一致', async () => {
+  const { checkWeeklyScrapeSource } = await import('../scripts/checkers/harness.mjs');
+  const icsBody = readFixture('nz_stats_calendar', 'calendar_export_202608.ics');
+  const fetchImpl = fixtureFetch({ 'calendar-export': icsBody });
+  const source = sourcesConfig.sources.find((s) => s.id === 'nz_stats_calendar');
+  const WEEK_20260824 = { targetWeekStart: '2026-08-24', targetWeekEnd: '2026-08-28', dates: [] };
+
+  const r = await checkWeeklyScrapeSource(source, WEEK_20260824, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
+  assert.equal(r.ok, true);
+  const retail = r.thisWeek.find((c) => c.kind === 'retail_sales');
+  assert.ok(retail, 'NZ retail_salesが見つからない');
+  assert.equal(retail.date, '2026-08-24');
+  assert.equal(retail.time, '07:45'); // 10:45 NZST(UTC+12、8月は非DST) → JST(UTC+9)
+  assert.equal(retail.displayName, '小売売上高');
+  assert.equal(retail.importance, 3);
+
+  // 同一fixture内の無関係なリリース（運輸統計等）は誤って拾われないことも確認する
+  assert.equal(r.thisWeek.filter((c) => c.kind === 'retail_sales').length, 1);
+});
+
 test('FRED(us_bls_fred): CPI/PPI/雇用統計/JOLTSの4件が既刊と日時・重要度・名称とも完全一致', async () => {
   const { checkFredSource } = await import('../scripts/checkers/harness.mjs');
   const source = sourcesConfig.sources.find((s) => s.id === 'us_bls_fred');

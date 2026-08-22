@@ -378,6 +378,32 @@
       "notes": "四半期リリース『Labour market statistics: {月} {年} quarter』（config/event-names.json照合済み）。四半期末から約5週間後に公表。【2026-08-14実測で判明】release-calendar/はSPA構造で静的取得不可（旧記録のとおり）。open data API（api.stats.govt.nz）は2024-08-30に閉鎖済みと判明し(a)API系統は不可。年次PDFカレンダーも(b)で探索したが発見できなかった。一方、各四半期の情報公開ページ自体（例: labour-market-statistics-june-2026-quarter）が本文に次回リリース予定日を埋め込み公表している（Stats NZ自身の公式コンテンツ）ことを発見し、これを抽出対象とする方式へ変更した。extractors/nz-statsnz.jsで抽出し、前四半期ページ（2026年3月期・ground truth検証用に別途取得）が『June 2026 quarter will be released on 5 August 2026』を埋め込んでいることを確認、ground truthのnz_labour_q2_20260805（2026年6月期）と完全一致した。現在のtargets（2026年6月期ページ）は次サイクルの2026年9月期＝2026-11-04を正しく抽出できることも確認済み。ページURLの四半期ごとの手動更新が必要（next_release_maintenance参照）"
     },
     {
+      "id": "nz_stats_calendar",
+      "name_ja": "ニュージーランド統計局（Stats NZ・Release calendar ICS書き出し）",
+      "status": "active",
+      "country": "NZ",
+      "kinds": [
+        "retail_sales"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "calendar_export_base_url": "https://www.stats.govt.nz/release-calendar/calendar-export",
+        "targets": [
+          { "label": "calendar_export_202608", "url": "https://www.stats.govt.nz/release-calendar/calendar-export?month=8&year=2026", "crawl_delay_seconds": 10 }
+        ]
+      },
+      "announce_time_by_kind": {
+        "retail_sales": {
+          "tz": "Pacific/Auckland",
+          "note": "各VEVENTのDTSTARTが現地時刻を個別に持つためconfig固定のlocal_timeは不要（access.provides_exact_time:true）。実測値10:45（jp_boj_speeches・us_frb_speechesと同型のprovides_exact_timeパターン）"
+        }
+      },
+      "notes": "2026-08-22追加（task #66/#70、しょうさん指摘・指示: NZ小売売上高がStats NZの構造的ブロッカーで長らく未捕捉だった件の再調査で新規発見）。release-calendarページ自体は依然としてJS描画のため生HTMLからは内容取得不可（task #15/#66既知のブロッカーは変わらず）だが、同ページが呼び出すcalendar-exportエンドポイント（www.stats.govt.nz/release-calendar/calendar-export?month={M}&year={Y}）はtext/calendarのICSファイルを直接返すことをnz-stats-api-recon一時ワークフローで発見した（script bundleのapp.jsに埋め込まれた文字列参照から特定）。旧・廃止済みのopen data API（api.stats.govt.nz、2024-08-30閉鎖、nz_statsnzのnotes参照）とは全くの別物。実データで『Retail trade survey: June 2026 quarter』（DTSTART 2026-08-24T10:45 Pacific/Auckland）を直接確認済み（VEVENTのSUMMARYフィールド）。robots.txtはこのエンドポイントを明示的にブロックしていない（Disallow: /admin, /Securityのみ）ことも確認済み。1つのICSファイルにStats NZの全リリース種別（運輸統計・酒類統計・雇用関連データ等）が混在するため、event-names.jsonのmatchキーワード『retail trade survey』で小売売上高のみを絞り込む。既存nz_statsnz（雇用統計、next_release_pointer方式の四半期ページ手動メンテナンス）・nz_stats_cpi/nz_stats_gdp（annual_schedule_config、WebSearchベースの年次確定日程）とは独立した別ソースとして追加した（既存3ソースは現状動作しているため変更していない）。将来的にこのICSエンドポイントで既存3ソースも統一・堅牢化できる可能性があるが、本タスクのスコープ外として別途検討する"
+    },
+    {
       "id": "nz_stats_cpi",
       "name_ja": "ニュージーランド統計局（Stats NZ・CPI）",
       "status": "draft_schedule",
