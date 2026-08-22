@@ -765,7 +765,8 @@
         "cpi",
         "employment_situation",
         "gdp",
-        "retail_sales"
+        "retail_sales",
+        "capex"
       ],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
@@ -799,9 +800,14 @@
           "local_time": "11:30",
           "tz": "Australia/Sydney",
           "note": "2026-08-15追加（task #50/51）。WebSearchで確認: ABSは従来の月次『Retail Trade』公表を2025-07-31付けで終了し（Retail Trade Replacement Program）、『Monthly Household Spending Indicator』（MHSI）へ統合済み。実fixtureのutcInstant（2026-08-04T01:30:00Z・2026-08-27T01:30:00Z＝いずれも11:30 Sydney）が他ABSリリースと同一の標準枠であることを確認済み"
+        },
+        "capex": {
+          "local_time": "11:30",
+          "tz": "Australia/Sydney",
+          "note": "2026-08-22追加（task #69、しょうさん指摘: Manus版8/24週突合で発見した未追跡リリース）。実fixtureのutcInstant（2026-08-27T01:30:00Z＝11:30 Sydney）が他ABSリリースと同一の標準枠であることを確認済み"
         }
       },
-      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: future-releases-calendarは元々ABSの全リリースを汎用抽出しており（抽出コード変更不要）、trade_balance以外はkinds未登録だったため取りこぼしていた。実fixtureで実在確認済みのCPI・雇用統計（Labour Force）をkindsへ追加。雇用統計は8/17週（2026-08-20発表）でまさに欠損していた事例。時刻は貿易収支と同じ11:30 Sydney（実fixtureのutcInstantでも01:30Z=11:30 AESTと確認済み） | 2026-08-15追記（task #41-4、しょうさん承認済み国×kindマトリクス）: GDP（Australian National Accounts: National Income, Expenditure and Product）を追加。future_releases_calendarは元々ABSの全リリースを汎用抽出する設計のため、抽出コード変更不要でkinds追加のみで対応可能（trade_balance/CPI追加時と同じ理由）。2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済みだが、hardcodeはしていない（本ソースはweekly_scrape型のため、live fetch時にfuture_releases_calendarの実ページ内容が対象週分を含んでいれば自動的に検出される。ローリング6ヶ月窓のため、対象週の6ヶ月以上先の発表分はresidual監視の対象外）。時刻11:30 Sydneyは他ABSリリースと同一の標準枠として複数ソースで確認 | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: future_releases_calendarを実ネットワークで直接取得し25件の行を抽出（抽出コード自体は正常動作を再確認。既存のCPI『Consumer Price Index, Australia @ 2026-08-26』・雇用統計『Labour Force, Australia @ 2026-08-20』は引き続き正しく検出）。ただし2026-08-15時点の実ページの公表ホライズンは2026-08-31までで、次回GDP発表（2026-09-02、予備日程）はこの窓の外のため『national accounts』を含む行はまだ出現していない（想定どおりのタイミング依存であり、抽出機構の欠陥ではない）。9月に入り対象週が近づいた時点で改めてライブ確認が必要"
+      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: future-releases-calendarは元々ABSの全リリースを汎用抽出しており（抽出コード変更不要）、trade_balance以外はkinds未登録だったため取りこぼしていた。実fixtureで実在確認済みのCPI・雇用統計（Labour Force）をkindsへ追加。雇用統計は8/17週（2026-08-20発表）でまさに欠損していた事例。時刻は貿易収支と同じ11:30 Sydney（実fixtureのutcInstantでも01:30Z=11:30 AESTと確認済み） | 2026-08-15追記（task #41-4、しょうさん承認済み国×kindマトリクス）: GDP（Australian National Accounts: National Income, Expenditure and Product）を追加。future_releases_calendarは元々ABSの全リリースを汎用抽出する設計のため、抽出コード変更不要でkinds追加のみで対応可能（trade_balance/CPI追加時と同じ理由）。2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済みだが、hardcodeはしていない（本ソースはweekly_scrape型のため、live fetch時にfuture_releases_calendarの実ページ内容が対象週分を含んでいれば自動的に検出される。ローリング6ヶ月窓のため、対象週の6ヶ月以上先の発表分はresidual監視の対象外）。時刻11:30 Sydneyは他ABSリリースと同一の標準枠として複数ソースで確認 | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: future_releases_calendarを実ネットワークで直接取得し25件の行を抽出（抽出コード自体は正常動作を再確認。既存のCPI『Consumer Price Index, Australia @ 2026-08-26』・雇用統計『Labour Force, Australia @ 2026-08-20』は引き続き正しく検出）。ただし2026-08-15時点の実ページの公表ホライズンは2026-08-31までで、次回GDP発表（2026-09-02、予備日程）はこの窓の外のため『national accounts』を含む行はまだ出現していない（想定どおりのタイミング依存であり、抽出機構の欠陥ではない）。9月に入り対象週が近づいた時点で改めてライブ確認が必要 | 2026-08-22追記（task #69、しょうさん指摘、Manus版8/24週突合）: Private New Capital Expenditure and Expected Expenditure, Australia（設備投資）を追加。既存のtest fixture（future_releases_calendar.html）に元々『Private New Capital Expenditure and Expected Expenditure, Australia』『June 2026』『2026-08-27T01:30:00Z』の実在行が含まれていたことを確認済み（future-releases-calendarの汎用抽出設計により抽出コード変更不要でkinds追加のみで対応可能。trade_balance/CPI/GDP追加時と同じパターン）。豪州の設備投資はGDP先行指標としてAUD系ペアに影響するため、Manus版と同じ★★（importance_by_kind既定値どおり）で掲載する"
     },
     {
       "id": "us_ism",

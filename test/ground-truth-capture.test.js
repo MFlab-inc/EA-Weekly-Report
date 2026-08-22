@@ -112,6 +112,30 @@ test('ABS(au_abs): CPI・雇用統計も同一fixtureから拾える（8/17週�
   assert.equal(cpi.displayName, '消費者物価指数（CPI）');
 });
 
+// task #69（しょうさん指摘、Manus版8/24週突合）の回帰テスト: 民間設備投資（Private New Capital
+// Expenditure and Expected Expenditure, Australia）がkinds/event-names.json追加により
+// 同一fixtureから拾えることを確認する（8/24週Manus突合で発見した未追跡リリース）
+test('ABS(au_abs): 民間設備投資(8/27)が同一fixtureから拾える（Manus版8/24週突合の未追跡事例の回帰テスト）', async () => {
+  const { checkWeeklyScrapeSource } = await import('../scripts/checkers/harness.mjs');
+  const absHtml = readFixture('au_abs', 'future_releases_calendar.html');
+  const fetchImpl = fixtureFetch({ 'future-releases-calendar': absHtml });
+  const source = sourcesConfig.sources.find((s) => s.id === 'au_abs');
+  const WEEK_20260824 = { targetWeekStart: '2026-08-24', targetWeekEnd: '2026-08-28', dates: [] };
+
+  const r = await checkWeeklyScrapeSource(source, WEEK_20260824, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
+  assert.equal(r.ok, true);
+  const capex = r.thisWeek.find((c) => c.kind === 'capex');
+  assert.ok(capex, 'AU capexが見つからない');
+  assert.equal(capex.date, '2026-08-27');
+  assert.equal(capex.time, '10:30'); // 11:30 Sydney(AEST, UTC+10) → JST
+  assert.equal(capex.displayName, '民間設備投資');
+  assert.equal(capex.importance, 2); // Manus版も★★掲載
+
+  // 同一週の豪小売売上高（retail_sales）とは別イベントとして共存する（誤って同一視されていないことの確認）
+  const retail = r.thisWeek.find((c) => c.kind === 'retail_sales');
+  assert.ok(retail, 'AU retail_salesが見つからない（capex追加により誤って消えていないか確認）');
+});
+
 test('FRED(us_bls_fred): CPI/PPI/雇用統計/JOLTSの4件が既刊と日時・重要度・名称とも完全一致', async () => {
   const { checkFredSource } = await import('../scripts/checkers/harness.mjs');
   const source = sourcesConfig.sources.find((s) => s.id === 'us_bls_fred');
