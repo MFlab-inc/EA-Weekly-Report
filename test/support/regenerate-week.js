@@ -29,6 +29,8 @@ const FRED_FIXTURES = {
   // release_id=53（US GDP、2026-08-15追加）: ライブfixture未取得のため、既刊2週の対象外で
   // あることのみ表すスキーマ準拠の空応答スタブ（FRED release/dates APIの実レスポンス構造）
   53: JSON.stringify({ release_dates: [] }),
+  // release_id=54（US PCE、2026-08-22追加）: 同上の理由でスキーマ準拠の空応答スタブ
+  54: JSON.stringify({ release_dates: [] }),
 };
 
 // 全対象ソースを1つのfetchImplで賄うマスターモック。annual_schedule_config型（au_rba・jp_boj・us_ism・

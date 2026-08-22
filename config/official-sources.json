@@ -14,7 +14,8 @@
         "ppi",
         "employment_situation",
         "employment_indicator",
-        "gdp"
+        "gdp",
+        "pce"
       ],
       "type": "date_api_fred",
       "recurring_check_refs": [
@@ -50,6 +51,11 @@
             "release_id": 53,
             "kind": "gdp",
             "note": "2026-08-15追加（しょうさん指摘: US GDPが未登録だった）。release_id=53はFRED『Gross Domestic Product』（BEA）。WebSearch経由での確認（fred.stlouisfed.org/release?rid=53等の複数独立ページで確認） | 2026-08-15ライブ検証PASS（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク・実FRED_API_KEY経由）: 実APIレスポンスで2026年分8件の実在release_dates（1/22・2/20・3/13・4/9・4/30・5/28・6/25・7/30）を確認。release_id=53が有効かつ正しいリリースを指していることを確認済み"
+          },
+          {
+            "release_id": 54,
+            "kind": "pce",
+            "note": "2026-08-22追加（しょうさん指摘、Manus版8/24週突合: 8/26の米PCEデフレータが未捕捉だった）。release_id=54はFRED『Personal Income and Outlays』（BEA）。WebSearch経由での確認（fred.stlouisfed.org/release?rid=54等の複数独立ページで確認）。gdp（release_id=53）とは別リリース。ライブ検証はmanus-diff-recon一時ワークフロー（実FRED_API_KEY経由）で実施予定"
           }
         ]
       },
@@ -72,6 +78,10 @@
           "note": "JOLTS。CPI/PPI/雇用統計本体（08:30 ET）とは異なる時刻（既刊実績23:00 JST=10:00 ETから逆算）"
         },
         "gdp": {
+          "local_time": "08:30",
+          "tz": "America/New_York"
+        },
+        "pce": {
           "local_time": "08:30",
           "tz": "America/New_York"
         }
@@ -1180,21 +1190,34 @@
           "tz": "Asia/Tokyo"
         }
       },
-      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 全国消費者物価指数（総務省統計局）。公表ルールは公式ページ本文（stat.go.jp/data/cpi/4-1.html）『全国の前月分指数を、原則として毎月19日を含む週の金曜日の午前8時30分に公表』。schedule[]はこの固定ルールから2026年通年13回分を算出した（Claude Code側で算出式の自己整合性を検算済み）。2025年基準への改定が2027年2月分から予定されている（総務省2026年発表、soumu.go.jp press release 01000329）が、2026年中の名称・ルールには影響しない | 2026-08-15ライブ検証PASS（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク・Shift_JISデコード対応）: 4-1.html本文の公表ルール記載文言を実ページで直接確認（当初WebSearch確認どおり一致）。さらにindex.htmlの『更新情報』欄で『令和8年7月24日 2020年基準 消費者物価指数 全国 2026年（令和8年）6月分』の実績記載を直接確認し、算出式（19日を含む週の金曜08:30）による2026-07-24との一致を再確認した（他12回は算出のみ、個別の実績照合はしていない）",
+      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 全国消費者物価指数（総務省統計局）。公表ルールは公式ページ本文（stat.go.jp/data/cpi/4-1.html）『全国の前月分指数を、原則として毎月19日を含む週の金曜日の午前8時30分に公表』。schedule[]はこの固定ルールから2026年通年13回分を算出した（Claude Code側で算出式の自己整合性を検算済み）。2025年基準への改定が2027年2月分から予定されている（総務省2026年発表、soumu.go.jp press release 01000329）が、2026年中の名称・ルールには影響しない | 2026-08-15ライブ検証PASS（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク・Shift_JISデコード対応）: 4-1.html本文の公表ルール記載文言を実ページで直接確認（当初WebSearch確認どおり一致）。さらにindex.htmlの『更新情報』欄で『令和8年7月24日 2020年基準 消費者物価指数 全国 2026年（令和8年）6月分』の実績記載を直接確認し、算出式（19日を含む週の金曜08:30）による2026-07-24との一致を再確認した（他12回は算出のみ、個別の実績照合はしていない） | 2026-08-22（task #65、しょうさん指摘、Manus版8/24週突合）: 東京都区部消費者物価指数（中旬速報値、subtype:tokyo）を追加。同じ4-1.html本文に『東京都区部の当月分指数の中旬速報値を、原則として毎月26日を含む週の金曜日の午前8時30分に公表しています』と明記されており（manus-diff-recon一時ワークフローで再ライブ確認済み）、全国分（前月分・19日を含む週）とは別ルール・別リリース。当月分データを当月中に発表する点に注意。算出式は実データ2点（stat.go.jp「東京都区部速報」ページの実績表示2026-07-31＝2026年7月分中旬速報値、およびManus版が指摘する2026-08-28＝2026年8月分）といずれも一致することを検算済み",
       "schedule": [
-        { "date": "2026-01-23", "kind": "cpi", "note": "2025年12月分。算出のみ（19日を含む週の金曜08:30ルール）" },
-        { "date": "2026-02-20", "kind": "cpi", "note": "2026年1月分。算出のみ" },
-        { "date": "2026-03-20", "kind": "cpi", "note": "2026年2月分。算出のみ" },
-        { "date": "2026-04-24", "kind": "cpi", "note": "2026年3月分。算出のみ" },
-        { "date": "2026-05-22", "kind": "cpi", "note": "2026年4月分。算出のみ" },
-        { "date": "2026-06-19", "kind": "cpi", "note": "2026年5月分。算出のみ" },
-        { "date": "2026-07-24", "kind": "cpi", "note": "2026年6月分。当初NHK・money-pro.net等のWebSearchで確認、2026-08-15ライブ検証でstat.go.jp公式ページ（更新情報欄）の実績記載からも直接再確認済み" },
-        { "date": "2026-08-21", "kind": "cpi", "note": "2026年7月分。算出のみ。8/17週の欠損事例（しょうさん指摘の『日本の全国CPI』）に該当" },
-        { "date": "2026-09-18", "kind": "cpi", "note": "2026年8月分。算出のみ" },
-        { "date": "2026-10-23", "kind": "cpi", "note": "2026年9月分。算出のみ" },
-        { "date": "2026-11-20", "kind": "cpi", "note": "2026年10月分。算出のみ" },
-        { "date": "2026-12-18", "kind": "cpi", "note": "2026年11月分。算出のみ" },
-        { "date": "2027-01-22", "kind": "cpi", "note": "2026年12月分。算出のみ" }
+        { "date": "2026-01-23", "kind": "cpi", "subtype": "national", "note": "2025年12月分。算出のみ（19日を含む週の金曜08:30ルール）" },
+        { "date": "2026-02-20", "kind": "cpi", "subtype": "national", "note": "2026年1月分。算出のみ" },
+        { "date": "2026-03-20", "kind": "cpi", "subtype": "national", "note": "2026年2月分。算出のみ" },
+        { "date": "2026-04-24", "kind": "cpi", "subtype": "national", "note": "2026年3月分。算出のみ" },
+        { "date": "2026-05-22", "kind": "cpi", "subtype": "national", "note": "2026年4月分。算出のみ" },
+        { "date": "2026-06-19", "kind": "cpi", "subtype": "national", "note": "2026年5月分。算出のみ" },
+        { "date": "2026-07-24", "kind": "cpi", "subtype": "national", "note": "2026年6月分。当初NHK・money-pro.net等のWebSearchで確認、2026-08-15ライブ検証でstat.go.jp公式ページ（更新情報欄）の実績記載からも直接再確認済み" },
+        { "date": "2026-08-21", "kind": "cpi", "subtype": "national", "note": "2026年7月分。算出のみ。8/17週の欠損事例（しょうさん指摘の『日本の全国CPI』）に該当" },
+        { "date": "2026-09-18", "kind": "cpi", "subtype": "national", "note": "2026年8月分。算出のみ" },
+        { "date": "2026-10-23", "kind": "cpi", "subtype": "national", "note": "2026年9月分。算出のみ" },
+        { "date": "2026-11-20", "kind": "cpi", "subtype": "national", "note": "2026年10月分。算出のみ" },
+        { "date": "2026-12-18", "kind": "cpi", "subtype": "national", "note": "2026年11月分。算出のみ" },
+        { "date": "2027-01-22", "kind": "cpi", "subtype": "national", "note": "2026年12月分。算出のみ" },
+        { "date": "2026-01-30", "kind": "cpi", "subtype": "tokyo", "note": "2026年1月分（中旬速報値、当月発表）。算出のみ（26日を含む週の金曜08:30ルール）" },
+        { "date": "2026-02-27", "kind": "cpi", "subtype": "tokyo", "note": "2026年2月分。算出のみ" },
+        { "date": "2026-03-27", "kind": "cpi", "subtype": "tokyo", "note": "2026年3月分。算出のみ" },
+        { "date": "2026-05-01", "kind": "cpi", "subtype": "tokyo", "note": "2026年4月分。26日が日曜のため週の金曜は翌月に越境（4/26〜5/2の週の金曜=5/1）。算出のみ" },
+        { "date": "2026-05-29", "kind": "cpi", "subtype": "tokyo", "note": "2026年5月分。算出のみ" },
+        { "date": "2026-06-26", "kind": "cpi", "subtype": "tokyo", "note": "2026年6月分。算出のみ" },
+        { "date": "2026-07-31", "kind": "cpi", "subtype": "tokyo", "note": "2026年7月分。2026-08-22ライブ検証PASS（manus-diff-recon一時ワークフロー）: stat.go.jp「東京都区部速報」ページ（sokuhou/tsuki/index-t.html）の実績表示『2020年基準 消費者物価指数 東京都区部 2026年（令和8年）7月分（中旬速報値）2026年7月31日公表』を直接確認、算出式と完全一致" },
+        { "date": "2026-08-28", "kind": "cpi", "subtype": "tokyo", "note": "2026年8月分。8/24週Manus突合（task #65）の欠損事例（しょうさん指摘の『東京都区部消費者物価指数』）に該当。Manus版の指摘日付2026-08-28と算出式が完全一致" },
+        { "date": "2026-09-25", "kind": "cpi", "subtype": "tokyo", "note": "2026年9月分。26日が土曜のため週の金曜は前倒し（9/20〜9/26の週の金曜=9/25）。算出のみ" },
+        { "date": "2026-10-30", "kind": "cpi", "subtype": "tokyo", "note": "2026年10月分。算出のみ" },
+        { "date": "2026-11-27", "kind": "cpi", "subtype": "tokyo", "note": "2026年11月分。算出のみ" },
+        { "date": "2026-12-25", "kind": "cpi", "subtype": "tokyo", "note": "2026年12月分。26日が土曜のため週の金曜は前倒し（12/20〜12/26の週の金曜=12/25）。算出のみ" },
+        { "date": "2027-01-29", "kind": "cpi", "subtype": "tokyo", "note": "2027年1月分。算出のみ" }
       ],
       "residual_monitor_weeks": 4
     },

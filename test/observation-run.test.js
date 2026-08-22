@@ -275,6 +275,27 @@ test('annualEntryToCandidate: 全国消費者物価指数（JP cpi）が実confi
   assert.equal(c.date, '2026-08-21');
 });
 
+// task #65（しょうさん指摘、Manus版8/24週突合）の回帰テスト: 全国CPIと同一kind(cpi)・別subtype(tokyo)の
+// 東京都区部消費者物価指数（中旬速報値）が正しく名称解決できることを確認する
+test('annualEntryToCandidate: 東京都区部消費者物価指数（JP cpi subtype:tokyo）が実configから名称解決できる（Manus版8/24週突合の欠損事例の回帰テスト）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'jp_stat_cpi');
+  const importanceRules = { importance_by_kind: { cpi: 3 } };
+  const entry = source.schedule.find((e) => e.kind === 'cpi' && e.subtype === 'tokyo' && e.date === '2026-08-28');
+  assert.ok(entry, '2026-08-28の東京都区部CPI scheduleエントリが見つからない（2026年8月分）');
+  const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
+  assert.equal(c.displayName, '東京都区部消費者物価指数（中旬速報値）');
+  assert.equal(c.time, '08:30');
+  assert.equal(c.date, '2026-08-28');
+  assert.equal(c.importance, 3);
+
+  // 同一週内で全国CPIとは別イベントとして共存できる（subtypeで正しく区別されている）ことも確認する
+  const nationalEntry = source.schedule.find((e) => e.kind === 'cpi' && e.subtype === 'national' && e.date === '2026-08-21');
+  assert.ok(nationalEntry, '2026-08-21の全国CPI scheduleエントリが見つからない');
+  const nationalC = annualEntryToCandidate(nationalEntry, source, importanceRules, realEventNames);
+  assert.equal(nationalC.displayName, '全国消費者物価指数（CPI）');
+});
+
 test('annualEntryToCandidate: GDP【速報値】（JP gdp）が実configから名称解決できる（8/17週の欠損事例の回帰テスト）', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
   const source = realSourcesConfig.sources.find((s) => s.id === 'jp_esri_gdp');
