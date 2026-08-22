@@ -1,1 +1,2 @@
 trigger: 2026-08-22 8/24週Manus突合の一次情報源ライブ確認（東京都区部CPI・日銀講演・NZ Stats・FRED PCE)
+retrigger: 2026-08-22 日銀講演ページのUTF-8デコード修正版で再実行
