@@ -31,6 +31,7 @@ import { extractMofAuctions } from './extractors/mof.js';
 import { extractUsTreasuryAuctions } from './extractors/us-treasury.js';
 import { extractFrbSpeeches } from './extractors/frb-speeches.js';
 import { extractSnbEvents } from './extractors/snb-policy-rate.js';
+import { extractBojSpeeches } from './extractors/boj-speeches.js';
 
 export const USER_AGENT = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; checker-harness)';
 
@@ -154,6 +155,19 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     primaryLabel: 'event_schedule',
     parseFn: extractSnbEvents,
     toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime, kind: r.kind }),
+  },
+  // 日銀「公表予定」ページ: 毎週金曜更新のローリング表（向こう1ヶ月強）から【挨拶】【講演】形式の
+  // 行のみをofficial_speechとして抽出する（2026-08-22、task #64、しょうさん指摘のManus版8/24週突合）。
+  // row.kind='official_speech'は抽出側で確定済み。speakerLastName（例:「氷見野」）は
+  // resolveCandidateEvent経由で候補へ引き継がれ、resolveRuleGeneratedName()が
+  // naming.resolveOfficialBySurname（officials.jsonのfull_name部分一致）で照合を試みる。
+  // FRBと異なりBOJは副総裁/審議委員/理事等で役職が話者ごとに異なるため、build-ledger.jsの
+  // resolveRuleGeneratedNameは一致した官職本人のrole_ja（officials.json側）を優先して使う設計とした
+  // （OFFICIAL_SPEECH_ROLE_BY_COUNTRYのような国単位の固定役職ラベルはJPには設定しない）
+  jp_boj_speeches: {
+    primaryLabel: 'calendar',
+    parseFn: extractBojSpeeches,
+    toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime, kind: 'official_speech', speakerLastName: r.speakerLastName }),
   },
 };
 

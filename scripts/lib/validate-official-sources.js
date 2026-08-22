@@ -45,8 +45,16 @@ function validateOfficialSources(config) {
       if (!hasTime && !isAnnualOrPending) {
         errors.push(`${tag} kind="${kind}" のannounce_time_by_kindが未設定`);
       }
-      if (hasTime && (!hasTime.local_time || !hasTime.tz)) {
-        errors.push(`${tag} kind="${kind}" のannounce_time_by_kindにlocal_time/tzが必要`);
+      // provides_exact_time:true のソース（例: jp_boj_speeches）はtoRow側が行ごとに個別のlocalTimeを
+      // 供給するため、config固定値のlocal_timeは不要（tzのみ必須。ゾーン変換に使うため）。
+      // 2026-08-22追加（task #64）: 従来はhasTime設定時にlocal_time/tzを常に両方必須としていたが、
+      // us_frb_speeches（utcInstant・announce_time_by_kind自体が空）とは異なる「tzのみ必要」な
+      // 中間パターンが新たに生じたため区別した
+      if (hasTime) {
+        const localTimeRequired = s.access?.provides_exact_time !== true;
+        if (!hasTime.tz || (localTimeRequired && !hasTime.local_time)) {
+          errors.push(`${tag} kind="${kind}" のannounce_time_by_kindにlocal_time/tzが必要`);
+        }
       }
     }
   }

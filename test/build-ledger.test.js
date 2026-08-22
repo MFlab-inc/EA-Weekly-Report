@@ -109,6 +109,21 @@ test('resolveRuleGeneratedName: official_speech（US）はspeakerLastNameの照�
   assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'US', speakerLastName: null }, officials), 'FRB理事の発言');
 });
 
+// task #64（しょうさん指摘、Manus版8/24週突合）の回帰テスト: jp_boj_speeches新設に伴い、
+// BOJの話者はofficials.json登録者本人のrole_ja（例:「日銀副総裁」）を使う設計へ変更した
+// （US=OFFICIAL_SPEECH_ROLE_BY_COUNTRYの国単位固定ラベルとは異なる経路）
+test('resolveRuleGeneratedName: official_speech（JP・officials.json登録済みの氷見野副総裁）は本人のrole_jaで解決する', () => {
+  assert.equal(
+    resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: '氷見野' }, officials),
+    '氷見野日銀副総裁の発言'
+  );
+});
+
+test('resolveRuleGeneratedName: official_speech（JP・未登録話者）はOFFICIAL_SPEECH_ROLE_BY_COUNTRYにJPが無いためnullを返す（FALLBACK_KIND_LABEL「要人発言」へ）', () => {
+  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: '田村' }, officials), null);
+  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: null }, officials), null);
+});
+
 test('resolveRuleGeneratedName: BANK_ABBR_BY_COUNTRY未収録の国はnullを返す', () => {
   assert.equal(resolveRuleGeneratedName({ kind: 'policy_rate', country: 'ZZ' }, officials), null);
 });

@@ -44,7 +44,12 @@ function issueYearMonthJaFromDate(dateStr) {
 }
 
 // official_speech（要人発言）の役職ラベル。country単位で1つに決め打ちできる情報源のみ登録する
-// （2026-08-15時点、情報源はus_frb_speeches[FRB理事講演RSS]のみ）
+// （2026-08-15時点、情報源はus_frb_speeches[FRB理事講演RSS]のみ。全FRB理事が同一の日本語役職
+// 表記「FRB理事」で通るため国単位定数が成立する）。JPは対象外（2026-08-22、task #64・
+// jp_boj_speeches新設）: BOJの話者は副総裁・審議委員・理事など役職が話者ごとに異なるため、
+// 国単位の固定ラベルでは成立しない。officials.jsonで話者本人が特定できた場合はその人物の
+// role_ja（例:「日銀副総裁」）を直接使う設計とした（下記resolveRuleGeneratedName参照）。
+// 未登録の話者（田村・高田・神山等）はofficial=null扱いとなりFALLBACK_KIND_LABEL『要人発言』へ
 const OFFICIAL_SPEECH_ROLE_BY_COUNTRY = {
   US: 'FRB理事',
 };
@@ -75,8 +80,12 @@ const MINUTES_SUMMARY_NAME_BY_COUNTRY = {
 // - bond_auction: candidate.tenorJa（mof.js/us-treasury.jsが抽出）が無ければ対象外。
 //   country=JP/USのみテンプレートが定義されている（SPEC §4.2）
 // - official_speech: candidate.speakerLastNameをofficials.jsonと照合（naming.resolveOfficialBySurname）。
-//   不一致（未登録・未指定とも）でもnaming.speechNameがverified:falseと同じ扱いで役職のみを返す。
-//   2026-08-15時点officials.jsonにFRB理事個人（議長以外）は未登録（task #17）のため実運用では
+//   一致し verified:true であれば、その人物自身のrole_ja（officials.json側）を使う（2026-08-22、
+//   task #64修正: BOJは副総裁・審議委員・理事等で話者ごとに役職が異なるため、国単位の固定ラベル
+//   [OFFICIAL_SPEECH_ROLE_BY_COUNTRY]では表現できない。US[FRB理事で統一]は元々この分岐に来ても
+//   同じ値になるため後方互換）。不一致（未登録・未指定・未verified）はOFFICIAL_SPEECH_ROLE_BY_COUNTRY
+//   の国単位フォールバックへ（無ければnull→FALLBACK_KIND_LABEL『要人発言』）。
+//   2026-08-15時点officials.jsonにFRB理事個人（議長以外）は未登録（task #17）のため米国は実運用では
 //   常に役職のみになる
 // - testimony: manual-events.json由来の候補は常にcandidate.displayNameを持つため、
 //   本関数を経由する前にcandidateToLedgerEvent側で優先採用される（対象外）
@@ -104,9 +113,12 @@ function resolveRuleGeneratedName(candidate, officials) {
     return null;
   }
   if (candidate.kind === 'official_speech') {
+    const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName);
+    if (official && official.verified && official.role_ja) {
+      return naming.speechName(official, official.role_ja);
+    }
     const roleJa = OFFICIAL_SPEECH_ROLE_BY_COUNTRY[candidate.country];
     if (!roleJa) return null;
-    const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName);
     return naming.speechName(official, roleJa);
   }
   return null;

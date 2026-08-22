@@ -43,9 +43,13 @@ test('実config — minutes_summaryソース登録国（JP=BOJ専用テンプレ
   assert.deepEqual(missing, [], `MINUTES_SUMMARY_NAME_BY_COUNTRYに未登録の国がある（議事要旨が汎用ラベルへ劣化する）: ${missing}`);
 });
 
-test('実config — official_speechソース登録国が全てbuild-ledger.OFFICIAL_SPEECH_ROLE_BY_COUNTRYに登録されている', () => {
+// JPは除外（2026-08-22、task #64・jp_boj_speeches新設）: BOJは副総裁・審議委員・理事等で話者ごとに
+// 役職が異なるため、US（FRB理事で統一）のような国単位の固定ラベルが成立しない。resolveRuleGeneratedName
+// はofficials.jsonで話者本人が特定できればその人物自身のrole_jaを使う設計のため、国単位辞書
+// （OFFICIAL_SPEECH_ROLE_BY_COUNTRY）への登録は不要（未登録話者はFALLBACK_KIND_LABEL『要人発言』へ）
+test('実config — official_speechソース登録国（JP=話者個別role_ja方式のため除く）が全てbuild-ledger.OFFICIAL_SPEECH_ROLE_BY_COUNTRYに登録されている', () => {
   const { OFFICIAL_SPEECH_ROLE_BY_COUNTRY } = require('../scripts/lib/build-ledger');
   const required = countriesWithKind(sourcesConfig, 'official_speech');
-  const missing = missingCountriesInDict(required, OFFICIAL_SPEECH_ROLE_BY_COUNTRY);
+  const missing = missingCountriesInDict(required, OFFICIAL_SPEECH_ROLE_BY_COUNTRY, { excludeCountries: ['JP'] });
   assert.deepEqual(missing, [], `OFFICIAL_SPEECH_ROLE_BY_COUNTRYに未登録の国がある（要人発言が汎用ラベルへ劣化する）: ${missing}`);
 });

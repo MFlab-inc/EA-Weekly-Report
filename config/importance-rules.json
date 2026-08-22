@@ -43,7 +43,8 @@
     { "kind": "minutes_summary", "country": "AU", "importance": 3, "reason": "2026-08-22しょうさん指摘（Manus版8/24週突合）: RBA議事要旨（Minutes of the Monetary Policy Meeting）はManus版★★★・自動版★★で相違。FOMC議事録と同格に扱うべきとの判断で引き上げ。JPと異なりRBAには『主な意見』相当の先出し文書が無い", "downgrade_ok": true },
     { "kind": "minutes_summary", "country": "EU", "importance": 3, "reason": "2026-08-22しょうさん決定: ECB Accounts of the monetary policy meetingをFOMC議事録・RBA議事要旨と同格の★★★に統一", "downgrade_ok": true },
     { "kind": "minutes_summary", "country": "CA", "importance": 3, "reason": "2026-08-22しょうさん決定: BOC Summary of Governing Council DeliberationsをFOMC議事録・RBA議事要旨と同格の★★★に統一", "downgrade_ok": true },
-    { "kind": "sentiment", "country": "DE", "importance": 3, "reason": "2026-08-15しょうさん指摘（Manus突合）: ZEW景況感指数はEURペアで★★★級の反応がある。sentiment kindの既定値（★★）から引き上げ", "downgrade_ok": true }
+    { "kind": "sentiment", "country": "DE", "importance": 3, "reason": "2026-08-15しょうさん指摘（Manus突合）: ZEW景況感指数はEURペアで★★★級の反応がある。sentiment kindの既定値（★★）から引き上げ", "downgrade_ok": true },
+    { "kind": "official_speech", "country": "JP", "importance": 3, "reason": "2026-08-22しょうさん指摘（Manus版8/24週突合）: 氷見野副総裁の挨拶（8/27・埼玉県金融経済懇談会）をManus版は★★★として扱っている。日銀総裁・副総裁の講演・挨拶（金融経済懇談会等）は金融政策スタンスのフォワードガイダンスとしてFX市場での注目度が高いため、official_speech kindの既定値（★★）から引き上げた。要注意（2026-08-22時点の暫定判断）: 現行スキーマは話者の役職（総裁/副総裁/審議委員/理事）単位の重要度区分を持たないため、jp_boj_speechesが捕捉する【挨拶】【講演】行は話者の格に関わらず一律★★★になる（審議委員クラスの地方講演も含む）。役職別に細分化する場合は別途スキーマ拡張としょうさんの判断が必要", "downgrade_ok": true }
   ],
   "bundling_rule": "同一発表元・同一発表枠（同日・同時刻・同一指標の系列: 前月比/前年比/コア等）は1つの発表枠に束ね、枠の重要度は構成イベントの重要度の最大値を採る（例: 米雇用統計＝非農業部門雇用者数【★★★】＋平均時給【★★】→枠は★★★）",
   "recurring_checks": [

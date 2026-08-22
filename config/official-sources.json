@@ -1112,6 +1112,31 @@
       "notes": "毎年7月31日に翌年8回の会合日程を公表。主な意見=会合後6営業日目08:50、議事要旨=次回会合後3営業日目08:50。2026-08-14: mpm_index.htm（HTML）の方がPDFよりも構造的に安定して抽出できると判明したため、抽出対象をPDFからHTML(mpm_index)へ変更（scripts/checkers/extractors/boj.js）。実測fixtureからground truth 2件（2026-08-05議事要旨・2026-08-10主な意見）と完全一致を確認。2027年分も同ページに一部（会合日未確定分含む）掲載されていたため合わせて取り込んだ | 2026-08-15追加（task #19・coverage-gap-2026-08-15.md）: 列[1]「Date of MPM」（会合2日目）からpolicy_rateを追加抽出（scripts/checkers/extractors/boj.js）。2026・2027年とも年8回で既存のopinions_summary/minutes_summaryと会合回数が一致することを確認済み。発表時刻は固定時刻の公式公表が無いため暫定でJST12:00とし、月曜FF事後突合で継続検証する（announce_time_by_kind.policy_rate.note参照） | 2026-08-15追記（task #49、しょうさん指示の残量監視WARN切り分け）: 8/17週で残量監視WARNが発生したが、scheduleは2027-12-27まで47件確定済みで日程データ自体は不足していない。BOJの会合間隔は最大54日（約7.7週）あり、既定のresidual_monitor_weeks=4では会合直後の週に必ず（誤）WARNが出る構造だった（新規データ欠落ではなく、しきい値がBOJの実際の会合頻度に対して短すぎたことが原因）。9週へ引き上げ、既存スケジュールの最大間隔でも誤検知しないようにした"
     },
     {
+      "id": "jp_boj_speeches",
+      "name_ja": "日本銀行「公表予定」（総裁・副総裁・審議委員等の挨拶・講演）",
+      "status": "active",
+      "country": "JP",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          { "label": "calendar", "url": "https://www.boj.or.jp/about/calendar/index.htm" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "official_speech": {
+          "tz": "Asia/Tokyo",
+          "note": "抽出行ごとにlocalTimeを個別に持つ（このtz値のみをresolveCandidateEventのゾーン変換に使う）。access.provides_exact_time:trueのためconfig固定のlocal_timeは不要"
+        }
+      },
+      "notes": "2026-08-22追加（しょうさん指摘、Manus版8/24週突合: 8/27の氷見野副総裁挨拶が未捕捉だった、task #64）。jp_boj（annual_schedule_config、政策金利・主な意見・議事要旨）とは別ソース: こちらは毎週金曜更新のローリング表『公表予定』（boj.or.jp/about/calendar/index.htm）で、日銀に関するほぼ全ての公表物（統計データ・オペレーション実施結果・そして総裁/副総裁/審議委員等の挨拶・講演・記者会見）を1つの表にまとめて掲載している。本ソースはこの表から『資料名』列が【挨拶】【講演】で始まる行のみを抽出する（【記者会見】等の他区分・データ公表行は対象外）。manus-diff-recon一時ワークフローで実HTML構造をライブ確認済み（run 32555894283、2026-08-22）: <table><thead>(公表日|時刻|日|英|資料名)</thead><tbody>...</tbody></table>形式、『27日（木） 10:30 ... 【挨拶】氷見野副総裁（埼玉）』の実在行を直接確認（しょうさん指摘のイベントと完全一致）。年は本ページに明記されないため対象週の年を起点に、月が前より小さくなった時点でのみ+1年するロールオーバー処理をextractor側で実施（scripts/checkers/extractors/boj-speeches.js）。話者の役職は国単位の固定ラベルではなくofficials.json側の個別role_jaを使う設計とした（同ページには副総裁・審議委員・理事など役職の異なる複数の話者が混在するため、US（FRB理事で統一）と同じ国単位定数の方式は使えない。scripts/lib/build-ledger.js resolveRuleGeneratedName参照）"
+    },
+    {
       "id": "us_treasury",
       "name_ja": "米財務省（TreasuryDirect／Fiscal Data）",
       "status": "active",
