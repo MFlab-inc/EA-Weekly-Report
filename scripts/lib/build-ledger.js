@@ -54,6 +54,35 @@ const OFFICIAL_SPEECH_ROLE_BY_COUNTRY = {
   US: 'FRB理事',
 };
 
+// official_speechの重要度を話者の格（officials.jsonのrole_rank）で決める（2026-08-22、task #68、
+// しょうさん指摘: 一律★★★は審議委員クラスの地方講演まで昇格させ★★★の希少性を損なうため不採用。
+// フラッシュPMIを★★据え置きとしたのと同じ理由）。governor（総裁・議長）/deputy_governor（副総裁）
+// →★★★、board_member（審議委員・理事・地区連銀総裁等）→★★。話者が未登録・role_rank未設定の
+// 場合は安全側でboard_member相当（★★）とし、追跡できるようwarningを添えて返す（下記
+// resolveOfficialSpeechImportance参照。呼び出し側[buildEventsSection]がwarningsを収集しmeta.warningsへ
+// 反映する）
+const OFFICIAL_SPEECH_IMPORTANCE_BY_RANK = {
+  governor: 3,
+  deputy_governor: 3,
+  board_member: 2,
+};
+
+// candidate.kind !== 'official_speech' はcandidate.importanceをそのまま素通しする（他kindには無関係）。
+// official_speechはimportance_by_kindの既定値（★★）を無視し、話者のrole_rankから動的に決め直す
+function resolveOfficialSpeechImportance(candidate, officials) {
+  if (candidate.kind !== 'official_speech') return { importance: candidate.importance, warning: null };
+  const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName);
+  const rank = official && official.verified ? official.role_rank : null;
+  if (rank && OFFICIAL_SPEECH_IMPORTANCE_BY_RANK[rank] != null) {
+    return { importance: OFFICIAL_SPEECH_IMPORTANCE_BY_RANK[rank], warning: null };
+  }
+  const speaker = candidate.speakerLastName || '(話者不明)';
+  return {
+    importance: OFFICIAL_SPEECH_IMPORTANCE_BY_RANK.board_member,
+    warning: `official_speechの話者の格を判定できず★★（安全側）とした: country=${candidate.country} speaker="${speaker}" date=${candidate.date}（officials.json未登録、またはrole_rank未設定）`,
+  };
+}
+
 // minutes_summary（中銀議事要旨）のBOJ以外向け国別命名（task #41-1、しょうさん承認済み
 // 国×kindマトリクス）。BOJ（naming.bojMinutesName、periodJa付き）とは異なり、各中銀の
 // 議事要旨は通称としての固有名詞が既に確立しているため、対象会合の特定を伴わない固定文言とする。
@@ -270,11 +299,20 @@ function buildSourcesSection(report, sourcesConfig, generatedAt) {
 }
 
 // candidates: buildObservationSummary()と同じ形の候補配列（manual含む）。importance 0/nullは
-// 呼び出し側で除外済みの前提（0=非掲載は台帳に載せない、というスキーマ規約のため）
+// 呼び出し側で除外済みの前提（0=非掲載は台帳に載せない、というスキーマ規約のため）。
+// official_speechはresolveOfficialSpeechImportanceで話者のrole_rankから重要度を決め直してから
+// candidateToLedgerEventへ渡す（2026-08-22、task #68）。話者未登録等で安全側判定になった場合の
+// warningsも合わせて返す（呼び出し側[buildLedger]がmeta.warningsへ合流させる）
 function buildEventsSection(candidates, officials) {
   const usedIds = new Set();
-  const events = candidates.map((c) => candidateToLedgerEvent(c, usedIds, officials));
-  return computeBundleIds(events);
+  const warnings = [];
+  const adjusted = candidates.map((c) => {
+    const { importance, warning } = resolveOfficialSpeechImportance(c, officials);
+    if (warning) warnings.push(warning);
+    return importance === c.importance ? c : { ...c, importance };
+  });
+  const events = adjusted.map((c) => candidateToLedgerEvent(c, usedIds, officials));
+  return { events: computeBundleIds(events), warnings };
 }
 
 function buildManualSourceEntry(manualEventsConfig, targetWeekStart, targetWeekEnd, generatedAt) {
@@ -328,7 +366,7 @@ function buildLedger({
   const sources = buildSourcesSection(report, sourcesConfig, generatedAt);
   sources.push(buildManualSourceEntry(manualEventsConfig, report.targetWeek.start, report.targetWeek.end, generatedAt));
 
-  const events = buildEventsSection(candidates, officialsConfig?.officials);
+  const { events, warnings: officialSpeechWarnings } = buildEventsSection(candidates, officialsConfig?.officials);
 
   return {
     meta: {
@@ -338,7 +376,7 @@ function buildLedger({
       target_week_end: report.targetWeek.end,
       pipeline_version: pipelineVersion,
       outcome,
-      warnings,
+      warnings: [...warnings, ...officialSpeechWarnings],
       holds,
     },
     sources,
@@ -357,6 +395,7 @@ module.exports = {
   buildLedger,
   candidateToLedgerEvent,
   resolveRuleGeneratedName,
+  resolveOfficialSpeechImportance,
   computeBundleIds,
   makeEventId,
   minutesToJstIso,

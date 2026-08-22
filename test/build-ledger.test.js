@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
+const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, resolveOfficialSpeechImportance, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
 const { validateLedger } = require('../scripts/lib/validate-ledger');
 
 const officials = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'officials.json'), 'utf8')).officials;
@@ -122,6 +122,38 @@ test('resolveRuleGeneratedName: official_speech（JP・officials.json登録済�
 test('resolveRuleGeneratedName: official_speech（JP・未登録話者）はOFFICIAL_SPEECH_ROLE_BY_COUNTRYにJPが無いためnullを返す（FALLBACK_KIND_LABEL「要人発言」へ）', () => {
   assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: '田村' }, officials), null);
   assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: null }, officials), null);
+});
+
+// task #68（しょうさん指摘: 一律★★★は不採用、話者の格[role_rank]に応じて重要度を決める）の回帰テスト
+test('resolveOfficialSpeechImportance: official_speech以外はcandidate.importanceをそのまま素通しする', () => {
+  assert.deepEqual(resolveOfficialSpeechImportance({ kind: 'policy_rate', importance: 3 }, officials), { importance: 3, warning: null });
+});
+
+test('resolveOfficialSpeechImportance: governor（日銀総裁・植田）は★★★、warningは無い', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '植田', date: '2026-08-27' }, officials);
+  assert.deepEqual(r, { importance: 3, warning: null });
+});
+
+test('resolveOfficialSpeechImportance: deputy_governor（日銀副総裁・氷見野）は★★★、warningは無い', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '氷見野', date: '2026-08-27' }, officials);
+  assert.deepEqual(r, { importance: 3, warning: null });
+});
+
+test('resolveOfficialSpeechImportance: 未登録話者（田村審議委員等）は安全側で★★、warningを添える', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '田村', date: '2026-08-27' }, officials);
+  assert.equal(r.importance, 2);
+  assert.ok(r.warning && r.warning.includes('田村'), 'warningに話者名を含むべき');
+});
+
+test('resolveOfficialSpeechImportance: 話者未指定（speakerLastName null）も安全側で★★、warningを添える', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'US', speakerLastName: null, date: '2026-08-06' }, officials);
+  assert.equal(r.importance, 2);
+  assert.ok(r.warning && r.warning.includes('話者不明'));
+});
+
+test('resolveOfficialSpeechImportance: FRB議長（governor・Warsh、RSSタイトルは英語姓）は★★★', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'US', speakerLastName: 'Warsh', date: '2026-08-06' }, officials);
+  assert.deepEqual(r, { importance: 3, warning: null });
 });
 
 test('resolveRuleGeneratedName: BANK_ABBR_BY_COUNTRY未収録の国はnullを返す', () => {
