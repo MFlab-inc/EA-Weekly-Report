@@ -1,35 +1,52 @@
 {
-  "_comment": "土日BTC/USDガイドの全文とリンク。表示はtemplates/design-mock_v1.2.htmlのカード④構造・バッジ縦積みに従う",
+  "_comment": "土日BTC/USDガイドの全文とリンク。表示はtemplates/design-mock_v1.2.htmlのカード④構造・バッジ縦積みに従う。各カードのtypeフィールド（text/state_badges/tiers）がscripts/render/html-renderer.jsのbtcCard()のレンダリング分岐を決める（2026-08-22、Crypto Risk Monitorカード追加に伴いcard.no位置依存のハードコード分岐から切替。旧コードはcard.no===2のみ特別扱いしていたが、新設カード②[state_badges]と現行②改め③[tiers]がどちらもno!==1という共通点しか持たなくなったため、typeで明示的に区別する設計に変更した）",
   "cards": [
-    { "no": 1, "title": "① 週末も価格変動に備える",
+    { "no": 1, "type": "text", "title": "① 週末も価格変動に備える",
       "body": "土日は定例の主要経済指標が比較的少ない一方、BTC/USDは24時間取引が続きます。流動性や取引環境の異常があれば、経済指標がなくてもEAの停止またはLot制限を行ってください。" },
-    { "no": 2, "title": "② 確認する場所と3段階の判断基準",
+    { "no": 2, "type": "state_badges", "title": "② 稼働前チェック（Crypto Risk Monitor）",
+      "check_at": [
+        { "name": "Crypto Risk Monitor（金曜の事前確認）", "url": "https://mflab-inc.github.io/Crypto-Risk-Monitor/" }
+      ],
+      "states": [
+        { "symbol": "✓", "label": "新規可", "tone": "normal", "desc": "通常どおり稼働" },
+        { "symbol": "◆", "label": "新規グリッド禁止", "tone": "partial", "desc": "新規グリッドの開始・段数追加を停止（既存ポジションの決済は継続）" },
+        { "symbol": "■", "label": "新規全停止", "tone": "stop", "desc": "新規エントリーを全面停止" }
+      ],
+      "note": "判定理由は各カードの「根拠」行に表示されます。既存ポジションの決済(TP)は常に許可。表示はリアルタイムではないため、急変時はMT4/MT5の気配値も併せて確認してください。" },
+    { "no": 3, "type": "tiers", "title": "③ 週末中の確認（随時）",
+      "intro": "金曜時点の判定が週末を通じて有効とは限りません。以下を随時確認し、状況が変わった場合は判定を見直してください。",
       "items": [
-        { "label": "1. ニュース・公式発表",
+        { "label": "1. Crypto Risk Monitorの判定",
+          "check_at": [
+            { "name": "Crypto Risk Monitor（週末中の再確認）", "url": "https://mflab-inc.github.io/Crypto-Risk-Monitor/" }
+          ],
+          "note": "Crypto Risk Monitor の判定（金曜から変化していないか）→ 判定が悪化していれば、その判定に従って新規を制限してください。特に急変時は表示が追いつかない可能性があるため、MT4/MT5の気配値も併せて確認してください。" },
+        { "label": "2. ニュース・公式発表",
           "check_at": [
             { "name": "CoinPost（速報）", "url": "https://coinpost.jp/" },
             { "name": "利用ブローカーの公式お知らせ", "url": null },
             { "name": "CoinDesk日本語版（代替）", "url": "https://www.coindesk.com/ja" }
           ],
           "tiers": { "stop": "取引所・ステーブルコイン・規制に関わる重大速報（ハッキング、大手破綻、ペッグ割れ等）", "half": "リスク警戒の報道が継続している", "normal": "特段の報道がない" } },
-        { "label": "2. ステーブルコイン価格（USDC / USDT）",
+        { "label": "3. ステーブルコイン価格（USDC / USDT）",
           "check_at": [
             { "name": "CoinGecko（日本語）", "url": "https://www.coingecko.com/ja" },
             { "name": "CoinMarketCap（代替）", "url": "https://coinmarketcap.com/ja/" }
           ],
           "tiers": { "stop": "$0.99を明確に割り込む", "half": "$0.99台前半で不安定", "normal": "$1.00付近で安定" } },
-        { "label": "3. 取引環境とテクニカル",
+        { "label": "4. 取引環境とテクニカル",
           "check_at": [
             { "name": "利用ブローカーのMT4/MT5（BTCUSDの気配値・スプレッド）と公式お知らせ", "url": null },
             { "name": "TradingView", "url": "https://jp.tradingview.com/" }
           ],
           "tiers": { "stop": "重大障害・注文拒否・一方向ブレイク＋スプレッド拡大の継続", "half": "軽微な障害表示・スプレッドが通常より拡大", "normal": "気配値・スプレッドとも正常、配信も通常どおり" } }
-      ] },
-    { "no": 3, "title": "③ Lotを抑える場合の設定例",
+      ],
+      "footer": "ダッシュボードの判定と上記の判断が食い違う場合は、より保守的な方を採用してください。" },
+    { "no": 4, "type": "text", "title": "④ Lotを抑える場合の設定例",
       "body": "「Lot 50%へ抑制」に該当する場合は、各EAの設定、BTC/USDの取引条件、ブローカーの最小Lot単位に従い、通常時の半分以下に設定してください（例：通常0.10 Lotなら0.05 Lot以下へ変更し、端数は切り下げる）。" },
-    { "no": 4, "title": "④ 再開・通常Lotへ戻す前の確認",
+    { "no": 5, "type": "text", "title": "⑤ 再開・通常Lotへ戻す前の確認",
       "body": "停止・Lot抑制の原因が解消し、MT4/MT5の価格配信、スプレッド、約定状況が通常へ戻ったことを確認してから再開してください。通常Lotへ戻す判断は、「Lot 50%」の条件がすべて解消したことを確認してから行います。" }
   ],
-  "allowed_domains": ["coinpost.jp", "www.coindesk.com", "www.coingecko.com", "coinmarketcap.com", "jp.tradingview.com", "fxshihyo.com", "fx.minkabu.jp"],
+  "allowed_domains": ["coinpost.jp", "www.coindesk.com", "www.coingecko.com", "coinmarketcap.com", "jp.tradingview.com", "fxshihyo.com", "fx.minkabu.jp", "mflab-inc.github.io"],
   "candidate_pool_note": "差し替え候補・注意情報は docs/rebuild-plan_v0.3.md §13.4 を参照（NADA NEWSリブランド・coindeskjapan.co.jp類似ドメイン注意・Alternative.me除外）"
 }

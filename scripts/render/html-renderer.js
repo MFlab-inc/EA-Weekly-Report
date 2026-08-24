@@ -171,39 +171,91 @@ ${cardsHtml}    </div>
 `;
 }
 
+// 色付きバッジ+説明文の縦積み1行（既存の3段階バッジ[稼働停止/Lot50%/通常稼働]と
+// 新設の3状態バッジ[新規可/新規グリッド禁止/新規全停止]の両方で共用する見た目の基本部品）
+function tierBadge(label, colorBg, colorFg, text) {
+  return `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><span style="background:${colorBg};color:${colorFg};border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">${esc(label)}</span><span style="font-size:12px;color:#33473e;line-height:1.65;">${esc(text)}</span></div>`;
+}
+
+// check_at（{name,url}[]）を「確認先：」の後ろに続けるリンク文字列へ組み立てる。
+// 2026-08-22修正: 旧実装はitem配列内のidxに応じて結合記号を'　＋　'/'（代替：'に切り替えていたが、
+// 後者は閉じ括弧を出力しない実装バグで、かつitem追加時にidxがずれると既存項目の見た目まで
+// 変わってしまう（idx位置依存）。templates/design-mock_v1.2.htmlの実例（正典）を確認したところ、
+// 複数確認先の結合は一貫して「　＋　」（「代替」であることを示す場合はcheck_at側のname自体に
+// 「（代替）」を含める、例:「CoinDesk日本語版（代替）」）という表現だったため、それに統一した
+function linksHtml(checkAt) {
+  return checkAt
+    .map((c) => (c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener" style="color:#047857;font-weight:700;">${esc(c.name)}</a>` : esc(c.name)))
+    .join('　＋　');
+}
+
+const STATE_BADGE_COLORS = {
+  normal: ['#d1fae5', '#047857'],
+  partial: ['#fef3c7', '#a16207'],
+  stop: ['#fde8c8', '#92400e'],
+};
+
 function btcCard(card) {
-  if (card.no === 1 || card.no === 3 || card.no === 4) {
+  if (card.type === 'text') {
     return `    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px;margin-bottom:8px;">
       <div style="font-size:13.5px;font-weight:800;color:#1a3a2e;">${esc(card.title)}</div>
       <div style="font-size:12.5px;color:#33473e;margin-top:5px;line-height:1.75;">${esc(card.body)}</div>
     </div>
 `;
   }
-  // no:2 — 3項目×3段階バッジ縦積み
-  const tierBadge = (label, colorBg, colorFg, text) =>
-    `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><span style="background:${colorBg};color:${colorFg};border-radius:5px;padding:2px 0;font-size:10.5px;font-weight:700;min-width:62px;text-align:center;flex-shrink:0;">${label}</span><span style="font-size:12px;color:#33473e;line-height:1.65;">${esc(text)}</span></div>`;
+
+  if (card.type === 'state_badges') {
+    // 1リンク＋3状態バッジ縦積み（Crypto Risk Monitorの新規可/新規グリッド禁止/新規全停止、
+    // 2026-08-22追加）。既存の3段階バッジ（稼働停止/Lot50%/通常稼働）とは軸が異なる別語彙のため、
+    // 同じ見た目の部品（tierBadge）を使いつつラベル・配色は状態ごとに個別定義する
+    const statesHtml = card.states
+      .map((s) => {
+        const [bg, fg] = STATE_BADGE_COLORS[s.tone] || STATE_BADGE_COLORS.normal;
+        return tierBadge(`${s.symbol}${s.label}`, bg, fg, s.desc);
+      })
+      .join('');
+    return `    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px;margin-bottom:8px;">
+      <div style="font-size:13.5px;font-weight:800;color:#1a3a2e;">${esc(card.title)}</div>
+      <div style="font-size:11.5px;color:#5b6f66;margin-top:6px;">確認先：${linksHtml(card.check_at)}</div>
+      <div style="margin-top:7px;">
+${statesHtml}      </div>
+      <div style="font-size:12px;color:#33473e;margin-top:9px;line-height:1.75;">${esc(card.note)}</div>
+    </div>
+`;
+  }
+
+  // type: 'tiers' — N項目の縦積み。各項目はtiers（3段階バッジ）を持つ場合と、
+  // 持たない場合（note一文のみ、例: カード③item1のダッシュボード再確認）とがある
   const itemsHtml = card.items
     .map((item, idx) => {
-      const links = item.check_at
-        .map((c) => (c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener" style="color:#047857;font-weight:700;">${esc(c.name)}</a>` : esc(c.name)))
-        .join(idx === 0 ? '　＋　' : '（代替：') // 簡易結合（primary＋代替の実文言はconfig順に依存）
-        ;
       const marginTop = idx === 0 ? '' : 'margin-top:9px;';
-      return `      <div style="font-size:12px;color:#33473e;${marginTop}line-height:1.8;">
-        <span style="font-weight:700;color:#1a3a2e;">${esc(item.label)}</span><br>
-        <span style="font-size:11.5px;color:#5b6f66;">確認先：${links}</span>
-        <div style="margin-top:7px;">
+      const bodyHtml = item.tiers
+        ? `        <div style="margin-top:7px;">
           ${tierBadge('稼働停止', '#fde8c8', '#92400e', item.tiers.stop)}
           ${tierBadge('Lot 50%', '#fef3c7', '#a16207', item.tiers.half)}
           ${tierBadge('通常稼働', '#d1fae5', '#047857', item.tiers.normal)}
         </div>
-      </div>
+`
+        : `        <div style="font-size:12px;color:#33473e;margin-top:7px;line-height:1.75;">${esc(item.note)}</div>
+`;
+      return `      <div style="font-size:12px;color:#33473e;${marginTop}line-height:1.8;">
+        <span style="font-weight:700;color:#1a3a2e;">${esc(item.label)}</span><br>
+        <span style="font-size:11.5px;color:#5b6f66;">確認先：${linksHtml(item.check_at)}</span>
+${bodyHtml}      </div>
 `;
     })
     .join('');
+  const introHtml = card.intro
+    ? `      <div style="font-size:12px;color:#5b6f66;margin-top:6px;line-height:1.75;">${esc(card.intro)}</div>
+`
+    : '';
+  const footerHtml = card.footer
+    ? `      <div style="font-size:12px;color:#1a3a2e;font-weight:700;margin-top:9px;line-height:1.75;">${esc(card.footer)}</div>
+`
+    : '';
   return `    <div style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px;margin-bottom:8px;">
       <div style="font-size:13.5px;font-weight:800;color:#1a3a2e;">${esc(card.title)}</div>
-${itemsHtml}    </div>
+${introHtml}${itemsHtml}${footerHtml}    </div>
 `;
 }
 
@@ -313,4 +365,4 @@ ${btcCardsHtml}  </div>
 `;
 }
 
-module.exports = { renderReportHtml, countryPill, currencyPill };
+module.exports = { renderReportHtml, countryPill, currencyPill, btcCard };
