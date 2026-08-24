@@ -20,7 +20,7 @@
           "check_at": [
             { "name": "Crypto Risk Monitor（週末中の再確認）", "url": "https://mflab-inc.github.io/Crypto-Risk-Monitor/" }
           ],
-          "note": "Crypto Risk Monitor の判定（金曜から変化していないか）→ 判定が悪化していれば、その判定に従って新規を制限してください。特に急変時は表示が追いつかない可能性があるため、MT4/MT5の気配値も併せて確認してください。" },
+          "note": "金曜から判定が変化していないかを確認してください。判定が悪化していれば、その判定に従って新規を制限してください。特に急変時は表示が追いつかない可能性があるため、MT4/MT5の気配値も併せて確認してください。" },
         { "label": "2. ニュース・公式発表",
           "check_at": [
             { "name": "CoinPost（速報）", "url": "https://coinpost.jp/" },
