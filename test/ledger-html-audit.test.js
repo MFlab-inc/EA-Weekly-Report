@@ -176,3 +176,45 @@ test('イベントが1件も無い日も空の日付グループとして扱わ�
   // baseHtml()は8/17・8/20・8/21をイベント0件の日付グループとして含む（実レンダラーの挙動どおり）
   assert.deepEqual(auditLedgerHtml(baseHtml(), baseLedger()), []);
 });
+
+// 月末・四半期末・半期末の注意喚起ブロック（task #82）の双方向監査。baseLedger()の対象週
+// （2026-08-17〜08-21）はロンドン市場基準の月末営業日を含まないため、auditMonthEndNoticeは
+// 上記の既存テストすべてで暗黙的に「該当なし・エラー無し」の分岐も検証済み
+function monthEndLedger(targetWeekStart, targetWeekEnd) {
+  return { meta: { target_week_start: targetWeekStart, target_week_end: targetWeekEnd }, events: [] };
+}
+
+test('auditMonthEndNotice: 該当週なのにHTMLにブロックが無いとMONTH_END_NOTICE_MISSINGでHOLD', async () => {
+  const { auditMonthEndNotice } = await loadAudit();
+  // 2026-10-26週は10/30(金)がロンドン市場基準の月末営業日（祝日なし・通常の月末）
+  const errors = auditMonthEndNotice('<div>注意喚起ブロック無し</div>', monthEndLedger('2026-10-26', '2026-10-30'));
+  assert.ok(errors.some((e) => e.startsWith('MONTH_END_NOTICE_MISSING')), JSON.stringify(errors));
+});
+
+test('auditMonthEndNotice: 該当しない週なのにHTMLにブロックがあるとMONTH_END_NOTICE_UNEXPECTEDでHOLD', async () => {
+  const { auditMonthEndNotice } = await loadAudit();
+  const html = '<div class="ea-month-end-notice" data-ea-month-end-date="2026-08-17" data-ea-month-end-tier="month_end">...</div>';
+  const errors = auditMonthEndNotice(html, baseLedger());
+  assert.ok(errors.some((e) => e.startsWith('MONTH_END_NOTICE_UNEXPECTED')), JSON.stringify(errors));
+});
+
+test('auditMonthEndNotice: 該当週でHTMLの日付/tierが一致すればエラー無し', async () => {
+  const { auditMonthEndNotice } = await loadAudit();
+  const html = '<div class="ea-month-end-notice" data-ea-month-end-date="2026-10-30" data-ea-month-end-tier="month_end">...</div>';
+  const errors = auditMonthEndNotice(html, monthEndLedger('2026-10-26', '2026-10-30'));
+  assert.deepEqual(errors, []);
+});
+
+test('auditMonthEndNotice: tierが一致しないとMONTH_END_NOTICE_TIER_MISMATCH', async () => {
+  const { auditMonthEndNotice } = await loadAudit();
+  const html = '<div class="ea-month-end-notice" data-ea-month-end-date="2026-10-30" data-ea-month-end-tier="quarter_end">...</div>';
+  const errors = auditMonthEndNotice(html, monthEndLedger('2026-10-26', '2026-10-30'));
+  assert.ok(errors.some((e) => e.startsWith('MONTH_END_NOTICE_TIER_MISMATCH')), JSON.stringify(errors));
+});
+
+test('auditMonthEndNotice: 日付が一致しないとMONTH_END_NOTICE_DATE_MISMATCH', async () => {
+  const { auditMonthEndNotice } = await loadAudit();
+  const html = '<div class="ea-month-end-notice" data-ea-month-end-date="2026-10-29" data-ea-month-end-tier="month_end">...</div>';
+  const errors = auditMonthEndNotice(html, monthEndLedger('2026-10-26', '2026-10-30'));
+  assert.ok(errors.some((e) => e.startsWith('MONTH_END_NOTICE_DATE_MISMATCH')), JSON.stringify(errors));
+});
