@@ -2106,9 +2106,9 @@
       },
       "announce_time_by_kind": {
         "cpi": {
-          "local_time": "15:00",
+          "local_time": "11:00",
           "tz": "Europe/Berlin",
-          "note": "2026-08-15追記（しょうさん発見・ライブ検証で確認）。ECB Statistical calendars（statscal/ges/html/sthicp.en.html）を実ネットワークで直接取得し、flash estimateの公表時刻を15:00 CET/CESTと確認。当初のWebSearchで見つかった『11:00 CET』説はこの直接確認により否定的（別の古い情報または混同の可能性）。ただしこのECBページ自体が『Release calendar for the Euro area seasonally adjusted HICP statistics』（季節調整値専用）であり、ページ本文に『Unadjusted HICP data are released by Eurostat; please use the Eurostat release calendar』と明記されている点に注意——このflash estimateがEurostat自身が公表する非季節調整の速報値（経済指標カレンダーで通常追跡される本来の対象）と完全に同一日・同時刻かは未確認。時刻の信頼度は中〜高だが、日付についてはEurostat自身のURL日付スタンプで裏付け済みの2026年1-7月分（下記schedule参照）を優先根拠とし、8月分以降の新規追加分はこのECBページのみが根拠のため確度がやや低い（要継続検証）"
+          "note": "2026-08-29是正（しょうさん指摘: 8/31週監査で判明した実害のある誤り）。旧値15:00 CET/CESTは、ECBのStatistical calendars（statscal/ges/html/sthicp.en.html、季節調整値専用）から転記したものだったが、そのページ自身が『Unadjusted HICP data are released by Eurostat; please use the Eurostat release calendar』と明記するとおり、市場が反応するEurostat自身の非季節調整flash estimateとは別物（ECB独自の季節調整系列の時刻）だった。.eurostat-embargo-recon実測（一時ワークフロー、GitHub Actions実ネットワーク）で、Eurostatのニュースリリース本文（products-euro-indicators配下、URL形式2-DDMMYYYY-ap）8件分（2026年1月〜7月の各月flash、冬時間・夏時間の両方を含む）のld+json構造化データ（datePublished）を直接確認したところ、UTC表記で冬時間（1-3月分）は10:00Z（=11:00 CET）、夏時間（3月末以降）は09:00Z（=11:00 CEST）と、全件が現地時間11:00で一貫していた。tz=Europe/Berlinを維持したままlocal_timeのみ11:00へ修正すれば、IANAタイムゾーンDBが冬時間/夏時間を自動判定するため上記のUTC値と一致する。旧説（15:00）はこれにより誤りと確定。schedule内の日付自体（Eurostat自身のURL日付スタンプで裏付け済み）は変更なし"
         }
       },
       "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏HICP速報値（flash estimate、Eurostat）。公式運用ルール『月末（同月の速報値公表日は原則として当該月の最終暦日、休日の場合は翌営業日）』をWebSearch経由で確認し、Eurostat自身のURL日付スタンプ（例: 2-03032026-ap）から2026年1-7月分の実発表日を確認した。改定値（確報、対象月の翌月17日前後）は1件のみの照合例（2月分→3/18）しかなく規則性が未確定のため収録していない（しょうさんの原指摘『ユーロ圏HICP改定値』は速報値の誤認、または確報を指している可能性があるが、経済指標カレンダーとして通常追跡されるのは市場動意の大きい速報値のため、こちらを優先して実装した。確報が必要な場合は別途指摘してください） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: release-calendarページ（ec.europa.eu/eurostat）を実ネットワークで直接取得したところ、実際のカレンダーデータは静的HTMLに含まれておらず、JavaScriptによる動的読み込み（SPA構造）と判明した（Stats NZのrelease-calendar/と同種の構造的ブロッカー） | 2026-08-15追記（しょうさん発見・ライブ検証PASS）: EurostatのSPA制約を迂回し、ECBのStatistical calendars静的ページ（sthicp.en.html）から2026年8月分〜2026年12月分（2027年1月発表分まで）の実日付・実時刻（15:00 CET/CESTのflash、12:00 CET/CESTの確報）を直接確認した。ただし上記announce_time_by_kind.cpi.note記載のとおり、このページはEurostat自身の非季節調整速報値と完全に同一かの確証が無いため、8月分以降の新規追加日程は『中程度の確度』として扱う（次回本番runでの実挙動確認が必要）",
@@ -2158,7 +2158,13 @@
           }
         ]
       },
-      "announce_time_by_kind": {},
+      "announce_time_by_kind": {
+        "gdp": {
+          "local_time": "11:00",
+          "tz": "Europe/Berlin",
+          "note": "2026-08-29追加（しょうさん指摘、eurostat_hicpと同じ疑いの確認）。.eurostat-embargo-recon実測でGDPニュースリリース本文（2-30042026-ap[予備速報]・2-30072026-ap[予備速報]・2-14082026-ap[統合速報]）3件分のld+json datePublishedを直接確認したところ、いずれもUTC 09:00Z（=11:00 CEST、夏時間）と一貫していた。予備速報・統合速報の両方で同一時刻のため、GDP kind全体（scheduleの全エントリ）に適用する。eurostat_hicpと合わせ、Eurostatのeuro indicators全般が現地時間11:00に統一されている可能性が高い（他のEurostat系ソースを追加する際もこの時刻を優先仮説とする）"
+        }
+      },
       "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏GDP速報値（Eurostat）。2段階公表（四半期末+30日でGDP単独の予備速報、+45日でGDP+雇用の統合速報）というEurostat公式の方法論ページ記載のルールをWebSearch経由で確認し、Eurostat自身のURL日付スタンプから2026年上半期分（Q1・Q2）の実発表日を確認した。Q3・Q4分はルールからの外挿のみで実URLでの照合ができなかったため収録していない（推測で埋めていない。task #41-3調査agent報告）。公表時刻はHICPと同様に確定できなかったためannounce_time_by_kind.gdpは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: eurostat_hicpと同一のrelease-calendarページを使用しており、同じくJavaScript動的読み込み（SPA構造）のため日程データへの到達不可（未検証のまま。詳細はeurostat_hicp notes参照）。2026-08-14発表分（8/10週で新規検出、docs/validate-scripts-guide.md「既刊レポートの位置づけ」参照）はこのライブ検証では裏付けできていない点に注意 | task #46（2026-08-15、しょうさん指示）: ECB statscal配下にGDP相当の静的ページが存在しないと確認済み（(b)Playwright導入は既存の構造的ブロッカーとの一貫性を欠くため不採用）。第三の経路として、Eurostat自身の静的経路A（QNA_release_calendar.pdf、年間骨格）・経路B（GDPニュースリリース本文のNext release記載、直近1件の確定日程）をライブ検証。経路AのTable 1に記載された2026年4回分の日付は既存の実URL確認済み4件（2026-04-30/05-13/07-30/08-14）と完全一致し、経路Aの信頼性が裏付けられた。これにより2026Q3分（10/30・11/13）・2026Q4分（2027-01-29・02-15）を新規追加。うち2026Q3分は経路B（2-14082026-ap本文の『Next release: 13 November 2026』、2-30072026-ap本文の『Next release: 30 October 2026』）でも独立に確認できたため高確度、2026Q4分は経路A（PDF）のみが根拠のためPDF自身のPROVISIONAL注記どおり中確度として区別する。時刻情報は経路A・Bのいずれにも記載がなかったため、推測を入れずannounce_time_by_kind.gdpは空のまま（time:nullで扱う。SPEC §5により★★★でも停止目安の対象外となるが、しょうさん確認済みの運用方針） | 2026-08-15追記（task #49、しょうさん指示の残量監視WARN切り分け）: 8/17週で残量監視WARNが発生したが、scheduleは2027-02-15まで8件確定済みで日程データ自体は不足していない。EU GDPは予備速報・統合速報の2件が四半期末ごとに集中して発表される構造のため、各ペアの間隔（統合速報→次の予備速報）は最大78日（約11.1週）に達する。既定のresidual_monitor_weeks=4ではペア発表直後の週に必ず（誤）WARNが出る構造だった（jp_boj・boe_policy_rateと同種の「しきい値が実際の発表頻度に対して短すぎる」問題）。13週へ引き上げ、既存スケジュールの最大間隔でも誤検知しないようにした",
       "schedule": [
         { "date": "2026-04-30", "kind": "gdp", "note": "2026年1-3月期・予備速報（GDP単独、四半期末+30日）" },

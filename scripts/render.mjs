@@ -23,6 +23,18 @@ const require = createRequire(import.meta.url);
 const { buildReportData } = require('./render/build-report-data.js');
 const { renderReportHtml } = require('./render/html-renderer.js');
 const { ledgerToWeekInput, countryJaOf } = require('./render/ledger-to-week-input.js');
+const { BANK_ABBR_BY_COUNTRY } = require('./lib/naming.js');
+
+// name_jaが既にその国の中銀略称（naming.BANK_ABBR_BY_COUNTRY、例: RBNZ/BOC/ECB/BOE/RBA/日銀）で
+// 始まっている場合は国名前置を省く（2026-08-29、しょうさん指摘: 「NZRBNZ政策金利＆声明発表」
+// 「カナダBOC政策金利＆声明発表」のように国名と中銀略称が重複表示されていた。naming.jsの
+// policyRateName/quarterlyReportName/bojOpinionsName等が生成するname_jaは中銀略称で始まる
+// テンプレートのため、これと同じ辞書[BANK_ABBR_BY_COUNTRY]を単一の真実源として使う）
+function heroDisplayName(country, nameJa) {
+  const bankAbbr = BANK_ABBR_BY_COUNTRY[country];
+  if (bankAbbr && nameJa.startsWith(bankAbbr)) return nameJa;
+  return `${countryJaOf(country)}${nameJa}`;
+}
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -40,8 +52,12 @@ function pad2(n) {
 // （例: カナダCPIと英国CPI）が「消費者物価指数（CPI）、消費者物価指数（CPI）」のように区別不能な
 // まま並んでしまう（8/17週の実ネットワーク検証で発覚）。カード側の国名ピルと同じ語彙
 // （ledger-to-week-input.jsのcountryJaOf・COUNTRY_JA_BY_ISO）を表示名の前に付けて解消する。
-// 特定の国・機関名だけ前置を省く例外は設けず、全件一律に前置する（一貫性優先。個別の慣用表記
-// が必要であれば運用でnarrative上書きを使う）
+// 2026-08-29追記（しょうさん指摘）: 上記の「全件一律に前置する」方針を修正した。
+// name_jaがnaming.BANK_ABBR_BY_COUNTRY（RBNZ/BOC/ECB/BOE/RBA/日銀等）で始まる場合、
+// 国名前置と中銀略称が重複表示されてしまう（例:「NZRBNZ政策金利＆声明発表」
+// 「カナダBOC政策金利＆声明発表」）。中銀略称は国名を代替する識別子として十分機能するため、
+// この場合のみ国名前置を省く（heroDisplayName参照。停止スケジュールの国名ピル表示は
+// 別ロジック[html-renderer.jsのcountryPill]でこの変更の影響を受けない）
 export function autoHeroSummary(ledger, reportPolicy) {
   const star3 = ledger.events
     .filter((e) => e.importance === 3 && e.datetime_jst)
@@ -52,7 +68,7 @@ export function autoHeroSummary(ledger, reportPolicy) {
     const key = `${e.country}|${e.kind}`;
     if (seenCountryKind.has(key)) continue;
     seenCountryKind.add(key);
-    names.push(`${countryJaOf(e.country)}${e.name_ja}`);
+    names.push(heroDisplayName(e.country, e.name_ja));
     if (names.length === 4) break;
   }
   if (names.length === 0) return reportPolicy.hero_summary_no_star3_text;
@@ -66,7 +82,7 @@ export function autoHeroPills(ledger) {
     .filter((e) => e.importance === 3 && e.datetime_jst)
     .sort((a, b) => a.datetime_jst.localeCompare(b.datetime_jst))
     .slice(0, 3)
-    .map((e) => `${countryJaOf(e.country)}${e.name_ja} ${Number(e.date_jst.slice(5, 7))}/${Number(e.date_jst.slice(8, 10))}`);
+    .map((e) => `${heroDisplayName(e.country, e.name_ja)} ${Number(e.date_jst.slice(5, 7))}/${Number(e.date_jst.slice(8, 10))}`);
 }
 
 function autoCreatedDateJa(now) {
