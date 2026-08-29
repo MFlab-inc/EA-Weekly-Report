@@ -11,6 +11,14 @@
 // 年は本ページに明記されない（毎週金曜更新・向こう1ヶ月強のみを表示するローリング表）ため、
 // ctx.targetWeek.targetWeekStartの年を起点とし、月が前より小さくなった時点（年末→年始のロールオーバー）
 // でのみ+1年する。
+// 2026-08-30追記（task #83、しょうさん指摘: 9/2高田審議委員の挨拶が不検出）: 実fixture
+// （test/fixtures/official-sources/jp_boj_speeches/calendar_index.html、2026-08-22実測）を確認したところ、
+// 「公表日」セルは「25日（火）」のように月の表記自体を一切含まない（「8月」の接頭辞が無い）ことが判明した。
+// 従来のロジックは月表記が省略された行を常に「前回と同じ月」（lastMonth）とみなしていたため、
+// 月境界をまたぐ週（例: 8/31週で31日の次の行が2日＝9/2）で日が前回より小さくなった（31→2）ことを
+// 検出できず、9月のイベントが誤って8月扱い（2026-08-02）になり、対象週フィルタで無警告のまま
+// 除外されていた。月表記が省略された行では「日が前回より小さくなったら月が繰り上がった」とみなす
+// フォールバックを追加した（年末→年始のロールオーバー検出と同じ考え方を月表記省略時にも適用）。
 
 // 【挨拶】氷見野副総裁（埼玉） のような形式から、氏名（氷見野）と役職接尾辞（副総裁）を分離する。
 // officials.jsonのfull_name部分一致照合（naming.resolveOfficialBySurname）にそのまま使える
@@ -37,6 +45,7 @@ function extractBojSpeeches(html, ctx) {
   }
   let year = Number(targetWeekStart.slice(0, 4));
   let lastMonth = Number(targetWeekStart.slice(5, 7));
+  let lastDay = 0;
   let currentDateText = null;
   let totalRowsSeen = 0;
   const rows = [];
@@ -56,10 +65,22 @@ function extractBojSpeeches(html, ctx) {
 
     const dm = /(?:(\d{1,2})月)?(\d{1,2})日/.exec(currentDateText);
     if (!dm) continue;
-    const monthNum = dm[1] ? Number(dm[1]) : lastMonth;
-    if (dm[1] && monthNum < lastMonth) year += 1;
-    lastMonth = monthNum;
     const dayNum = Number(dm[2]);
+    let monthNum;
+    if (dm[1]) {
+      monthNum = Number(dm[1]);
+      if (monthNum < lastMonth) year += 1;
+    } else {
+      // 月表記省略時: 日が前回より小さくなっていれば月が繰り上がったとみなす（上記コメント参照）。
+      // 同一日内の複数行（dayNum===lastDay）は繰り上げない
+      monthNum = lastMonth;
+      if (dayNum < lastDay) {
+        monthNum += 1;
+        if (monthNum > 12) { monthNum = 1; year += 1; }
+      }
+    }
+    lastMonth = monthNum;
+    lastDay = dayNum;
 
     const speakerM = SPEAKER_ROLE_RE.exec(titleCell);
     if (!speakerM) continue;

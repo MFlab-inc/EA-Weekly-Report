@@ -2108,7 +2108,7 @@
         "cpi": {
           "local_time": "11:00",
           "tz": "Europe/Berlin",
-          "note": "2026-08-29是正（しょうさん指摘: 8/31週監査で判明した実害のある誤り）。旧値15:00 CET/CESTは、ECBのStatistical calendars（statscal/ges/html/sthicp.en.html、季節調整値専用）から転記したものだったが、そのページ自身が『Unadjusted HICP data are released by Eurostat; please use the Eurostat release calendar』と明記するとおり、市場が反応するEurostat自身の非季節調整flash estimateとは別物（ECB独自の季節調整系列の時刻）だった。.eurostat-embargo-recon実測（一時ワークフロー、GitHub Actions実ネットワーク）で、Eurostatのニュースリリース本文（products-euro-indicators配下、URL形式2-DDMMYYYY-ap）8件分（2026年1月〜7月の各月flash、冬時間・夏時間の両方を含む）のld+json構造化データ（datePublished）を直接確認したところ、UTC表記で冬時間（1-3月分）は10:00Z（=11:00 CET）、夏時間（3月末以降）は09:00Z（=11:00 CEST）と、全件が現地時間11:00で一貫していた。tz=Europe/Berlinを維持したままlocal_timeのみ11:00へ修正すれば、IANAタイムゾーンDBが冬時間/夏時間を自動判定するため上記のUTC値と一致する。旧説（15:00）はこれにより誤りと確定。schedule内の日付自体（Eurostat自身のURL日付スタンプで裏付け済み）は変更なし"
+          "note": "2026-08-29是正（しょうさん指摘: 8/31週監査で判明した実害のある誤り）。旧値15:00 CET/CESTは、ECBのStatistical calendars（statscal/ges/html/sthicp.en.html、季節調整値専用）から転記したものだったが、そのページ自身が『Unadjusted HICP data are released by Eurostat; please use the Eurostat release calendar』と明記するとおり、市場が反応するEurostat自身の非季節調整flash estimateとは別物（ECB独自の季節調整系列の時刻）だった。.eurostat-embargo-recon実測（一時ワークフロー、GitHub Actions実ネットワーク）で、Eurostatのニュースリリース本文（products-euro-indicators配下、URL形式2-DDMMYYYY-ap）8件分（2026年1月〜7月の各月flash、冬時間・夏時間の両方を含む）のld+json構造化データ（datePublished）を直接確認したところ、UTC表記で冬時間（1-3月分）は10:00Z（=11:00 CET）、夏時間（3月末以降）は09:00Z（=11:00 CEST）と、全件が現地時間11:00で一貫していた。tz=Europe/Berlinを維持したままlocal_timeのみ11:00へ修正すれば、IANAタイムゾーンDBが冬時間/夏時間を自動判定するため上記のUTC値と一致する。旧説（15:00）はこれにより誤りと確定。schedule内の日付自体（Eurostat自身のURL日付スタンプで裏付け済み）は変更なし | 2026-08-30確定（しょうさん＝運用者による実測確認）: 11:00 CET/CEST（=夏時間で18:00 JST）で最終確定。ECBのstatscalページに記載の15:00 CETは『Euro area seasonally adjusted HICP』（季節調整値）専用の公表時刻であり、市場が反応するEurostat自身のflash estimate（非季節調整）とは別物のため混同しないこと（本noteの前段と同旨、運用者確認により再確定）"
         }
       },
       "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏HICP速報値（flash estimate、Eurostat）。公式運用ルール『月末（同月の速報値公表日は原則として当該月の最終暦日、休日の場合は翌営業日）』をWebSearch経由で確認し、Eurostat自身のURL日付スタンプ（例: 2-03032026-ap）から2026年1-7月分の実発表日を確認した。改定値（確報、対象月の翌月17日前後）は1件のみの照合例（2月分→3/18）しかなく規則性が未確定のため収録していない（しょうさんの原指摘『ユーロ圏HICP改定値』は速報値の誤認、または確報を指している可能性があるが、経済指標カレンダーとして通常追跡されるのは市場動意の大きい速報値のため、こちらを優先して実装した。確報が必要な場合は別途指摘してください） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: release-calendarページ（ec.europa.eu/eurostat）を実ネットワークで直接取得したところ、実際のカレンダーデータは静的HTMLに含まれておらず、JavaScriptによる動的読み込み（SPA構造）と判明した（Stats NZのrelease-calendar/と同種の構造的ブロッカー） | 2026-08-15追記（しょうさん発見・ライブ検証PASS）: EurostatのSPA制約を迂回し、ECBのStatistical calendars静的ページ（sthicp.en.html）から2026年8月分〜2026年12月分（2027年1月発表分まで）の実日付・実時刻（15:00 CET/CESTのflash、12:00 CET/CESTの確報）を直接確認した。ただし上記announce_time_by_kind.cpi.note記載のとおり、このページはEurostat自身の非季節調整速報値と完全に同一かの確証が無いため、8月分以降の新規追加日程は『中程度の確度』として扱う（次回本番runでの実挙動確認が必要）",
@@ -2162,7 +2162,7 @@
         "gdp": {
           "local_time": "11:00",
           "tz": "Europe/Berlin",
-          "note": "2026-08-29追加（しょうさん指摘、eurostat_hicpと同じ疑いの確認）。.eurostat-embargo-recon実測でGDPニュースリリース本文（2-30042026-ap[予備速報]・2-30072026-ap[予備速報]・2-14082026-ap[統合速報]）3件分のld+json datePublishedを直接確認したところ、いずれもUTC 09:00Z（=11:00 CEST、夏時間）と一貫していた。予備速報・統合速報の両方で同一時刻のため、GDP kind全体（scheduleの全エントリ）に適用する。eurostat_hicpと合わせ、Eurostatのeuro indicators全般が現地時間11:00に統一されている可能性が高い（他のEurostat系ソースを追加する際もこの時刻を優先仮説とする）"
+          "note": "2026-08-29追加（しょうさん指摘、eurostat_hicpと同じ疑いの確認）。.eurostat-embargo-recon実測でGDPニュースリリース本文（2-30042026-ap[予備速報]・2-30072026-ap[予備速報]・2-14082026-ap[統合速報]）3件分のld+json datePublishedを直接確認したところ、いずれもUTC 09:00Z（=11:00 CEST、夏時間）と一貫していた。予備速報・統合速報の両方で同一時刻のため、GDP kind全体（scheduleの全エントリ）に適用する。eurostat_hicpと合わせ、Eurostatのeuro indicators全般が現地時間11:00に統一されている可能性が高い（他のEurostat系ソースを追加する際もこの時刻を優先仮説とする） | 2026-08-30追記（しょうさん指摘）: eurostat_hicpの11:00 CET/CESTは運用者の実測確認で確定した。gdpも上記のld+json実測（3件、冬時間サンプルなし）により同時刻の可能性が高いが、hicpと違い運用者による直接確認はまだ行っていない。次回のGDP発表週（2026年ではQ3速報10/30・統合11/13）で実際の掲載時刻を運用者側でも確認し、確定させること"
         }
       },
       "notes": "task #41-3（2026-08-15、しょうさん承認済み国×kindマトリクス）: ユーロ圏GDP速報値（Eurostat）。2段階公表（四半期末+30日でGDP単独の予備速報、+45日でGDP+雇用の統合速報）というEurostat公式の方法論ページ記載のルールをWebSearch経由で確認し、Eurostat自身のURL日付スタンプから2026年上半期分（Q1・Q2）の実発表日を確認した。Q3・Q4分はルールからの外挿のみで実URLでの照合ができなかったため収録していない（推測で埋めていない。task #41-3調査agent報告）。公表時刻はHICPと同様に確定できなかったためannounce_time_by_kind.gdpは空のまま（time:nullで扱う） | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: eurostat_hicpと同一のrelease-calendarページを使用しており、同じくJavaScript動的読み込み（SPA構造）のため日程データへの到達不可（未検証のまま。詳細はeurostat_hicp notes参照）。2026-08-14発表分（8/10週で新規検出、docs/validate-scripts-guide.md「既刊レポートの位置づけ」参照）はこのライブ検証では裏付けできていない点に注意 | task #46（2026-08-15、しょうさん指示）: ECB statscal配下にGDP相当の静的ページが存在しないと確認済み（(b)Playwright導入は既存の構造的ブロッカーとの一貫性を欠くため不採用）。第三の経路として、Eurostat自身の静的経路A（QNA_release_calendar.pdf、年間骨格）・経路B（GDPニュースリリース本文のNext release記載、直近1件の確定日程）をライブ検証。経路AのTable 1に記載された2026年4回分の日付は既存の実URL確認済み4件（2026-04-30/05-13/07-30/08-14）と完全一致し、経路Aの信頼性が裏付けられた。これにより2026Q3分（10/30・11/13）・2026Q4分（2027-01-29・02-15）を新規追加。うち2026Q3分は経路B（2-14082026-ap本文の『Next release: 13 November 2026』、2-30072026-ap本文の『Next release: 30 October 2026』）でも独立に確認できたため高確度、2026Q4分は経路A（PDF）のみが根拠のためPDF自身のPROVISIONAL注記どおり中確度として区別する。時刻情報は経路A・Bのいずれにも記載がなかったため、推測を入れずannounce_time_by_kind.gdpは空のまま（time:nullで扱う。SPEC §5により★★★でも停止目安の対象外となるが、しょうさん確認済みの運用方針） | 2026-08-15追記（task #49、しょうさん指示の残量監視WARN切り分け）: 8/17週で残量監視WARNが発生したが、scheduleは2027-02-15まで8件確定済みで日程データ自体は不足していない。EU GDPは予備速報・統合速報の2件が四半期末ごとに集中して発表される構造のため、各ペアの間隔（統合速報→次の予備速報）は最大78日（約11.1週）に達する。既定のresidual_monitor_weeks=4ではペア発表直後の週に必ず（誤）WARNが出る構造だった（jp_boj・boe_policy_rateと同種の「しきい値が実際の発表頻度に対して短すぎる」問題）。13週へ引き上げ、既存スケジュールの最大間隔でも誤検知しないようにした",
@@ -2504,7 +2504,8 @@
       "kinds": [
         "policy_rate",
         "quarterly_report",
-        "minutes_summary"
+        "minutes_summary",
+        "press_conference"
       ],
       "type": "annual_schedule_config",
       "recurring_check_refs": [],
@@ -2539,6 +2540,11 @@
           "local_time": "13:30",
           "tz": "America/Toronto",
           "note": "Summary of Governing Council deliberations。WebSearch経由で複数の公式プレスページ本文『available on the Bank's website at 13:30 (ET)』を確認（source_verified:false同等、直接フェッチ不可のため。次回本番runでのライブ確認対象）"
+        },
+        "press_conference": {
+          "local_time": "10:30",
+          "tz": "America/Toronto",
+          "note": "task #84（2026-08-30、しょうさん指摘: 9/2週監査で総裁記者会見★★★の不検出を発見）。WebSearch経由でbankofcanada.ca/multimedia配下の実ページタイトル『Press Conference: Policy Rate Announcement — {月} {年}』を2024年6月分〜2026年9月分まで複数年・非MPR月（3/6/9/12月）分を含めて確認し、MPR発表月に限らず全8回の会合すべてで総裁記者会見が開催されている（quarterly_report=MPR同時発表の有無に関わらず press_conference は毎回発生）ことを確認した。時刻は政策金利発表(09:45 ET)の45分後にあたる10:30 ETで複数ページ・複数年にわたり一貫（例: 2026年9月分ページに『10:30 (ET) approx.』の記載）。ただし一次ソースページ本文の直接フェッチはこのセッションのサンドボックスからは到達不可（egress blocked）のためWebSearchのスニペット経由の確認にとどまり、source_verified:false相当。次回本番runでのFF事後突合（月曜）での実時刻検知を裏付け経路とする（rbnz_policy_rateの14:00 NZT運用と同じ扱い）"
         }
       },
       "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt許可・HTTP 200・148KB HTMLで到達確認済み（scripts/phase1/source-recon-d.mjs）。当初はupcoming-events/がローリング約4ヶ月先までの催事一覧（年次一括公表ではない）と判明したためweekly_scrape型とし、抽出はscripts/checkers/extractors/boc-policy-rate.jsで実装（年8回・09:45(ET)発表を実データ確認済み） | 2026-08-15追記（しょうさん指摘・一次ソース実測）: BOCは毎年、翌年分の政策金利発表日程を年次プレスリリース『Bank of Canada publishes its {年}年 schedule for policy interest rate announcements and other major publications』で一括公表する慣行が2012年から継続していることをWebSearchで確認（canada.ca archiveに2013〜2015年分の同種リリースあり）。実際に2026年分（2025-08-06公表）・2027年分（2026-07-27公表）のプレスリリース本文を実測取得し（scripts/phase1/source-recon-g.mjs）、2026年全8回・2027年全8回の日程を直接確認。2027年分リリースは『reconfirmed』として2026年9〜12月分も再掲しており、2026年分リリースとの重複確認（2026-09-02・10-28・12-09が両リリースで一致）によりダブルチェック済み。全会合とも09:45(ET)発表・Monetary Policy Reportは1/4/7/10月の発表回に同時発表という記載も両リリースで一致。annual_schedule_config型へ格上げし、既存のweekly_scrape抽出（scripts/checkers/extractors/boc-policy-rate.js・test/extractors-boc-policy-rate.test.js）はFRB/ECB/BOE等と同様、スケジュール導出・将来の再検証用のオフラインツールとして温存する（harness.mjsの実行時抽出からは外す） | 2026-08-15追記（task #41-1、しょうさん承認済み国×kindマトリクス）: minutes_summary（Summary of Governing Council Deliberations）を追加。BOCは政策金利発表と同様、Summaryの発表日程も個別プレスリリース『Summary of Governing Council deliberations: Fixed announcement date of {日付}』で単発告知する運用（FOMCのような固定オフセット計算ではない）。2026年通年8件をWebSearch経由で実ページ（bankofcanada.ca/2026/...）から個別確認して収録した。発表時刻13:30 ETも複数の同種プレスページで確認",
@@ -2560,8 +2566,16 @@
           "kind": "quarterly_report"
         },
         {
+          "date": "2026-01-28",
+          "kind": "press_conference"
+        },
+        {
           "date": "2026-03-18",
           "kind": "policy_rate"
+        },
+        {
+          "date": "2026-03-18",
+          "kind": "press_conference"
         },
         {
           "date": "2026-04-29",
@@ -2570,18 +2584,30 @@
         {
           "date": "2026-04-29",
           "kind": "quarterly_report"
+        },
+        {
+          "date": "2026-04-29",
+          "kind": "press_conference"
         },
         {
           "date": "2026-06-10",
           "kind": "policy_rate"
         },
         {
+          "date": "2026-06-10",
+          "kind": "press_conference"
+        },
+        {
           "date": "2026-07-15",
           "kind": "policy_rate"
         },
         {
           "date": "2026-07-15",
           "kind": "quarterly_report"
+        },
+        {
+          "date": "2026-07-15",
+          "kind": "press_conference"
         },
         {
           "date": "2026-09-02",
@@ -2589,6 +2615,11 @@
           "note": "2026年分・2027年分の両プレスリリースで一致確認済み"
         },
         {
+          "date": "2026-09-02",
+          "kind": "press_conference",
+          "note": "task #84: WebSearch経由でbankofcanada.ca/multimedia配下の実ページ（Press Conference: Policy Rate Announcement — September 2026）を確認"
+        },
+        {
           "date": "2026-10-28",
           "kind": "policy_rate",
           "note": "2026年分・2027年分の両プレスリリースで一致確認済み"
@@ -2596,6 +2627,10 @@
         {
           "date": "2026-10-28",
           "kind": "quarterly_report"
+        },
+        {
+          "date": "2026-10-28",
+          "kind": "press_conference"
         },
         {
           "date": "2026-12-09",
@@ -2603,42 +2638,70 @@
           "note": "2026年分・2027年分の両プレスリリースで一致確認済み"
         },
         {
+          "date": "2026-12-09",
+          "kind": "press_conference"
+        },
+        {
           "date": "2027-01-27",
           "kind": "policy_rate"
         },
         {
           "date": "2027-01-27",
           "kind": "quarterly_report"
+        },
+        {
+          "date": "2027-01-27",
+          "kind": "press_conference"
         },
         {
           "date": "2027-03-03",
           "kind": "policy_rate"
         },
         {
+          "date": "2027-03-03",
+          "kind": "press_conference"
+        },
+        {
           "date": "2027-04-28",
           "kind": "policy_rate"
         },
         {
           "date": "2027-04-28",
           "kind": "quarterly_report"
+        },
+        {
+          "date": "2027-04-28",
+          "kind": "press_conference"
         },
         {
           "date": "2027-06-02",
           "kind": "policy_rate"
         },
         {
+          "date": "2027-06-02",
+          "kind": "press_conference"
+        },
+        {
           "date": "2027-07-21",
           "kind": "policy_rate"
         },
         {
           "date": "2027-07-21",
           "kind": "quarterly_report"
+        },
+        {
+          "date": "2027-07-21",
+          "kind": "press_conference"
         },
         {
           "date": "2027-09-08",
           "kind": "policy_rate"
         },
         {
+          "date": "2027-09-08",
+          "kind": "press_conference"
+        },
+        {
           "date": "2027-10-27",
           "kind": "policy_rate"
         },
@@ -2647,8 +2710,16 @@
           "kind": "quarterly_report"
         },
         {
+          "date": "2027-10-27",
+          "kind": "press_conference"
+        },
+        {
           "date": "2027-12-08",
           "kind": "policy_rate"
+        },
+        {
+          "date": "2027-12-08",
+          "kind": "press_conference"
         },
         {
           "date": "2026-02-11",
@@ -2698,7 +2769,8 @@
       "status": "active",
       "country": "NZ",
       "kinds": [
-        "policy_rate"
+        "policy_rate",
+        "press_conference"
       ],
       "type": "annual_schedule_config",
       "recurring_check_refs": [],
@@ -2713,6 +2785,11 @@
           "local_time": "14:00",
           "tz": "Pacific/Auckland",
           "note": "時刻は慣行値。公式ページ本文には発表時刻の明記が無い（Claude Code実測: robots.txt 403で照合不可／しょうさん実測: 直近MPSページ[2026年5月分]を直接確認したが本文に時刻表記自体が無いことを確認、2026-08-15）。第三者複数ソース（WebSearch経由、市場解説記事）で『announced to financial markets at 2pm (NZT)』を確認し裏付けとする。docs/open-questions.md O3参照（決定・クローズ済み）。初回発生週（2026年9/2週）は月曜のFF事後突合runで実際の発表時刻を自動検知する。tz=Pacific/Auckland指定によりNZST/NZDT切替は実行時にIANAデータで自動判定される（scripts/lib/tz-convert.js）ため、時刻はNZDT/NZSTを問わず常に14:00の壁時計時刻でよい"
+        },
+        "press_conference": {
+          "local_time": "15:00",
+          "tz": "Pacific/Auckland",
+          "note": "task #84（2026-08-30、しょうさん指摘: 9/2週監査で総裁記者会見★★★の不検出を発見）。WebSearch経由で複数の第三者ソース（interest.co.nz・rbnz.govt.nz公式ニュースページ・Westpac IQ等）を確認し、OCR発表(14:00 NZT)の1時間後・15:00 NZTに媒体向けmedia conferenceが開催されることを確認した。2026年3月の運用変更以降、四半期のMonetary Policy Statement（対面形式）・それ以外のMonetary Policy Review（オンライン形式）のいずれの会合でも開催されており（形式は異なるが時刻は共通）、policy_rateのkindやnote（MPS/MPR）にかかわらず全会合で press_conference を1件追加する。robots.txt 403のためpolicy_rate同様、一次ソースページ本文の直接フェッチは不可（WebSearchスニペット経由の確認にとどまる）。月曜のFF事後突合runでの実時刻検知を裏付け経路とする"
         }
       },
       "notes": "task #19（2026-08-15）: policy_rate未追跡7中銀のうちの1つ。2026-08-15実測: robots.txt取得自体がHTTP 403でインフラ側ブロックと判明（BLS・S&P Global・aph.gov.auと同種、scripts/phase1/source-recon-d.mjs） | 2026-08-15追記: しょうさんがClaude Chat経由で一次ソースを直接取得し、旧URL（until-february-2027）が廃止・404済みであることと、正しい新URL・全12回分の日程を確認・転記。Claude Code側でも新URLへのアクセスを再実測したが、robots.txt自体が403のため引き続き自動取得は不可（旧URLと同じインフラ側ブロック。scripts/phase1/source-recon-e.mjs）。日程はしょうさんの一次ソース直接確認により確定（ISM/annual-schedule-maintenance.md記載の手順どおり）。発表時刻14:00 NZTはWebSearchで複数の裏付け（fxstreet等の市場解説記事が『announced to financial markets at 2pm (NZT)』と明記）を確認 | 2026-08-15クローズ（O3）: しょうさんが直近MPSページ（2026年5月分）を直接確認し、公式ページ本文に時刻表記自体が無いことを確認（Claude Code実測と整合）。14:00を慣行値として採用し、月曜のFF事後突合runでの自動検知（初回発生週=2026年9/2週）を検証経路として受容。docs/open-questions.md O3・docs/annual-schedule-maintenance.md参照",
@@ -2728,9 +2805,17 @@
           "note": "Monetary Policy Statement (MPS)"
         },
         {
+          "date": "2026-09-02",
+          "kind": "press_conference"
+        },
+        {
           "date": "2026-10-28",
           "kind": "policy_rate",
           "note": "Monetary Policy Review (MPR)"
+        },
+        {
+          "date": "2026-10-28",
+          "kind": "press_conference"
         },
         {
           "date": "2026-12-09",
@@ -2738,9 +2823,17 @@
           "note": "Monetary Policy Statement (MPS)"
         },
         {
+          "date": "2026-12-09",
+          "kind": "press_conference"
+        },
+        {
           "date": "2027-02-10",
           "kind": "policy_rate",
           "note": "Monetary Policy Review (MPR)。2027年から年7→8回体制へ増加に伴い、旧ページの2027年2月分程日程から1週間前倒し"
+        },
+        {
+          "date": "2027-02-10",
+          "kind": "press_conference"
         },
         {
           "date": "2027-03-17",
@@ -2748,9 +2841,17 @@
           "note": "Monetary Policy Statement (MPS)"
         },
         {
+          "date": "2027-03-17",
+          "kind": "press_conference"
+        },
+        {
           "date": "2027-05-05",
           "kind": "policy_rate",
           "note": "Monetary Policy Review (MPR)"
+        },
+        {
+          "date": "2027-05-05",
+          "kind": "press_conference"
         },
         {
           "date": "2027-06-16",
@@ -2758,9 +2859,17 @@
           "note": "Monetary Policy Statement (MPS)"
         },
         {
+          "date": "2027-06-16",
+          "kind": "press_conference"
+        },
+        {
           "date": "2027-08-04",
           "kind": "policy_rate",
           "note": "Monetary Policy Review (MPR)"
+        },
+        {
+          "date": "2027-08-04",
+          "kind": "press_conference"
         },
         {
           "date": "2027-09-15",
@@ -2768,9 +2877,17 @@
           "note": "Monetary Policy Statement (MPS)"
         },
         {
+          "date": "2027-09-15",
+          "kind": "press_conference"
+        },
+        {
           "date": "2027-10-27",
           "kind": "policy_rate",
           "note": "Monetary Policy Review (MPR)"
+        },
+        {
+          "date": "2027-10-27",
+          "kind": "press_conference"
         },
         {
           "date": "2027-12-08",
@@ -2778,9 +2895,17 @@
           "note": "Monetary Policy Statement (MPS)"
         },
         {
+          "date": "2027-12-08",
+          "kind": "press_conference"
+        },
+        {
           "date": "2028-02-09",
           "kind": "policy_rate",
           "note": "Monetary Policy Review (MPR)"
+        },
+        {
+          "date": "2028-02-09",
+          "kind": "press_conference"
         }
       ]
     },

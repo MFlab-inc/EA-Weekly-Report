@@ -59,6 +59,38 @@ test('extractBojSpeeches: targetWeek.targetWeekStart未指定は呼び出し側�
   assert.equal(r.ok, false);
 });
 
+// task #83（2026-08-30、しょうさん指摘: 9/2高田審議委員の挨拶が不検出）。実fixture
+// （calendar_index.html）は月表記を一切含まない（「25日（火）」等）ため、月境界をまたぐ週で
+// 日が前回より小さくなった時点（31→2）を月繰り上がりとみなすフォールバックの回帰テスト
+test('extractBojSpeeches: 月表記省略の実ページ形式で月境界（8/31→9/2）をまたぐと日の減少から月を繰り上げる（task #83）', () => {
+  const html = `<table><tbody>
+    <tr><td class="txt-right">28日（金）</td><td class="txt-right">10:30</td><td class="txt-center">○</td><td class="txt-center">●</td><td>【挨拶】田村審議委員（東京）</td></tr>
+    <tr><td class="txt-right">31日（月）</td><td class="txt-right">14:00</td><td class="txt-center">○</td><td class="txt-center">●</td><td>マネタリーベース（8月）</td></tr>
+    <tr><td class="txt-right">2日（水）</td><td class="txt-right">10:30</td><td class="txt-center">○</td><td class="txt-center">●</td><td>【挨拶】高田審議委員（大阪）</td></tr>
+  </tbody></table>`;
+  const r = extractBojSpeeches(html, { targetWeek: { targetWeekStart: '2026-08-31', targetWeekEnd: '2026-09-04' } });
+  assert.equal(r.ok, true);
+  assert.equal(r.rows.length, 2);
+  assert.equal(r.rows[0].date, '2026-08-28');
+  const takada = r.rows.find((row) => row.speakerLastName === '高田');
+  assert.ok(takada, '高田審議委員の行が見つからない');
+  assert.equal(takada.date, '2026-09-02', '月表記省略のまま日が31→2と減少したので9月へ繰り上がる必要がある');
+});
+
+// 同一日内の複数行（公表日セルが空欄で繰り越される場合）で日番号が変わらないケースは
+// 誤って月を繰り上げないことを確認する（上記フォールバックの誤検知防止）
+test('extractBojSpeeches: 同一日内の複数行（日番号が変わらない）は月を繰り上げない', () => {
+  const html = `<table><tbody>
+    <tr><td class="txt-right">31日（月）</td><td class="txt-right">14:00</td><td class="txt-center">○</td><td class="txt-center">●</td><td>マネタリーベース（8月）</td></tr>
+    <tr><td class="txt-right">2日（水）</td><td class="txt-right">10:30</td><td class="txt-center">○</td><td class="txt-center">●</td><td>【講演】田村審議委員（東京）</td></tr>
+    <tr><td class="txt-right"></td><td class="txt-right">14:00</td><td class="txt-center">○</td><td class="txt-center">●</td><td>【講演】神山理事（名古屋）</td></tr>
+  </tbody></table>`;
+  const r = extractBojSpeeches(html, { targetWeek: { targetWeekStart: '2026-08-31', targetWeekEnd: '2026-09-04' } });
+  assert.equal(r.ok, true);
+  assert.equal(r.rows.length, 2);
+  assert.ok(r.rows.every((row) => row.date === '2026-09-02'), '同一日内の2行目（公表日セル空欄で31日→2日の繰り越し後）が誤って月を繰り上げてはいけない');
+});
+
 test('extractBojSpeeches: 年末→年始の月ロールオーバーで年をインクリメントする（月替わり行は実ページ運用どおりN月D日形式で明記される前提）', () => {
   const html = `<table><tbody>
     <tr><td class="txt-right">12月28日（月）</td><td class="txt-right">10:30</td><td class="txt-center">○</td><td class="txt-center">●</td><td>【挨拶】田村審議委員（東京）</td></tr>
