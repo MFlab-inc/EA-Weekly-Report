@@ -14,7 +14,8 @@
         "ppi",
         "employment_situation",
         "employment_indicator",
-        "gdp"
+        "gdp",
+        "pce"
       ],
       "type": "date_api_fred",
       "recurring_check_refs": [
@@ -50,6 +51,11 @@
             "release_id": 53,
             "kind": "gdp",
             "note": "2026-08-15追加（しょうさん指摘: US GDPが未登録だった）。release_id=53はFRED『Gross Domestic Product』（BEA）。WebSearch経由での確認（fred.stlouisfed.org/release?rid=53等の複数独立ページで確認） | 2026-08-15ライブ検証PASS（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク・実FRED_API_KEY経由）: 実APIレスポンスで2026年分8件の実在release_dates（1/22・2/20・3/13・4/9・4/30・5/28・6/25・7/30）を確認。release_id=53が有効かつ正しいリリースを指していることを確認済み"
+          },
+          {
+            "release_id": 54,
+            "kind": "pce",
+            "note": "2026-08-22追加（しょうさん指摘、Manus版8/24週突合: 8/26の米PCEデフレータが未捕捉だった）。release_id=54はFRED『Personal Income and Outlays』（BEA）。WebSearch経由での確認（fred.stlouisfed.org/release?rid=54等の複数独立ページで確認）。gdp（release_id=53）とは別リリース。ライブ検証はmanus-diff-recon一時ワークフロー（実FRED_API_KEY経由）で実施予定"
           }
         ]
       },
@@ -72,6 +78,10 @@
           "note": "JOLTS。CPI/PPI/雇用統計本体（08:30 ET）とは異なる時刻（既刊実績23:00 JST=10:00 ETから逆算）"
         },
         "gdp": {
+          "local_time": "08:30",
+          "tz": "America/New_York"
+        },
+        "pce": {
           "local_time": "08:30",
           "tz": "America/New_York"
         }
@@ -366,6 +376,32 @@
       },
       "next_release_maintenance": "このtargets URLは『直近に公表されたLabour market statistics四半期リリースページ』を指す。各ページは本文内に次回リリース予定日（『Labour market statistics: {次の月} {年} quarter will be released on {date}.』）を埋め込んでおり、抽出はこの1文をパースする方式（open data API [api.stats.govt.nz] は2024-08-30に閉鎖済みのため利用不可、年次PDFカレンダーも未発見）。四半期ごとの新リリース公表後、このURLを次の四半期のページ（例: labour-market-statistics-september-2026-quarter）へ更新する必要がある（jp_mofのmonth_url_patternと同種の手動メンテナンス）。次回の更新目安は**2026年11月上旬（2026年9月期のLabour market statisticsが公表され次第、targetsをlabour-market-statistics-september-2026-quarterへ更新）**。access.next_release_pointer:trueにより、抽出結果（次回リリース予定日）が全件対象週より過去の場合はcheckWeeklyScrapeSourceが構造的失敗（ok:false）を返し、フェールクローズ規則へ接続する設計とした（更新漏れの自動検知。docs/annual-schedule-maintenance.md参照）",
       "notes": "四半期リリース『Labour market statistics: {月} {年} quarter』（config/event-names.json照合済み）。四半期末から約5週間後に公表。【2026-08-14実測で判明】release-calendar/はSPA構造で静的取得不可（旧記録のとおり）。open data API（api.stats.govt.nz）は2024-08-30に閉鎖済みと判明し(a)API系統は不可。年次PDFカレンダーも(b)で探索したが発見できなかった。一方、各四半期の情報公開ページ自体（例: labour-market-statistics-june-2026-quarter）が本文に次回リリース予定日を埋め込み公表している（Stats NZ自身の公式コンテンツ）ことを発見し、これを抽出対象とする方式へ変更した。extractors/nz-statsnz.jsで抽出し、前四半期ページ（2026年3月期・ground truth検証用に別途取得）が『June 2026 quarter will be released on 5 August 2026』を埋め込んでいることを確認、ground truthのnz_labour_q2_20260805（2026年6月期）と完全一致した。現在のtargets（2026年6月期ページ）は次サイクルの2026年9月期＝2026-11-04を正しく抽出できることも確認済み。ページURLの四半期ごとの手動更新が必要（next_release_maintenance参照）"
+    },
+    {
+      "id": "nz_stats_calendar",
+      "name_ja": "ニュージーランド統計局（Stats NZ・Release calendar ICS書き出し）",
+      "status": "active",
+      "country": "NZ",
+      "kinds": [
+        "retail_sales"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "calendar_export_base_url": "https://www.stats.govt.nz/release-calendar/calendar-export",
+        "targets": [
+          { "label": "calendar_export_202608", "url": "https://www.stats.govt.nz/release-calendar/calendar-export?month=8&year=2026", "crawl_delay_seconds": 10 }
+        ]
+      },
+      "announce_time_by_kind": {
+        "retail_sales": {
+          "tz": "Pacific/Auckland",
+          "note": "各VEVENTのDTSTARTが現地時刻を個別に持つためconfig固定のlocal_timeは不要（access.provides_exact_time:true）。実測値10:45（jp_boj_speeches・us_frb_speechesと同型のprovides_exact_timeパターン）"
+        }
+      },
+      "notes": "2026-08-22追加（task #66/#70、しょうさん指摘・指示: NZ小売売上高がStats NZの構造的ブロッカーで長らく未捕捉だった件の再調査で新規発見）。release-calendarページ自体は依然としてJS描画のため生HTMLからは内容取得不可（task #15/#66既知のブロッカーは変わらず）だが、同ページが呼び出すcalendar-exportエンドポイント（www.stats.govt.nz/release-calendar/calendar-export?month={M}&year={Y}）はtext/calendarのICSファイルを直接返すことをnz-stats-api-recon一時ワークフローで発見した（script bundleのapp.jsに埋め込まれた文字列参照から特定）。旧・廃止済みのopen data API（api.stats.govt.nz、2024-08-30閉鎖、nz_statsnzのnotes参照）とは全くの別物。実データで『Retail trade survey: June 2026 quarter』（DTSTART 2026-08-24T10:45 Pacific/Auckland）を直接確認済み（VEVENTのSUMMARYフィールド）。robots.txtはこのエンドポイントを明示的にブロックしていない（Disallow: /admin, /Securityのみ）ことも確認済み。1つのICSファイルにStats NZの全リリース種別（運輸統計・酒類統計・雇用関連データ等）が混在するため、event-names.jsonのmatchキーワード『retail trade survey』で小売売上高のみを絞り込む。既存nz_statsnz（雇用統計、next_release_pointer方式の四半期ページ手動メンテナンス）・nz_stats_cpi/nz_stats_gdp（annual_schedule_config、WebSearchベースの年次確定日程）とは独立した別ソースとして追加した（既存3ソースは現状動作しているため変更していない）。将来的にこのICSエンドポイントで既存3ソースも統一・堅牢化できる可能性があるが、本タスクのスコープ外として別途検討する"
     },
     {
       "id": "nz_stats_cpi",
@@ -755,7 +791,8 @@
         "cpi",
         "employment_situation",
         "gdp",
-        "retail_sales"
+        "retail_sales",
+        "capex"
       ],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
@@ -789,9 +826,14 @@
           "local_time": "11:30",
           "tz": "Australia/Sydney",
           "note": "2026-08-15追加（task #50/51）。WebSearchで確認: ABSは従来の月次『Retail Trade』公表を2025-07-31付けで終了し（Retail Trade Replacement Program）、『Monthly Household Spending Indicator』（MHSI）へ統合済み。実fixtureのutcInstant（2026-08-04T01:30:00Z・2026-08-27T01:30:00Z＝いずれも11:30 Sydney）が他ABSリリースと同一の標準枠であることを確認済み"
+        },
+        "capex": {
+          "local_time": "11:30",
+          "tz": "Australia/Sydney",
+          "note": "2026-08-22追加（task #69、しょうさん指摘: Manus版8/24週突合で発見した未追跡リリース）。実fixtureのutcInstant（2026-08-27T01:30:00Z＝11:30 Sydney）が他ABSリリースと同一の標準枠であることを確認済み"
         }
       },
-      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: future-releases-calendarは元々ABSの全リリースを汎用抽出しており（抽出コード変更不要）、trade_balance以外はkinds未登録だったため取りこぼしていた。実fixtureで実在確認済みのCPI・雇用統計（Labour Force）をkindsへ追加。雇用統計は8/17週（2026-08-20発表）でまさに欠損していた事例。時刻は貿易収支と同じ11:30 Sydney（実fixtureのutcInstantでも01:30Z=11:30 AESTと確認済み） | 2026-08-15追記（task #41-4、しょうさん承認済み国×kindマトリクス）: GDP（Australian National Accounts: National Income, Expenditure and Product）を追加。future_releases_calendarは元々ABSの全リリースを汎用抽出する設計のため、抽出コード変更不要でkinds追加のみで対応可能（trade_balance/CPI追加時と同じ理由）。2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済みだが、hardcodeはしていない（本ソースはweekly_scrape型のため、live fetch時にfuture_releases_calendarの実ページ内容が対象週分を含んでいれば自動的に検出される。ローリング6ヶ月窓のため、対象週の6ヶ月以上先の発表分はresidual監視の対象外）。時刻11:30 Sydneyは他ABSリリースと同一の標準枠として複数ソースで確認 | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: future_releases_calendarを実ネットワークで直接取得し25件の行を抽出（抽出コード自体は正常動作を再確認。既存のCPI『Consumer Price Index, Australia @ 2026-08-26』・雇用統計『Labour Force, Australia @ 2026-08-20』は引き続き正しく検出）。ただし2026-08-15時点の実ページの公表ホライズンは2026-08-31までで、次回GDP発表（2026-09-02、予備日程）はこの窓の外のため『national accounts』を含む行はまだ出現していない（想定どおりのタイミング依存であり、抽出機構の欠陥ではない）。9月に入り対象週が近づいた時点で改めてライブ確認が必要"
+      "notes": "抽出はscripts/checkers/extractors/abs.js（<strong class=\"event-name\">タイトル</strong>...<time datetime=\"ISO8601 UTC\">要素をパース）。2026-08-14実測fixtureでground truth（au_trade_20260806、datetime=2026-08-06T01:30:00Z=10:30 JST）と完全一致を確認。正式名称『International Trade in Goods』確認済み（config/event-names.json照合済み）。公表ホライズンが向こう6ヶ月分のみのため年次スケジュールconfig型は不採用、weekly_scrapeとする | 2026-08-15追記（しょうさん指摘: 登録済みソースの全kind未マッピングが欠損主因）: future-releases-calendarは元々ABSの全リリースを汎用抽出しており（抽出コード変更不要）、trade_balance以外はkinds未登録だったため取りこぼしていた。実fixtureで実在確認済みのCPI・雇用統計（Labour Force）をkindsへ追加。雇用統計は8/17週（2026-08-20発表）でまさに欠損していた事例。時刻は貿易収支と同じ11:30 Sydney（実fixtureのutcInstantでも01:30Z=11:30 AESTと確認済み） | 2026-08-15追記（task #41-4、しょうさん承認済み国×kindマトリクス）: GDP（Australian National Accounts: National Income, Expenditure and Product）を追加。future_releases_calendarは元々ABSの全リリースを汎用抽出する設計のため、抽出コード変更不要でkinds追加のみで対応可能（trade_balance/CPI追加時と同じ理由）。2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済みだが、hardcodeはしていない（本ソースはweekly_scrape型のため、live fetch時にfuture_releases_calendarの実ページ内容が対象週分を含んでいれば自動的に検出される。ローリング6ヶ月窓のため、対象週の6ヶ月以上先の発表分はresidual監視の対象外）。時刻11:30 Sydneyは他ABSリリースと同一の標準枠として複数ソースで確認 | 2026-08-15ライブ検証結果（task #41ライブ検証、しょうさん指示）: future_releases_calendarを実ネットワークで直接取得し25件の行を抽出（抽出コード自体は正常動作を再確認。既存のCPI『Consumer Price Index, Australia @ 2026-08-26』・雇用統計『Labour Force, Australia @ 2026-08-20』は引き続き正しく検出）。ただし2026-08-15時点の実ページの公表ホライズンは2026-08-31までで、次回GDP発表（2026-09-02、予備日程）はこの窓の外のため『national accounts』を含む行はまだ出現していない（想定どおりのタイミング依存であり、抽出機構の欠陥ではない）。9月に入り対象週が近づいた時点で改めてライブ確認が必要 | 2026-08-22追記（task #69、しょうさん指摘、Manus版8/24週突合）: Private New Capital Expenditure and Expected Expenditure, Australia（設備投資）を追加。既存のtest fixture（future_releases_calendar.html）に元々『Private New Capital Expenditure and Expected Expenditure, Australia』『June 2026』『2026-08-27T01:30:00Z』の実在行が含まれていたことを確認済み（future-releases-calendarの汎用抽出設計により抽出コード変更不要でkinds追加のみで対応可能。trade_balance/CPI/GDP追加時と同じパターン）。豪州の設備投資はGDP先行指標としてAUD系ペアに影響するため、Manus版と同じ★★（importance_by_kind既定値どおり）で掲載する"
     },
     {
       "id": "us_ism",
@@ -1102,6 +1144,31 @@
       "notes": "毎年7月31日に翌年8回の会合日程を公表。主な意見=会合後6営業日目08:50、議事要旨=次回会合後3営業日目08:50。2026-08-14: mpm_index.htm（HTML）の方がPDFよりも構造的に安定して抽出できると判明したため、抽出対象をPDFからHTML(mpm_index)へ変更（scripts/checkers/extractors/boj.js）。実測fixtureからground truth 2件（2026-08-05議事要旨・2026-08-10主な意見）と完全一致を確認。2027年分も同ページに一部（会合日未確定分含む）掲載されていたため合わせて取り込んだ | 2026-08-15追加（task #19・coverage-gap-2026-08-15.md）: 列[1]「Date of MPM」（会合2日目）からpolicy_rateを追加抽出（scripts/checkers/extractors/boj.js）。2026・2027年とも年8回で既存のopinions_summary/minutes_summaryと会合回数が一致することを確認済み。発表時刻は固定時刻の公式公表が無いため暫定でJST12:00とし、月曜FF事後突合で継続検証する（announce_time_by_kind.policy_rate.note参照） | 2026-08-15追記（task #49、しょうさん指示の残量監視WARN切り分け）: 8/17週で残量監視WARNが発生したが、scheduleは2027-12-27まで47件確定済みで日程データ自体は不足していない。BOJの会合間隔は最大54日（約7.7週）あり、既定のresidual_monitor_weeks=4では会合直後の週に必ず（誤）WARNが出る構造だった（新規データ欠落ではなく、しきい値がBOJの実際の会合頻度に対して短すぎたことが原因）。9週へ引き上げ、既存スケジュールの最大間隔でも誤検知しないようにした"
     },
     {
+      "id": "jp_boj_speeches",
+      "name_ja": "日本銀行「公表予定」（総裁・副総裁・審議委員等の挨拶・講演）",
+      "status": "active",
+      "country": "JP",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          { "label": "calendar", "url": "https://www.boj.or.jp/about/calendar/index.htm" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "official_speech": {
+          "tz": "Asia/Tokyo",
+          "note": "抽出行ごとにlocalTimeを個別に持つ（このtz値のみをresolveCandidateEventのゾーン変換に使う）。access.provides_exact_time:trueのためconfig固定のlocal_timeは不要"
+        }
+      },
+      "notes": "2026-08-22追加（しょうさん指摘、Manus版8/24週突合: 8/27の氷見野副総裁挨拶が未捕捉だった、task #64）。jp_boj（annual_schedule_config、政策金利・主な意見・議事要旨）とは別ソース: こちらは毎週金曜更新のローリング表『公表予定』（boj.or.jp/about/calendar/index.htm）で、日銀に関するほぼ全ての公表物（統計データ・オペレーション実施結果・そして総裁/副総裁/審議委員等の挨拶・講演・記者会見）を1つの表にまとめて掲載している。本ソースはこの表から『資料名』列が【挨拶】【講演】で始まる行のみを抽出する（【記者会見】等の他区分・データ公表行は対象外）。manus-diff-recon一時ワークフローで実HTML構造をライブ確認済み（run 32555894283、2026-08-22）: <table><thead>(公表日|時刻|日|英|資料名)</thead><tbody>...</tbody></table>形式、『27日（木） 10:30 ... 【挨拶】氷見野副総裁（埼玉）』の実在行を直接確認（しょうさん指摘のイベントと完全一致）。年は本ページに明記されないため対象週の年を起点に、月が前より小さくなった時点でのみ+1年するロールオーバー処理をextractor側で実施（scripts/checkers/extractors/boj-speeches.js）。話者の役職は国単位の固定ラベルではなくofficials.json側の個別role_jaを使う設計とした（同ページには副総裁・審議委員・理事など役職の異なる複数の話者が混在するため、US（FRB理事で統一）と同じ国単位定数の方式は使えない。scripts/lib/build-ledger.js resolveRuleGeneratedName参照）"
+    },
+    {
       "id": "us_treasury",
       "name_ja": "米財務省（TreasuryDirect／Fiscal Data）",
       "status": "active",
@@ -1180,21 +1247,34 @@
           "tz": "Asia/Tokyo"
         }
       },
-      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 全国消費者物価指数（総務省統計局）。公表ルールは公式ページ本文（stat.go.jp/data/cpi/4-1.html）『全国の前月分指数を、原則として毎月19日を含む週の金曜日の午前8時30分に公表』。schedule[]はこの固定ルールから2026年通年13回分を算出した（Claude Code側で算出式の自己整合性を検算済み）。2025年基準への改定が2027年2月分から予定されている（総務省2026年発表、soumu.go.jp press release 01000329）が、2026年中の名称・ルールには影響しない | 2026-08-15ライブ検証PASS（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク・Shift_JISデコード対応）: 4-1.html本文の公表ルール記載文言を実ページで直接確認（当初WebSearch確認どおり一致）。さらにindex.htmlの『更新情報』欄で『令和8年7月24日 2020年基準 消費者物価指数 全国 2026年（令和8年）6月分』の実績記載を直接確認し、算出式（19日を含む週の金曜08:30）による2026-07-24との一致を再確認した（他12回は算出のみ、個別の実績照合はしていない）",
+      "notes": "task #41-2（2026-08-15、しょうさん承認済み国×kindマトリクス）: 全国消費者物価指数（総務省統計局）。公表ルールは公式ページ本文（stat.go.jp/data/cpi/4-1.html）『全国の前月分指数を、原則として毎月19日を含む週の金曜日の午前8時30分に公表』。schedule[]はこの固定ルールから2026年通年13回分を算出した（Claude Code側で算出式の自己整合性を検算済み）。2025年基準への改定が2027年2月分から予定されている（総務省2026年発表、soumu.go.jp press release 01000329）が、2026年中の名称・ルールには影響しない | 2026-08-15ライブ検証PASS（task #41ライブ検証、しょうさん指示、GitHub Actions実ネットワーク・Shift_JISデコード対応）: 4-1.html本文の公表ルール記載文言を実ページで直接確認（当初WebSearch確認どおり一致）。さらにindex.htmlの『更新情報』欄で『令和8年7月24日 2020年基準 消費者物価指数 全国 2026年（令和8年）6月分』の実績記載を直接確認し、算出式（19日を含む週の金曜08:30）による2026-07-24との一致を再確認した（他12回は算出のみ、個別の実績照合はしていない） | 2026-08-22（task #65、しょうさん指摘、Manus版8/24週突合）: 東京都区部消費者物価指数（中旬速報値、subtype:tokyo）を追加。同じ4-1.html本文に『東京都区部の当月分指数の中旬速報値を、原則として毎月26日を含む週の金曜日の午前8時30分に公表しています』と明記されており（manus-diff-recon一時ワークフローで再ライブ確認済み）、全国分（前月分・19日を含む週）とは別ルール・別リリース。当月分データを当月中に発表する点に注意。算出式は実データ2点（stat.go.jp「東京都区部速報」ページの実績表示2026-07-31＝2026年7月分中旬速報値、およびManus版が指摘する2026-08-28＝2026年8月分）といずれも一致することを検算済み",
       "schedule": [
-        { "date": "2026-01-23", "kind": "cpi", "note": "2025年12月分。算出のみ（19日を含む週の金曜08:30ルール）" },
-        { "date": "2026-02-20", "kind": "cpi", "note": "2026年1月分。算出のみ" },
-        { "date": "2026-03-20", "kind": "cpi", "note": "2026年2月分。算出のみ" },
-        { "date": "2026-04-24", "kind": "cpi", "note": "2026年3月分。算出のみ" },
-        { "date": "2026-05-22", "kind": "cpi", "note": "2026年4月分。算出のみ" },
-        { "date": "2026-06-19", "kind": "cpi", "note": "2026年5月分。算出のみ" },
-        { "date": "2026-07-24", "kind": "cpi", "note": "2026年6月分。当初NHK・money-pro.net等のWebSearchで確認、2026-08-15ライブ検証でstat.go.jp公式ページ（更新情報欄）の実績記載からも直接再確認済み" },
-        { "date": "2026-08-21", "kind": "cpi", "note": "2026年7月分。算出のみ。8/17週の欠損事例（しょうさん指摘の『日本の全国CPI』）に該当" },
-        { "date": "2026-09-18", "kind": "cpi", "note": "2026年8月分。算出のみ" },
-        { "date": "2026-10-23", "kind": "cpi", "note": "2026年9月分。算出のみ" },
-        { "date": "2026-11-20", "kind": "cpi", "note": "2026年10月分。算出のみ" },
-        { "date": "2026-12-18", "kind": "cpi", "note": "2026年11月分。算出のみ" },
-        { "date": "2027-01-22", "kind": "cpi", "note": "2026年12月分。算出のみ" }
+        { "date": "2026-01-23", "kind": "cpi", "subtype": "national", "note": "2025年12月分。算出のみ（19日を含む週の金曜08:30ルール）" },
+        { "date": "2026-02-20", "kind": "cpi", "subtype": "national", "note": "2026年1月分。算出のみ" },
+        { "date": "2026-03-20", "kind": "cpi", "subtype": "national", "note": "2026年2月分。算出のみ" },
+        { "date": "2026-04-24", "kind": "cpi", "subtype": "national", "note": "2026年3月分。算出のみ" },
+        { "date": "2026-05-22", "kind": "cpi", "subtype": "national", "note": "2026年4月分。算出のみ" },
+        { "date": "2026-06-19", "kind": "cpi", "subtype": "national", "note": "2026年5月分。算出のみ" },
+        { "date": "2026-07-24", "kind": "cpi", "subtype": "national", "note": "2026年6月分。当初NHK・money-pro.net等のWebSearchで確認、2026-08-15ライブ検証でstat.go.jp公式ページ（更新情報欄）の実績記載からも直接再確認済み" },
+        { "date": "2026-08-21", "kind": "cpi", "subtype": "national", "note": "2026年7月分。算出のみ。8/17週の欠損事例（しょうさん指摘の『日本の全国CPI』）に該当" },
+        { "date": "2026-09-18", "kind": "cpi", "subtype": "national", "note": "2026年8月分。算出のみ" },
+        { "date": "2026-10-23", "kind": "cpi", "subtype": "national", "note": "2026年9月分。算出のみ" },
+        { "date": "2026-11-20", "kind": "cpi", "subtype": "national", "note": "2026年10月分。算出のみ" },
+        { "date": "2026-12-18", "kind": "cpi", "subtype": "national", "note": "2026年11月分。算出のみ" },
+        { "date": "2027-01-22", "kind": "cpi", "subtype": "national", "note": "2026年12月分。算出のみ" },
+        { "date": "2026-01-30", "kind": "cpi", "subtype": "tokyo", "note": "2026年1月分（中旬速報値、当月発表）。算出のみ（26日を含む週の金曜08:30ルール）" },
+        { "date": "2026-02-27", "kind": "cpi", "subtype": "tokyo", "note": "2026年2月分。算出のみ" },
+        { "date": "2026-03-27", "kind": "cpi", "subtype": "tokyo", "note": "2026年3月分。算出のみ" },
+        { "date": "2026-05-01", "kind": "cpi", "subtype": "tokyo", "note": "2026年4月分。26日が日曜のため週の金曜は翌月に越境（4/26〜5/2の週の金曜=5/1）。算出のみ" },
+        { "date": "2026-05-29", "kind": "cpi", "subtype": "tokyo", "note": "2026年5月分。算出のみ" },
+        { "date": "2026-06-26", "kind": "cpi", "subtype": "tokyo", "note": "2026年6月分。算出のみ" },
+        { "date": "2026-07-31", "kind": "cpi", "subtype": "tokyo", "note": "2026年7月分。2026-08-22ライブ検証PASS（manus-diff-recon一時ワークフロー）: stat.go.jp「東京都区部速報」ページ（sokuhou/tsuki/index-t.html）の実績表示『2020年基準 消費者物価指数 東京都区部 2026年（令和8年）7月分（中旬速報値）2026年7月31日公表』を直接確認、算出式と完全一致" },
+        { "date": "2026-08-28", "kind": "cpi", "subtype": "tokyo", "note": "2026年8月分。8/24週Manus突合（task #65）の欠損事例（しょうさん指摘の『東京都区部消費者物価指数』）に該当。Manus版の指摘日付2026-08-28と算出式が完全一致" },
+        { "date": "2026-09-25", "kind": "cpi", "subtype": "tokyo", "note": "2026年9月分。26日が土曜のため週の金曜は前倒し（9/20〜9/26の週の金曜=9/25）。算出のみ" },
+        { "date": "2026-10-30", "kind": "cpi", "subtype": "tokyo", "note": "2026年10月分。算出のみ" },
+        { "date": "2026-11-27", "kind": "cpi", "subtype": "tokyo", "note": "2026年11月分。算出のみ" },
+        { "date": "2026-12-25", "kind": "cpi", "subtype": "tokyo", "note": "2026年12月分。26日が土曜のため週の金曜は前倒し（12/20〜12/26の週の金曜=12/25）。算出のみ" },
+        { "date": "2027-01-29", "kind": "cpi", "subtype": "tokyo", "note": "2027年1月分。算出のみ" }
       ],
       "residual_monitor_weeks": 4
     },

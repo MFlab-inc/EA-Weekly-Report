@@ -19,6 +19,9 @@ task #13（検証スクリプト5本の移植＋新設3検査）、しょうさ�
     "target_week_start": "2026-08-17",                 // 対象週月曜
     "target_week_end": "2026-08-21",                   // 対象週金曜
     "pipeline_version": "...",                          // 生成パイプラインのバージョン識別子
+    "generated_from_commit": "03fcd77b...",             // 生成時点のmainブランチコミットSHA（ローカル生成時等はnull）。
+                                                          // weekly.ymlの冪等チェックが「対象週ファイルの存在」だけでなく
+                                                          // 「現在のHEADと同一コミットで生成済みか」を判定するために使う
     "outcome": "PUBLISH_READY",                         // "PUBLISH_READY" | "HOLD"
     "warnings": ["..."],                                 // 非ブロッキング（残量監視WARN・定例欠落WARN等）
     "holds": []                                           // outcome=HOLD時は1件以上必須（HOLD理由）

@@ -44,10 +44,44 @@ function issueYearMonthJaFromDate(dateStr) {
 }
 
 // official_speech（要人発言）の役職ラベル。country単位で1つに決め打ちできる情報源のみ登録する
-// （2026-08-15時点、情報源はus_frb_speeches[FRB理事講演RSS]のみ）
+// （2026-08-15時点、情報源はus_frb_speeches[FRB理事講演RSS]のみ。全FRB理事が同一の日本語役職
+// 表記「FRB理事」で通るため国単位定数が成立する）。JPは対象外（2026-08-22、task #64・
+// jp_boj_speeches新設）: BOJの話者は副総裁・審議委員・理事など役職が話者ごとに異なるため、
+// 国単位の固定ラベルでは成立しない。officials.jsonで話者本人が特定できた場合はその人物の
+// role_ja（例:「日銀副総裁」）を直接使う設計とした（下記resolveRuleGeneratedName参照）。
+// 未登録の話者（田村・高田・神山等）はofficial=null扱いとなりFALLBACK_KIND_LABEL『要人発言』へ
 const OFFICIAL_SPEECH_ROLE_BY_COUNTRY = {
   US: 'FRB理事',
 };
+
+// official_speechの重要度を話者の格（officials.jsonのrole_rank）で決める（2026-08-22、task #68、
+// しょうさん指摘: 一律★★★は審議委員クラスの地方講演まで昇格させ★★★の希少性を損なうため不採用。
+// フラッシュPMIを★★据え置きとしたのと同じ理由）。governor（総裁・議長）/deputy_governor（副総裁）
+// →★★★、board_member（審議委員・理事・地区連銀総裁等）→★★。話者が未登録・role_rank未設定の
+// 場合は安全側でboard_member相当（★★）とし、追跡できるようwarningを添えて返す（下記
+// resolveOfficialSpeechImportance参照。呼び出し側[buildEventsSection]がwarningsを収集しmeta.warningsへ
+// 反映する）
+const OFFICIAL_SPEECH_IMPORTANCE_BY_RANK = {
+  governor: 3,
+  deputy_governor: 3,
+  board_member: 2,
+};
+
+// candidate.kind !== 'official_speech' はcandidate.importanceをそのまま素通しする（他kindには無関係）。
+// official_speechはimportance_by_kindの既定値（★★）を無視し、話者のrole_rankから動的に決め直す
+function resolveOfficialSpeechImportance(candidate, officials) {
+  if (candidate.kind !== 'official_speech') return { importance: candidate.importance, warning: null };
+  const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName);
+  const rank = official && official.verified ? official.role_rank : null;
+  if (rank && OFFICIAL_SPEECH_IMPORTANCE_BY_RANK[rank] != null) {
+    return { importance: OFFICIAL_SPEECH_IMPORTANCE_BY_RANK[rank], warning: null };
+  }
+  const speaker = candidate.speakerLastName || '(話者不明)';
+  return {
+    importance: OFFICIAL_SPEECH_IMPORTANCE_BY_RANK.board_member,
+    warning: `official_speechの話者の格を判定できず★★（安全側）とした: country=${candidate.country} speaker="${speaker}" date=${candidate.date}（officials.json未登録、またはrole_rank未設定）`,
+  };
+}
 
 // minutes_summary（中銀議事要旨）のBOJ以外向け国別命名（task #41-1、しょうさん承認済み
 // 国×kindマトリクス）。BOJ（naming.bojMinutesName、periodJa付き）とは異なり、各中銀の
@@ -75,8 +109,12 @@ const MINUTES_SUMMARY_NAME_BY_COUNTRY = {
 // - bond_auction: candidate.tenorJa（mof.js/us-treasury.jsが抽出）が無ければ対象外。
 //   country=JP/USのみテンプレートが定義されている（SPEC §4.2）
 // - official_speech: candidate.speakerLastNameをofficials.jsonと照合（naming.resolveOfficialBySurname）。
-//   不一致（未登録・未指定とも）でもnaming.speechNameがverified:falseと同じ扱いで役職のみを返す。
-//   2026-08-15時点officials.jsonにFRB理事個人（議長以外）は未登録（task #17）のため実運用では
+//   一致し verified:true であれば、その人物自身のrole_ja（officials.json側）を使う（2026-08-22、
+//   task #64修正: BOJは副総裁・審議委員・理事等で話者ごとに役職が異なるため、国単位の固定ラベル
+//   [OFFICIAL_SPEECH_ROLE_BY_COUNTRY]では表現できない。US[FRB理事で統一]は元々この分岐に来ても
+//   同じ値になるため後方互換）。不一致（未登録・未指定・未verified）はOFFICIAL_SPEECH_ROLE_BY_COUNTRY
+//   の国単位フォールバックへ（無ければnull→FALLBACK_KIND_LABEL『要人発言』）。
+//   2026-08-15時点officials.jsonにFRB理事個人（議長以外）は未登録（task #17）のため米国は実運用では
 //   常に役職のみになる
 // - testimony: manual-events.json由来の候補は常にcandidate.displayNameを持つため、
 //   本関数を経由する前にcandidateToLedgerEvent側で優先採用される（対象外）
@@ -104,9 +142,12 @@ function resolveRuleGeneratedName(candidate, officials) {
     return null;
   }
   if (candidate.kind === 'official_speech') {
+    const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName);
+    if (official && official.verified && official.role_ja) {
+      return naming.speechName(official, official.role_ja);
+    }
     const roleJa = OFFICIAL_SPEECH_ROLE_BY_COUNTRY[candidate.country];
     if (!roleJa) return null;
-    const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName);
     return naming.speechName(official, roleJa);
   }
   return null;
@@ -258,11 +299,20 @@ function buildSourcesSection(report, sourcesConfig, generatedAt) {
 }
 
 // candidates: buildObservationSummary()と同じ形の候補配列（manual含む）。importance 0/nullは
-// 呼び出し側で除外済みの前提（0=非掲載は台帳に載せない、というスキーマ規約のため）
+// 呼び出し側で除外済みの前提（0=非掲載は台帳に載せない、というスキーマ規約のため）。
+// official_speechはresolveOfficialSpeechImportanceで話者のrole_rankから重要度を決め直してから
+// candidateToLedgerEventへ渡す（2026-08-22、task #68）。話者未登録等で安全側判定になった場合の
+// warningsも合わせて返す（呼び出し側[buildLedger]がmeta.warningsへ合流させる）
 function buildEventsSection(candidates, officials) {
   const usedIds = new Set();
-  const events = candidates.map((c) => candidateToLedgerEvent(c, usedIds, officials));
-  return computeBundleIds(events);
+  const warnings = [];
+  const adjusted = candidates.map((c) => {
+    const { importance, warning } = resolveOfficialSpeechImportance(c, officials);
+    if (warning) warnings.push(warning);
+    return importance === c.importance ? c : { ...c, importance };
+  });
+  const events = adjusted.map((c) => candidateToLedgerEvent(c, usedIds, officials));
+  return { events: computeBundleIds(events), warnings };
 }
 
 function buildManualSourceEntry(manualEventsConfig, targetWeekStart, targetWeekEnd, generatedAt) {
@@ -299,6 +349,10 @@ function buildMetaMessages(report) {
 // recurringChecksStatus: [{name, applies_this_week, found}]（呼び出し側でimportanceRules.recurring_checks
 //   とmatchesRecurringRule/report.resultsのfoundKindsから組み立てる。ESM依存関数を含むため
 //   build-ledger.js自体には持たせず、呼び出し側[scripts/phase1/以下]で計算して渡す）
+// generatedFromCommit: 生成時点のmainブランチコミットSHA（省略時null。scripts/build-ledger.mjsが
+//   GITHUB_SHAから設定する）。weekly.ymlの冪等チェックが「対象週ファイルの存在有無」だけでなく
+//   「現在のHEADと同一コミットで生成済みか」まで見られるようにするための識別子（2026-08-29是正、
+//   しょうさん指摘: 手動実行が先取り生成した週をコード修正後も永久にスキップしてしまう不具合があった）
 function buildLedger({
   report,
   sourcesConfig,
@@ -309,6 +363,7 @@ function buildLedger({
   recurringChecksStatus,
   pipelineVersion,
   generatedAt,
+  generatedFromCommit,
 }) {
   const { warnings, holds } = buildMetaMessages(report);
   const outcome = report.outcome.status === 'HOLD' ? 'HOLD' : 'PUBLISH_READY';
@@ -316,7 +371,7 @@ function buildLedger({
   const sources = buildSourcesSection(report, sourcesConfig, generatedAt);
   sources.push(buildManualSourceEntry(manualEventsConfig, report.targetWeek.start, report.targetWeek.end, generatedAt));
 
-  const events = buildEventsSection(candidates, officialsConfig?.officials);
+  const { events, warnings: officialSpeechWarnings } = buildEventsSection(candidates, officialsConfig?.officials);
 
   return {
     meta: {
@@ -325,8 +380,9 @@ function buildLedger({
       target_week_start: report.targetWeek.start,
       target_week_end: report.targetWeek.end,
       pipeline_version: pipelineVersion,
+      generated_from_commit: generatedFromCommit || null,
       outcome,
-      warnings,
+      warnings: [...warnings, ...officialSpeechWarnings],
       holds,
     },
     sources,
@@ -345,6 +401,7 @@ module.exports = {
   buildLedger,
   candidateToLedgerEvent,
   resolveRuleGeneratedName,
+  resolveOfficialSpeechImportance,
   computeBundleIds,
   makeEventId,
   minutesToJstIso,

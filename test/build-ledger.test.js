@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
+const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, resolveOfficialSpeechImportance, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
 const { validateLedger } = require('../scripts/lib/validate-ledger');
 
 const officials = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'officials.json'), 'utf8')).officials;
@@ -109,6 +109,53 @@ test('resolveRuleGeneratedName: official_speech（US）はspeakerLastNameの照�
   assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'US', speakerLastName: null }, officials), 'FRB理事の発言');
 });
 
+// task #64（しょうさん指摘、Manus版8/24週突合）の回帰テスト: jp_boj_speeches新設に伴い、
+// BOJの話者はofficials.json登録者本人のrole_ja（例:「日銀副総裁」）を使う設計へ変更した
+// （US=OFFICIAL_SPEECH_ROLE_BY_COUNTRYの国単位固定ラベルとは異なる経路）
+test('resolveRuleGeneratedName: official_speech（JP・officials.json登録済みの氷見野副総裁）は本人のrole_jaで解決する', () => {
+  assert.equal(
+    resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: '氷見野' }, officials),
+    '氷見野日銀副総裁の発言'
+  );
+});
+
+test('resolveRuleGeneratedName: official_speech（JP・未登録話者）はOFFICIAL_SPEECH_ROLE_BY_COUNTRYにJPが無いためnullを返す（FALLBACK_KIND_LABEL「要人発言」へ）', () => {
+  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: '田村' }, officials), null);
+  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: null }, officials), null);
+});
+
+// task #68（しょうさん指摘: 一律★★★は不採用、話者の格[role_rank]に応じて重要度を決める）の回帰テスト
+test('resolveOfficialSpeechImportance: official_speech以外はcandidate.importanceをそのまま素通しする', () => {
+  assert.deepEqual(resolveOfficialSpeechImportance({ kind: 'policy_rate', importance: 3 }, officials), { importance: 3, warning: null });
+});
+
+test('resolveOfficialSpeechImportance: governor（日銀総裁・植田）は★★★、warningは無い', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '植田', date: '2026-08-27' }, officials);
+  assert.deepEqual(r, { importance: 3, warning: null });
+});
+
+test('resolveOfficialSpeechImportance: deputy_governor（日銀副総裁・氷見野）は★★★、warningは無い', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '氷見野', date: '2026-08-27' }, officials);
+  assert.deepEqual(r, { importance: 3, warning: null });
+});
+
+test('resolveOfficialSpeechImportance: 未登録話者（田村審議委員等）は安全側で★★、warningを添える', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '田村', date: '2026-08-27' }, officials);
+  assert.equal(r.importance, 2);
+  assert.ok(r.warning && r.warning.includes('田村'), 'warningに話者名を含むべき');
+});
+
+test('resolveOfficialSpeechImportance: 話者未指定（speakerLastName null）も安全側で★★、warningを添える', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'US', speakerLastName: null, date: '2026-08-06' }, officials);
+  assert.equal(r.importance, 2);
+  assert.ok(r.warning && r.warning.includes('話者不明'));
+});
+
+test('resolveOfficialSpeechImportance: FRB議長（governor・Warsh、RSSタイトルは英語姓）は★★★', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'US', speakerLastName: 'Warsh', date: '2026-08-06' }, officials);
+  assert.deepEqual(r, { importance: 3, warning: null });
+});
+
 test('resolveRuleGeneratedName: BANK_ABBR_BY_COUNTRY未収録の国はnullを返す', () => {
   assert.equal(resolveRuleGeneratedName({ kind: 'policy_rate', country: 'ZZ' }, officials), null);
 });
@@ -182,6 +229,29 @@ test('buildLedger: 実データに近い合成入力からスキーマに合格�
   assert.equal(ledger.meta.outcome, 'PUBLISH_READY');
   assert.equal(ledger.events.length, 1);
   assert.ok(ledger.sources.some((s) => s.source_id === 'manual'), '手動イベント用のmanualソースが常に追加される');
+});
+
+// 2026-08-29追加（しょうさん指摘: weekly.ymlの冪等ガードが「対象週ファイルの存在有無」だけを見て
+// いたため、手動実行が先取り生成した週をコード修正後も永久にスキップしてしまう不具合があった）。
+// meta.generated_from_commitはこの冪等判定の材料になるため、渡した値がそのままmetaに載ること、
+// 未指定時はnullになる（旧形式の台帳・ローカル生成との後方互換）ことを確認する
+test('buildLedger: generatedFromCommitを渡すとmeta.generated_from_commitに反映され、未指定時はnullになる', () => {
+  const report = syntheticReport();
+  const sourcesConfig = syntheticSourcesConfig();
+  const base = {
+    report, sourcesConfig, manualEventsConfig: { entries: [] },
+    candidates: [{ ...report.results[0].thisWeek[0], sourceId: 'au_rba', sourceEvidence: 'Cash Rate（ground truth一致確認済み）' }],
+    expectedCoverageResult: { required: new Array(8).fill(0), missing: [] },
+    recurringChecksStatus: [], pipelineVersion: 'test-pipeline-1', generatedAt: '2026-08-15T08:06:00+09:00',
+  };
+
+  const withCommit = buildLedger({ ...base, generatedFromCommit: '03fcd77b3dcc62205fe446a0c8c7e9f91b206c2e' });
+  assert.equal(withCommit.meta.generated_from_commit, '03fcd77b3dcc62205fe446a0c8c7e9f91b206c2e');
+  assert.equal(validateLedger(withCommit).ok, true);
+
+  const withoutCommit = buildLedger(base);
+  assert.equal(withoutCommit.meta.generated_from_commit, null);
+  assert.equal(validateLedger(withoutCommit).ok, true);
 });
 
 test('buildLedger: officialsConfigを渡すと規則生成命名（naming.js）がイベントへ反映される', () => {

@@ -31,6 +31,11 @@ function validateMeta(meta, errors) {
     errors.push('meta.target_week_end: target_week_start以後である必要があります');
   }
   if (!isNonEmptyString(meta.pipeline_version)) errors.push('meta.pipeline_version: 空でない文字列が必要です');
+  // generated_from_commit: 任意項目（ローカル生成・旧台帳ではnull/未設定を許容）。
+  // 存在する場合のみ型を検証する（2026-08-29追加、冪等ガードのコミット比較用）
+  if (meta.generated_from_commit != null && !isNonEmptyString(meta.generated_from_commit)) {
+    errors.push('meta.generated_from_commit: 文字列またはnullが必要です');
+  }
   if (!OUTCOMES.has(meta.outcome)) errors.push(`meta.outcome: ${[...OUTCOMES].join('|')}のいずれかが必要です`);
   if (!Array.isArray(meta.warnings)) errors.push('meta.warnings: 配列が必要です');
   if (!Array.isArray(meta.holds)) errors.push('meta.holds: 配列が必要です');
