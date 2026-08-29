@@ -126,15 +126,15 @@ test('resolveGovernor: 該当なしはnull（財務長官等はcentral_bank_gove
   assert.equal(naming.resolveGovernor(financeMinistryOnly, 'US'), null);
 });
 
-test('resolveOfficialBySurname: full_name欄の英語表記に部分一致すれば解決する', () => {
+test('resolveOfficialBySurname: full_name欄の英語表記に部分一致し、かつ国が一致すれば解決する', () => {
   // 実在のofficials.jsonエントリ（RBA総裁）の英語表記「Michele Bullock」で照合できることを確認
-  const found = naming.resolveOfficialBySurname(officials, 'Bullock');
+  const found = naming.resolveOfficialBySurname(officials, 'Bullock', 'AU');
   assert.equal(found.role_ja, 'RBA総裁');
 });
 
 test('resolveOfficialBySurname: 現時点のofficials.jsonにはFRB理事個人（議長以外）が未登録のため常にnull（task #17）', () => {
-  assert.equal(naming.resolveOfficialBySurname(officials, 'Cook'), null);
-  assert.equal(naming.resolveOfficialBySurname(officials, 'Waller'), null);
+  assert.equal(naming.resolveOfficialBySurname(officials, 'Cook', 'US'), null);
+  assert.equal(naming.resolveOfficialBySurname(officials, 'Waller', 'US'), null);
 });
 
 test('resolveOfficialBySurname: task #17登録後を想定した合成データでは解決できる（既存のfull_name併記慣行を踏襲する前提）', () => {
@@ -142,14 +142,26 @@ test('resolveOfficialBySurname: task #17登録後を想定した合成データ�
     ...officials,
     { role_ja: 'FRB理事', role_type: 'fed_governor', country: 'US', name_ja: 'クック', verified: true, full_name: 'リサ・クック（Lisa D. Cook）' },
   ];
-  const found = naming.resolveOfficialBySurname(futureOfficials, 'Cook');
+  const found = naming.resolveOfficialBySurname(futureOfficials, 'Cook', 'US');
   assert.equal(found.role_ja, 'FRB理事');
   assert.equal(naming.speechName(found, found.role_ja), 'クックFRB理事の発言');
 });
 
-test('resolveOfficialBySurname: 該当なし・surname未指定はnull', () => {
-  assert.equal(naming.resolveOfficialBySurname(officials, 'NonexistentSurname'), null);
-  assert.equal(naming.resolveOfficialBySurname(officials, null), null);
+test('resolveOfficialBySurname: 該当なし・surname未指定・country未指定はnull', () => {
+  assert.equal(naming.resolveOfficialBySurname(officials, 'NonexistentSurname', 'AU'), null);
+  assert.equal(naming.resolveOfficialBySurname(officials, null, 'AU'), null);
+  assert.equal(naming.resolveOfficialBySurname(officials, 'Bullock', undefined), null, 'countryが未指定ならフェールクローズで一致なし（task #88）');
+});
+
+// task #88（2026-08-30、しょうさん指摘: BOEのAndrew Bailey/David Bailey同姓問題を受けた
+// officials.json姓ベース照合の横断監査で発覚）: 旧実装はcountryを一切考慮しなかったため、
+// ある国の話者の姓が別の国の登録済み総裁のfull_nameの部分文字列と一致すると誤って
+// その国の総裁として解決されてしまっていた。countryスコープにより解消されたことを確認する
+test('resolveOfficialBySurname: countryが不一致なら姓が完全一致してもnull（cross-country誤認識の回帰防止、task #88）', () => {
+  // "Bullock"はAU総裁の姓だが、米国の話者として照会すれば一致してはいけない
+  assert.equal(naming.resolveOfficialBySurname(officials, 'Bullock', 'US'), null);
+  // "Bailey"は英国総裁の姓だが、米国の話者として照会すれば一致してはいけない
+  assert.equal(naming.resolveOfficialBySurname(officials, 'Bailey', 'US'), null);
 });
 
 // periodJa書式（既刊2週の実例に準拠）。scripts/lib/boj-meeting-schedule.jsのresolveBojMeetingRange()

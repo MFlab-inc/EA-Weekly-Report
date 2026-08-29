@@ -97,6 +97,15 @@
 
 **反映**: `scripts/lib/month-end-notice.js`のmonthEndBusinessDay()に実装済み（`gbBankHolidaysMaxYear() < y+1`でフェールクローズ）。回帰テストは`test/month-end-notice.test.js`の「2026年8月は8/31が英国銀行休業日のため8/28（金）になる」で固定化済み
 
+### O6. official_speechの姓ベース照合に国スコープが無かった構造的欠陥 → 修正・クローズ（2026-08-30）
+
+しょうさん指摘: BOEのAndrew Bailey（総裁）/David Bailey（別人のExecutive Director）が同一フィードに混在していた実例（task #72）を受け、officials.jsonの姓ベース照合を使っている箇所を横断監査した。
+
+- **発覚した欠陥**: `scripts/lib/naming.js`の`resolveOfficialBySurname(officials, surnameEn)`は、countryを一切考慮せず`officials.json`の全件から`full_name`部分一致で検索していた。呼び出し元`scripts/lib/build-ledger.js`の2箇所（`resolveOfficialSpeechImportance`・`resolveRuleGeneratedName`）とも`candidate.country`を渡していなかった。実際に確認したところ、`candidateToLedgerEvent`で country=US・speakerLastName="Bailey" という（架空の）候補を通すと、国を問わず英国総裁のfull_name「アンドリュー・ベイリー（Andrew Bailey）」に部分一致し、誤って「BOE総裁」として★★★に解決されることを実証した。BOEの同姓別人問題（Andrew/David、同一国内）よりも広い、**任意の国をまたいだ姓の偶然一致**という構造的な脆弱性だった
+- **FRB・BOJ個別の実データ調査**（WebSearch）: FRB現行理事会（Warsh・Jefferson・Bowman・Barr・Cook・Waller）、BOJ政策委員会（総裁植田・副総裁内田/氷見野・審議委員田村/高田/浅田/佐藤ほか、2026年3月・6月に一部交代）とも、現時点で登録済み総裁の姓と偶然衝突する実在の同僚は確認できなかった（内田副総裁が未登録である点は別途の登録漏れとして留意）。ただし偶然衝突が無いことは将来にわたる保証にはならないため、country引数を必須化する修正を優先した
+- **修正**: `resolveOfficialBySurname`にcountry引数を追加（未指定時はフェールクローズで一致なし）。build-ledger.jsの2呼び出し箇所を`candidate.country`を渡すよう修正。既存テスト（test/naming.test.js・test/extractors-boe-speeches.test.js）の直接呼び出し箇所も country引数付きに更新し、cross-country誤認識の回帰テストを追加
+- **反映**: `docs/`本項目・`scripts/lib/naming.js`のコメントに経緯を記録済み。修正後、`candidateToLedgerEvent`で同じ架空シナリオ（US・Bailey）を再検証し、正しく汎用フォールバック（「FRB理事の発言」）へ落ちることを確認した
+
 ### O2. 公式ソースチェッカーの未実装期間中の掲載除外範囲
 
 `docs/phase1-official-sources.md` の実装順に従い、優先度Bのソース（財務省JGB入札・FRB理事講演・S&P Global系PMI・ADP・Ivey）が未実装の間、該当イベントは掲載除外＋WARN運用となる（SPEC §3.4）。検収基準1（既刊2週100%捕捉）は全ソース実装完了時点で満たす。実装完了までの中間状態をどう扱うか（並行運用開始のタイミングに影響）は、優先度Bソースの実装完了後に改めて相談する。

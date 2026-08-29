@@ -104,9 +104,17 @@ function resolveGovernor(officials, country) {
 // （Cook・Waller等）は未登録（task #17）のため、実運用では常にnull＝役職のみ命名
 // （SPEC §4.2のverified:falseフォールバック）になる。task #17でFRB理事個々の登録が
 // 追加され、同じfull_name併記慣行が踏襲されれば、本関数はそのまま機能する
-function resolveOfficialBySurname(officials, surnameEn) {
-  if (!surnameEn) return null;
-  return (officials || []).find((o) => o.full_name && o.full_name.includes(surnameEn)) || null;
+// task #88（2026-08-30、しょうさん指摘: BOEのAndrew Bailey/David Bailey同姓問題を受けた横断監査で発覚）。
+// 従来はcountryを一切考慮せずofficials.json全件からfull_name部分一致で検索していたため、
+// 別の国の話者の姓がたまたま別の国の登録済み総裁のfull_nameの部分文字列と一致すると、
+// 誤ってその国の総裁として解決されてしまう構造的な欠陥があった（例: "Bailey"という姓だけの
+// 話者がどの国から来ても、英国総裁のfull_name"アンドリュー・ベイリー（Andrew Bailey）"の
+// 部分文字列と一致してしまい、国を問わずBOE総裁に誤認識される）。countryを必須の第3引数とし、
+// 未指定時はフェールクローズで一致なし（同姓の別人問題と同じ「不確実なら安全側」の方針）。
+// 呼び出し側は必ずcandidate.countryを渡すこと（scripts/lib/build-ledger.js参照）
+function resolveOfficialBySurname(officials, surnameEn, country) {
+  if (!surnameEn || !country) return null;
+  return (officials || []).find((o) => o.country === country && o.full_name && o.full_name.includes(surnameEn)) || null;
 }
 
 module.exports = {
