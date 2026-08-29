@@ -1,11 +1,11 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-29T13:08:59+09:00",
+    "generated_at": "2026-08-29T13:20:39+09:00",
     "target_week_start": "2026-08-31",
     "target_week_end": "2026-09-04",
     "pipeline_version": "ea-weekly-report@0.1.0",
-    "generated_from_commit": "6de3cf307ddee91cf80ab816962582c429d31bbd",
+    "generated_from_commit": "69c5cbf3e203e8cdf68e9cbe782d3147ee93c28d",
     "outcome": "PUBLISH_READY",
     "warnings": [
       "残量監視WARN: au_rba — 年次スケジュールconfigに対象週(2026-08-31)から4週先(2026-09-28)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
@@ -24,7 +24,7 @@
     {
       "source_id": "us_bls_fred",
       "type": "date_api_fred",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://api.stlouisfed.org/fred/release/dates",
       "ok": true,
       "http_status": null,
@@ -35,7 +35,7 @@
     {
       "source_id": "au_rba",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.rba.gov.au/schedules-events/board-meeting-schedules.html",
       "ok": true,
       "http_status": null,
@@ -46,7 +46,7 @@
     {
       "source_id": "us_census",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.census.gov/economic-indicators/calendar-listview.html",
       "ok": true,
       "http_status": null,
@@ -57,7 +57,7 @@
     {
       "source_id": "gb_ons",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP",
       "ok": true,
       "http_status": null,
@@ -68,7 +68,7 @@
     {
       "source_id": "nz_statsnz",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
       "ok": true,
       "http_status": null,
@@ -79,7 +79,7 @@
     {
       "source_id": "nz_stats_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/calendar-export?month=8&year=2026",
       "ok": true,
       "http_status": null,
@@ -90,7 +90,7 @@
     {
       "source_id": "nz_stats_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -101,7 +101,7 @@
     {
       "source_id": "nz_stats_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -112,7 +112,7 @@
     {
       "source_id": "ca_statcan",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
       "ok": true,
       "http_status": null,
@@ -123,7 +123,7 @@
     {
       "source_id": "au_abs",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.abs.gov.au/release-calendar/future-releases-calendar",
       "ok": true,
       "http_status": null,
@@ -134,7 +134,7 @@
     {
       "source_id": "us_ism",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/",
       "ok": true,
       "http_status": null,
@@ -145,7 +145,7 @@
     {
       "source_id": "jp_boj",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm",
       "ok": true,
       "http_status": null,
@@ -156,7 +156,7 @@
     {
       "source_id": "jp_boj_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.boj.or.jp/about/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -167,7 +167,7 @@
     {
       "source_id": "us_treasury",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions",
       "ok": true,
       "http_status": null,
@@ -178,7 +178,7 @@
     {
       "source_id": "jp_mof",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -189,7 +189,7 @@
     {
       "source_id": "jp_stat_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.stat.go.jp/data/cpi/4-1.html",
       "ok": true,
       "http_status": null,
@@ -200,7 +200,7 @@
     {
       "source_id": "jp_esri_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html",
       "ok": true,
       "http_status": null,
@@ -211,7 +211,7 @@
     {
       "source_id": "jp_customs_trade",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.customs.go.jp/toukei/calendar/calend.htm",
       "ok": true,
       "http_status": null,
@@ -222,7 +222,7 @@
     {
       "source_id": "us_frb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.federalreserve.gov/feeds/speeches.xml",
       "ok": true,
       "http_status": null,
@@ -233,7 +233,7 @@
     {
       "source_id": "cn_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -244,7 +244,7 @@
     {
       "source_id": "cn_nbs_data",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/",
       "ok": true,
       "http_status": null,
@@ -255,7 +255,7 @@
     {
       "source_id": "gb_construction_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -266,7 +266,7 @@
     {
       "source_id": "us_adp",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://adpemploymentreport.com/",
       "ok": true,
       "http_status": null,
@@ -277,7 +277,7 @@
     {
       "source_id": "ca_ivey",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://iveypmi.uwo.ca/faq/",
       "ok": true,
       "http_status": null,
@@ -288,7 +288,7 @@
     {
       "source_id": "us_frb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
       "ok": true,
       "http_status": null,
@@ -299,7 +299,7 @@
     {
       "source_id": "ecb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
       "ok": true,
       "http_status": null,
@@ -310,7 +310,7 @@
     {
       "source_id": "eurostat_hicp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -321,7 +321,7 @@
     {
       "source_id": "eurostat_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -332,7 +332,7 @@
     {
       "source_id": "de_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -343,7 +343,7 @@
     {
       "source_id": "eu_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -354,7 +354,7 @@
     {
       "source_id": "gb_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -365,7 +365,7 @@
     {
       "source_id": "de_zew",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.zew.de/en/press/latest-press-releases/2026-release-dates-for-zew-indicator-of-economic-sentiment-fixed",
       "ok": true,
       "http_status": null,
@@ -376,7 +376,7 @@
     {
       "source_id": "boe_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates",
       "ok": true,
       "http_status": null,
@@ -387,7 +387,7 @@
     {
       "source_id": "boc_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.bankofcanada.ca/press/upcoming-events/",
       "ok": true,
       "http_status": null,
@@ -398,7 +398,7 @@
     {
       "source_id": "rbnz_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028",
       "ok": true,
       "http_status": null,
@@ -409,7 +409,7 @@
     {
       "source_id": "snb_policy_rate",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
       "ok": true,
       "http_status": null,
@@ -420,7 +420,7 @@
     {
       "source_id": "manual",
       "type": "manual",
-      "fetched_at": "2026-08-29T13:08:59+09:00",
+      "fetched_at": "2026-08-29T13:20:39+09:00",
       "url": "config/manual-events.json",
       "ok": true,
       "http_status": null,
