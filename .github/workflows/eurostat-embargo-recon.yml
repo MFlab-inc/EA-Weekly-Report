@@ -1,0 +1,63 @@
+# Eurostat HICP速報値・GDP速報値の公表時刻（エンバーゴ時刻）実測用の一時ワークフロー
+# （しょうさん指摘2026-08-29: config/official-sources.jsonのeurostat_hicp.announce_time_by_kind
+# はECBのStatistical calendars静的ページ[季節調整値専用]の15:00 CETを転記したものだが、
+# そのページ自体が「非季節調整のEurostat自身の速報値は別ページ」と明記しており、市場が
+# 実際に反応するEurostatのflash estimate本来の公表時刻とは別物である疑いが強い。Eurostatの
+# ニュースリリース本文[products-euro-indicators配下、URLが2-DDMMYYYY-ap形式]にエンバーゴ時刻の
+# 記載が無いか、過去複数月分で実測する。eurostat_gdpも同じ疑いがあるため合わせて確認する）。
+# WebFetchはec.europa.euをブロックしているため、既存のmanus-diff-recon等と同じ方式
+# （GitHub Actions実ネットワーク）で調査する。調査完了後（見つかった/見つからなかったに
+# 関わらず）削除する。
+# 起動方式: 開発ブランチへの `.eurostat-embargo-recon-trigger` 変更pushで起動する
+name: eurostat-embargo-recon
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths: ['.eurostat-embargo-recon-trigger']
+permissions:
+  contents: read
+concurrency:
+  group: eurostat-embargo-recon
+  cancel-in-progress: false
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: HICP速報値の過去リリースページからエンバーゴ・公表時刻の記載を抽出
+        run: |
+          node -e '
+            (async () => {
+              // config/official-sources.jsonのeurostat_hicp.scheduleに記載済みの実発表日から
+              // Eurostat自身のURL日付スタンプ形式（2-DDMMYYYY-ap）を組み立てる
+              const hicpDates = ["07012026","04022026","03032026","31032026","30042026","02062026","01072026","31072026"];
+              const gdpDates = ["30042026","30072026","14082026"]; // configで既にnotesに記載済みのID2件＋HICPと同日のQ1速報1件
+              const ua = { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; eurostat-embargo-recon)" };
+
+              async function tryFetch(id, kindLabel) {
+                const url = `https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-${id}-ap`;
+                try {
+                  const res = await fetch(url, { headers: ua, redirect: "follow" });
+                  console.log(`\n=== [${kindLabel}] ${url} -> status ${res.status} (final: ${res.url}) ===`);
+                  if (!res.ok) return;
+                  const html = await res.text();
+                  console.log("html length:", html.length);
+                  // タグを除去した可視テキストから時刻・エンバーゴ関連の文脈を抽出
+                  const text = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+                  const timeCtxRe = /.{80}(embargo|CET|CEST|Luxembourg time|\b\d{1,2}:\d{2}\b).{80}/gi;
+                  const hits = [...new Set((text.match(timeCtxRe) || []))].slice(0, 15);
+                  if (hits.length) {
+                    console.log("--- 時刻関連の文脈抜粋 ---");
+                    hits.forEach((h) => console.log(h.trim()));
+                  } else {
+                    console.log("(時刻関連の文字列が見つかりませんでした)");
+                  }
+                } catch (e) {
+                  console.log(`[${kindLabel}] ${url} -> エラー: ${String(e && e.message || e)}`);
+                }
+              }
+
+              for (const d of hicpDates) await tryFetch(d, "HICP");
+              for (const d of gdpDates) await tryFetch(d, "GDP");
+            })();
+          '
