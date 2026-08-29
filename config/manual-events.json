@@ -22,9 +22,9 @@
       "tz": "Australia/Sydney",
       "country": "AU",
       "kind": "gdp",
-      "display_name": "GDP（Australian National Accounts）",
+      "display_name": "第2四半期GDP【速報値】",
       "importance": 3,
-      "source_note": "しょうさん指摘（2026-08-29、8/31週監査）: 四半期終了2か月後の第1水曜という公式運用ルールに一致する典型的な発表タイミングだが8/31週出力に欠落。config/official-sources.json au_absのnotes（task #41-4、2026-08-15）で2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済み。ただしau_absはweekly_scrape型（ABS future-releases-calendarの直近実掲載分のみを対象週判定に使う設計）のため、実ページに未掲載のうちは自動検出できない。.au-abs-gdp-recon実測（2026-08-29）で確認したところ、同ページの掲載horizonは2026-08-31までに留まり、9/2分はまだ掲載されていなかった（2026-08-15時点の実測でも同じくAug-31止まりだった＝直近1ヶ月強のみを掲載する仕様の可能性。task #79参照）。時刻11:30 Sydneyはau_abs.announce_time_by_kind.gdpと同じ標準枠（複数ソースで確認済み）。ABSの実掲載でこの日程が確定次第、要再確認・重複排除（本エントリは対象週を過ぎれば自動的に対象外になる設計だが、ABS側掲載後に同一イベントがau_abs側からも重複候補化されないか要目視確認）",
+      "source_note": "しょうさん指摘（2026-08-29、8/31週監査）: 四半期終了2か月後の第1水曜という公式運用ルールに一致する典型的な発表タイミングだが8/31週出力に欠落。config/official-sources.json au_absのnotes（task #41-4、2026-08-15）で2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済み。ただしau_absはweekly_scrape型（ABS future-releases-calendarの直近実掲載分のみを対象週判定に使う設計）のため、実ページに未掲載のうちは自動検出できない。.au-abs-gdp-recon実測（2026-08-29）で確認したところ、同ページの掲載horizonは2026-08-31までに留まり、9/2分はまだ掲載されていなかった（2026-08-15時点の実測でも同じくAug-31止まりだった＝直近1ヶ月強のみを掲載する仕様の可能性。task #79参照）。時刻11:30 Sydneyはau_abs.announce_time_by_kind.gdpと同じ標準枠（複数ソースで確認済み）。ABS公式名は『Australian National Accounts: National Income, Expenditure and Product』（対象: 2026年4-6月期＝Q2）だが、読者向けdisplay_nameには英語表記を含めない方針（SPEC §6、しょうさん指摘2026-08-29）のため、既刊表記慣行『第○四半期GDP【速報値】』に合わせた。ABSの実掲載でこの日程が確定次第、要再確認・重複排除（本エントリは対象週を過ぎれば自動的に対象外になる設計だが、ABS側掲載後に同一イベントがau_abs側からも重複候補化されないか要目視確認）",
       "registered_by": "Claude Code（複数ソース照合済みだがABS公式カレンダー未掲載のため要しょうさん確認）",
       "registered_at": "2026-08-29"
     }
