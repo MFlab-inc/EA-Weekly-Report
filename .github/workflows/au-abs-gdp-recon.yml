@@ -1,0 +1,65 @@
+# 豪州統計局（ABS）future-releases-calendarの実データ調査用の一時ワークフロー
+# （しょうさん指摘2026-08-29: 8/31週の本番生成でau_absのextractor_result_count=0[対象週内0件]、
+# GDP[9/2発表見込み、四半期終了2か月後の第1水曜]が出力に無い。config/official-sources.jsonの
+# notesではweekly_scrapeの6ヶ月ローリング窓のため対象週が近づけば自動検出される設計だが、
+# 実際に検出されなかった。抽出コード[scripts/checkers/extractors/abs.js]は正しく動作している
+# 前提[ok:trueで他kindの過去実績あり]で、GDP行自体が実ページに存在するか・存在するなら
+# なぜthisWeekフィルタを通らなかったかを実測する）。WebFetchはwww.abs.gov.auをブロックしている
+# ため、既存のmanus-diff-recon等と同じ方式（GitHub Actions実ネットワーク）で調査する。
+# 調査完了後（見つかった/見つからなかったに関わらず）削除する。
+# 起動方式: 開発ブランチへの `.au-abs-gdp-recon-trigger` 変更pushで起動する
+name: au-abs-gdp-recon
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths: ['.au-abs-gdp-recon-trigger']
+permissions:
+  contents: read
+concurrency:
+  group: au-abs-gdp-recon
+  cancel-in-progress: false
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - name: future-releases-calendarの実ページを取得し、全event-name/time行と National Accounts 関連行を抽出
+        run: |
+          node -e '
+            (async () => {
+              const res = await fetch("https://www.abs.gov.au/release-calendar/future-releases-calendar", {
+                headers: { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; au-abs-gdp-recon)" },
+              });
+              console.log("status:", res.status);
+              const html = await res.text();
+              console.log("html length:", html.length);
+
+              const ROW_RE = /<strong class="event-name">\s*([^<]+?)\s*<\/strong>[\s\S]*?<time datetime="([^"]+)"/g;
+              const rows = [];
+              let m;
+              while ((m = ROW_RE.exec(html))) rows.push({ title: m[1].trim(), utcInstant: m[2] });
+              console.log(`\n=== 抽出行数（本番と同じ正規表現）: ${rows.length} ===`);
+
+              console.log("\n=== National Accounts / GDP 関連行 ===");
+              const gdpRows = rows.filter((r) => /national accounts|gdp/i.test(r.title));
+              console.log(JSON.stringify(gdpRows, null, 2));
+
+              console.log("\n=== 2026-08-25〜2026-09-10のutcInstantを持つ全行（対象週前後） ===");
+              const nearWeek = rows.filter((r) => r.utcInstant >= "2026-08-25" && r.utcInstant <= "2026-09-10");
+              console.log(JSON.stringify(nearWeek, null, 2));
+
+              console.log("\n=== 全rowsの日付範囲 ===");
+              const sorted = [...rows].sort((a, b) => a.utcInstant.localeCompare(b.utcInstant));
+              console.log("最古:", sorted[0]?.utcInstant, sorted[0]?.title);
+              console.log("最新:", sorted[sorted.length - 1]?.utcInstant, sorted[sorted.length - 1]?.title);
+
+              if (rows.length === 0) {
+                console.log("\n=== 抽出0件のため生HTMLの一部を出力（構造変化の切り分け用） ===");
+                const idx = html.indexOf("event-name");
+                console.log(idx === -1 ? "『event-name』という文字列自体がHTML中に見つかりません（構造が変わった可能性）" : html.slice(Math.max(0, idx - 200), idx + 500));
+              }
+            })();
+          '

@@ -61,3 +61,48 @@ jobs:
               for (const d of gdpDates) await tryFetch(d, "GDP");
             })();
           '
+      - name: メタタグ(article:published_time等)・JSON-LD(datePublished)から公表時刻を抽出（SPA疑いの回避策）
+        run: |
+          node -e '
+            (async () => {
+              const hicpDates = ["07012026","04022026","03032026","31032026","30042026","02062026","01072026","31072026"];
+              const gdpDates = ["30042026","30072026","14082026"];
+              const ua = { "User-Agent": "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; eurostat-embargo-recon)" };
+
+              async function tryFetch(id, kindLabel) {
+                const url = `https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-${id}-ap`;
+                try {
+                  const res = await fetch(url, { headers: ua, redirect: "follow" });
+                  if (!res.ok) { console.log(`[${kindLabel}] ${id} -> status ${res.status}`); return; }
+                  const html = await res.text();
+                  console.log(`\n=== [${kindLabel}] ${id} ===`);
+
+                  const metaHits = [...html.matchAll(/<meta[^>]+(?:property|name)="(article:published_time|og:updated_time|date|dcterms\.date|dc\.date)"[^>]+content="([^"]+)"/gi)];
+                  if (metaHits.length) {
+                    metaHits.forEach((h) => console.log(`meta[${h[1]}] = ${h[2]}`));
+                  } else {
+                    console.log("(該当metaタグ無し)");
+                  }
+
+                  const ldJsonBlocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi)];
+                  for (const b of ldJsonBlocks) {
+                    const datePublishedMatch = b[1].match(/"datePublished"\s*:\s*"([^"]+)"/);
+                    const dateModifiedMatch = b[1].match(/"dateModified"\s*:\s*"([^"]+)"/);
+                    if (datePublishedMatch || dateModifiedMatch) {
+                      console.log(`ld+json datePublished=${datePublishedMatch?.[1]} dateModified=${dateModifiedMatch?.[1]}`);
+                    }
+                  }
+                  if (!ldJsonBlocks.length) console.log("(ld+jsonブロック無し)");
+
+                  // SPA疑いの直接確認: 本文らしき文字列（flash estimate等）が生HTMLに存在するか
+                  const hasFlashText = /flash estimate|annual inflation|euro area/i.test(html);
+                  console.log("本文らしき文字列(flash estimate等)がHTMLに含まれるか:", hasFlashText);
+                } catch (e) {
+                  console.log(`[${kindLabel}] ${id} -> エラー: ${String(e && e.message || e)}`);
+                }
+              }
+
+              for (const d of hicpDates) await tryFetch(d, "HICP");
+              for (const d of gdpDates) await tryFetch(d, "GDP");
+            })();
+          '
