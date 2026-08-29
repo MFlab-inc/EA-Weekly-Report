@@ -2497,6 +2497,26 @@
       "residual_monitor_weeks": 8
     },
     {
+      "id": "gb_boe_speeches",
+      "name_ja": "BOE（総裁・幹部講演RSS）",
+      "status": "active",
+      "country": "GB",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          { "label": "speeches_rss", "url": "https://www.bankofengland.co.uk/rss/speeches" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #72（2026-08-30、しょうさん指摘: 8/31週Manus突合で9/4ベイリー総裁の基調講演★★★が実際に不検出となり優先度引き上げ）。boe-speeches-recon一時ワークフローでライブ実測（GitHub Actions実ネットワーク）: robots.txtは/rss配下を許可（Disallowは/boeapps・/error・/forms・/mfsd・/search等のみ）。https://www.bankofengland.co.uk/rss/speechesはHTTP 200・content-type text/xmlの標準的なRSS 2.0フィードで、実データ（2026-08-29実測）は<item><title>{講演タイトル} {区切り文字} speech by {話者フルネーム}</title><pubDate>RFC822形式・明示的UTCオフセット付き（例: Tue, 21 Jul 2026 11:00:00 +0100）</pubDate>...</item>形式。pubDateは絶対時刻のためDST判定不要でJST直接換算できる（us_frb_speechesと同じ設計、access.provides_exact_time:true）。話者名は『speech by 』以降を姓のみではなくフルネームで抽出する必要がある: 同一フィード内に『Andrew Bailey』（総裁）と『David Bailey』（総裁とは別人のExecutive Director）が混在することを実測で確認しており（2026-08-29実測サンプルで両者が実在）、姓のみ[Bailey]で抽出するとofficials.jsonのfull_name部分一致[naming.resolveOfficialBySurname]で両者を区別できず、David Baileyの講演が誤って総裁級★★★に昇格してしまう。フルネーム抽出（scripts/checkers/extractors/boe-speeches.js）により、officials.json記載の『アンドリュー・ベイリー（Andrew Bailey）』とAndrew Baileyのみが一致し、David Baileyは未登録話者（★★安全側+WARN、task #68のrole_rank方式）として正しく扱われる。話者の役職は国単位の固定ラベル（US=FRB理事のような一律運用）ではなく個別役職を使う設計とした（BOEも総裁・副総裁・Executive Director等が混在するためJP[jp_boj_speeches]と同じ方式。scripts/lib/build-ledger.js resolveRuleGeneratedName参照。build-ledger.jsのOFFICIAL_SPEECH_ROLE_BY_COUNTRYへGBは追加しない）。総裁ベイリーはconfig/officials.jsonに既に登録済み（role_rank:governor）のため、本ソース追加のみで即座に★★★解決が機能する"
+    },
+    {
       "id": "boc_policy_rate",
       "name_ja": "BOC（政策金利発表カレンダー）",
       "status": "active",

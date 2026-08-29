@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+<channel>
+<title>Bank of England Speeches</title>
+<link>https://www.bankofengland.co.uk/rss/speeches</link>
+<description>Bank of England speeches</description>
+<item><guid isPermaLink="false">{ADA504F7-71BB-489D-8548-27BCBC3A667F}</guid><link>https://www.bankofengland.co.uk/speech/2026/july/nathanael-benjamin-speech-at-omfif</link><title>It’s all about the role of money - speech by Nathanaël Benjamin</title><description>Given at OMFIF Economic and Monetary Policy Institute</description><pubDate>Tue, 21 Jul 2026 11:00:00 +0100</pubDate></item>
+<item><guid isPermaLink="false">{E4996B5C-7F3D-45DB-A540-E993B15A9016}</guid><link>https://www.bankofengland.co.uk/speech/2026/july/david-bailey-speech-at-the-international-finance-and-banking-society-conference</link><title>The role of research in Prudential Regulation − speech by David Bailey</title><description>Given at IFABS 2026 London</description><pubDate>Wed, 15 Jul 2026 10:00:00 +0100</pubDate></item>
+<item><guid isPermaLink="false">{EE5DBEBB-44D6-4A03-A7FB-7A569A4A0C99}</guid><link>https://www.bankofengland.co.uk/speech/2026/july/andrew-bailey-speech-at-manison-house</link><title>Growth and regulation - speech by Andrew Bailey</title><description>Given at The Financial and Professional Services Dinner, Mansion House</description><pubDate>Tue, 14 Jul 2026 21:00:00 +0100</pubDate></item>
+</channel>
+</rss>

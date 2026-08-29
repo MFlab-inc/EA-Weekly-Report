@@ -30,6 +30,7 @@ import { extractBocPolicyRateSchedule } from './extractors/boc-policy-rate.js';
 import { extractMofAuctions } from './extractors/mof.js';
 import { extractUsTreasuryAuctions } from './extractors/us-treasury.js';
 import { extractFrbSpeeches } from './extractors/frb-speeches.js';
+import { extractBoeSpeeches } from './extractors/boe-speeches.js';
 import { extractSnbEvents } from './extractors/snb-policy-rate.js';
 import { extractBojSpeeches } from './extractors/boj-speeches.js';
 import { extractNzStatsCalendar } from './extractors/nz-stats-calendar.js';
@@ -159,6 +160,16 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
   us_frb_speeches: {
     primaryLabel: 'speeches_rss',
     parseFn: extractFrbSpeeches,
+    toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
+  },
+  // BOE理事講演: pubDateが絶対時刻（明示的UTCオフセット付き）のためutcInstantとして渡す
+  // （us_frb_speechesと同じ設計）。row.kind='official_speech'はここで付与する。speakerLastNameには
+  // 姓のみではなくフルネームを渡す（scripts/checkers/extractors/boe-speeches.js参照。Andrew Bailey
+  // ＝総裁とDavid Bailey＝別人のExecutive Directorが同一フィードに混在するため、姓のみだと
+  // officials.jsonのfull_name部分一致で誤って両者を同一視してしまう）
+  gb_boe_speeches: {
+    primaryLabel: 'speeches_rss',
+    parseFn: extractBoeSpeeches,
     toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
   },
   // SNB: row.kindが抽出側で確定済み（policy_rate / press_conference / opinions_summary）。
