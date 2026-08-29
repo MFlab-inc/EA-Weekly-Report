@@ -28,7 +28,10 @@ test('autoHeroSummary: ★★★を国+kindで重複除去し、発生順に最�
     ],
   };
   const summary = autoHeroSummary(ledger, reportPolicy);
-  assert.equal(summary, '豪州RBA政策金利＆声明発表、米国消費者物価指数（CPI）、米国生産者物価指数（PPI）、豪州ブロックRBA総裁：下院経済委員会への出席を確認する週');
+  // 2026-08-29修正: name_jaが中銀略称（RBA）で始まる場合は国名前置を省く（しょうさん指摘、
+  // heroDisplayName参照）。ただし「ブロックRBA総裁：下院経済委員会への出席」はRBAで始まって
+  // いない（総裁の姓が先頭）ため、この行は引き続き国名前置が付く
+  assert.equal(summary, 'RBA政策金利＆声明発表、米国消費者物価指数（CPI）、米国生産者物価指数（PPI）、豪州ブロックRBA総裁：下院経済委員会への出席を確認する週');
 });
 
 // task #41-3（2026-08-15）で発覚した実バグの回帰テスト: `(a.datetime_jst || '').localeCompare(...)`
@@ -46,7 +49,8 @@ test('autoHeroSummary: datetime_jst未公表（null）の★★★イベント�
     ],
   };
   const summary = autoHeroSummary(ledger, reportPolicy);
-  assert.equal(summary, '日本日銀金融政策決定会合における主な意見の公表、豪州RBA政策金利＆声明発表を確認する週');
+  // 2026-08-29修正: 「日銀...」「RBA...」いずれもname_jaが中銀略称で始まるため国名前置を省く
+  assert.equal(summary, '日銀金融政策決定会合における主な意見の公表、RBA政策金利＆声明発表を確認する週');
   assert.doesNotMatch(summary, /^(EU)?GDP【速報値】/, 'datetime_jst:nullのイベントが先頭に来てはならない');
 });
 
@@ -88,12 +92,32 @@ test('autoHeroSummary/autoHeroPills: 同一kind・別国のイベント（CA CPI
   assert.deepEqual(pills, ['カナダ消費者物価指数（CPI） 8/17', '英国消費者物価指数（CPI） 8/19']);
 });
 
+// 2026-08-29追加（しょうさん指摘: 8/31週の実出力で「NZRBNZ政策金利＆声明発表」
+// 「カナダBOC政策金利＆声明発表」のように国名前置と中銀略称が重複表示されていた）。
+// name_jaが中銀略称（naming.BANK_ABBR_BY_COUNTRY）で始まる場合のみ国名前置を省き、
+// 中銀略称が名称の先頭以外に現れる場合や中銀と無関係な名称では引き続き国名前置が付くことを確認する
+test('autoHeroSummary/autoHeroPills: name_jaが中銀略称で始まる場合は国名前置を省く（先頭一致のみ）', async () => {
+  const { autoHeroSummary, autoHeroPills } = await import('../scripts/render.mjs');
+  const ledger = {
+    events: [
+      ledgerEvent({ country: 'NZ', kind: 'policy_rate', name_ja: 'RBNZ政策金利＆声明発表', datetime_jst: '2026-09-02T11:00:00+09:00', date_jst: '2026-09-02' }),
+      ledgerEvent({ country: 'CA', kind: 'policy_rate', name_ja: 'BOC政策金利＆声明発表', datetime_jst: '2026-09-02T22:45:00+09:00', date_jst: '2026-09-02' }),
+      // countryはNZだが名称がRBNZで始まっていない（総裁の姓が先頭）ケース: 国名前置は残る
+      ledgerEvent({ country: 'NZ', kind: 'testimony', name_ja: 'なんとかRBNZ総裁の議会証言', datetime_jst: '2026-09-03T10:00:00+09:00', date_jst: '2026-09-03' }),
+    ],
+  };
+  const summary = autoHeroSummary(ledger, reportPolicy);
+  assert.equal(summary, 'RBNZ政策金利＆声明発表、BOC政策金利＆声明発表、NZなんとかRBNZ総裁の議会証言を確認する週');
+  const pills = autoHeroPills(ledger);
+  assert.deepEqual(pills, ['RBNZ政策金利＆声明発表 9/2', 'BOC政策金利＆声明発表 9/2', 'NZなんとかRBNZ総裁の議会証言 9/3']);
+});
+
 test('buildNarrative: overrideが無ければ自動生成、overrideがあればそちらを優先', async () => {
   const { buildNarrative } = await import('../scripts/render.mjs');
   const ledger = { meta: { target_week_start: '2026-08-17' }, events: [ledgerEvent({ country: 'AU', kind: 'policy_rate', name_ja: 'RBA政策金利＆声明発表' })] };
   const auto = buildNarrative(ledger, reportPolicy, null, new Date('2026-08-15T00:00:00Z'));
   assert.equal(auto.reportMeta, 'ea-weekly-20260817');
-  assert.match(auto.heroSummary, /豪州RBA政策金利＆声明発表を確認する週/);
+  assert.match(auto.heroSummary, /RBA政策金利＆声明発表を確認する週/);
 
   const overridden = buildNarrative(ledger, reportPolicy, { heroSummary: '手動指定の要約', heroPills: ['手動ピル'] }, new Date('2026-08-15T00:00:00Z'));
   assert.equal(overridden.heroSummary, '手動指定の要約');
@@ -114,10 +138,12 @@ test('既刊2週へのルール適用結果（実データ経路・既刊文言�
   const summary0810 = autoHeroSummary(ledger0810, reportPolicy);
   const pills0810 = autoHeroPills(ledger0810);
   // 既刊: 'RBA政策判断、米CPI・PPI、英国GDP、米小売売上高を確認する週'
-  // 本ルール適用結果（アサーションで固定し、将来の変更を検知できるようにする）。国名前置はtask #47で追加
-  assert.equal(summary0810, '日本日銀金融政策決定会合における主な意見の公表（7月30・31日開催分）、豪州RBA政策金利＆声明発表、豪州RBA四半期金融政策報告、豪州ブロックRBA総裁の記者会見を確認する週');
+  // 本ルール適用結果（アサーションで固定し、将来の変更を検知できるようにする）。国名前置はtask #47で追加。
+  // 2026-08-29修正: 「日銀...」「RBA...」はname_jaが中銀略称で始まるため国名前置を省く（しょうさん指摘）。
+  // 「ブロックRBA総裁の記者会見」はRBAで始まっていないため引き続き「豪州」が付く
+  assert.equal(summary0810, '日銀金融政策決定会合における主な意見の公表（7月30・31日開催分）、RBA政策金利＆声明発表、RBA四半期金融政策報告、豪州ブロックRBA総裁の記者会見を確認する週');
   // 既刊: ['RBA政策金利 8/11', '米CPI 8/12', '米小売売上高 8/14']
-  assert.deepEqual(pills0810, ['日本日銀金融政策決定会合における主な意見の公表（7月30・31日開催分） 8/10', '豪州RBA政策金利＆声明発表 8/11', '豪州RBA四半期金融政策報告 8/11']);
+  assert.deepEqual(pills0810, ['日銀金融政策決定会合における主な意見の公表（7月30・31日開催分） 8/10', 'RBA政策金利＆声明発表 8/11', 'RBA四半期金融政策報告 8/11']);
 
   const ledger0803 = await regenerateWeek(WEEK_20260803);
   const summary0803 = autoHeroSummary(ledger0803, reportPolicy);
