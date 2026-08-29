@@ -1,11 +1,11 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "generated_at": "2026-08-29T11:37:05+09:00",
+    "generated_at": "2026-08-29T12:40:28+09:00",
     "target_week_start": "2026-08-31",
     "target_week_end": "2026-09-04",
     "pipeline_version": "ea-weekly-report@0.1.0",
-    "generated_from_commit": "d86d4f0551b2d65594fc58b4bf50d31206cab879",
+    "generated_from_commit": "4122e757bfcaca964843141aad4adb7ba3005016",
     "outcome": "PUBLISH_READY",
     "warnings": [
       "残量監視WARN: au_rba — 年次スケジュールconfigに対象週(2026-08-31)から4週先(2026-09-28)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
@@ -15,7 +15,8 @@
       "定例欠落: 「RBA総裁下院経済委員会証言」（毎年2月・8月（開催日は豪州議会日程による。担当ソース未定義のため月内の全週でWARNが出る粗い粒度））が対象週に該当する見込みだが検出されなかった。対象週が該当月に入っているのに検出なしならWARN（担当ソース自体が未確定なので恒常的にWARNが出る想定。しょうさんが手動確認するまでの暫定措置。task #18参照）",
       "定例欠落: 「中国PMI」（毎月1日〜7日ごろ（RatingDog製造業・非製造業とも月初公表が通例））が対象週に該当する見込みだが検出されなかった。対象週が該当日範囲に入っているのに検出なしならWARN（担当ソースcn_pmiがstatus=pending_recon[task #16]のため恒常的にWARNが出る想定。担当ソース実装まではWARNで欠落を可視化し、HOLDにはしない。しょうさん指示2026-08-15）",
       "定例欠落: 「英国建設業PMI」（毎月1日〜7日ごろ（S&P Global系PMIの通例的な公表時期））が対象週に該当する見込みだが検出されなかった。同上（担当ソースgb_construction_pmiがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）",
-      "定例欠落: 「ADP雇用統計」（毎月1日〜7日ごろ（米雇用統計[第1金曜]の直前、水曜公表が通例））が対象週に該当する見込みだが検出されなかった。同上（担当ソースus_adpがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）"
+      "定例欠落: 「ADP雇用統計」（毎月1日〜7日ごろ（米雇用統計[第1金曜]の直前、水曜公表が通例））が対象週に該当する見込みだが検出されなかった。同上（担当ソースus_adpがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）",
+      "official_speechの話者の格を判定できず★★（安全側）とした: country=JP speaker=\"高田\" date=2026-09-02（officials.json未登録、またはrole_rank未設定）"
     ],
     "holds": []
   },
@@ -23,7 +24,7 @@
     {
       "source_id": "us_bls_fred",
       "type": "date_api_fred",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://api.stlouisfed.org/fred/release/dates",
       "ok": true,
       "http_status": null,
@@ -34,7 +35,7 @@
     {
       "source_id": "au_rba",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.rba.gov.au/schedules-events/board-meeting-schedules.html",
       "ok": true,
       "http_status": null,
@@ -45,7 +46,7 @@
     {
       "source_id": "us_census",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.census.gov/economic-indicators/calendar-listview.html",
       "ok": true,
       "http_status": null,
@@ -56,7 +57,7 @@
     {
       "source_id": "gb_ons",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP",
       "ok": true,
       "http_status": null,
@@ -67,7 +68,7 @@
     {
       "source_id": "nz_statsnz",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
       "ok": true,
       "http_status": null,
@@ -78,7 +79,7 @@
     {
       "source_id": "nz_stats_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/calendar-export?month=8&year=2026",
       "ok": true,
       "http_status": null,
@@ -89,7 +90,7 @@
     {
       "source_id": "nz_stats_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -100,7 +101,7 @@
     {
       "source_id": "nz_stats_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -111,7 +112,7 @@
     {
       "source_id": "ca_statcan",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
       "ok": true,
       "http_status": null,
@@ -122,7 +123,7 @@
     {
       "source_id": "au_abs",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.abs.gov.au/release-calendar/future-releases-calendar",
       "ok": true,
       "http_status": null,
@@ -133,7 +134,7 @@
     {
       "source_id": "us_ism",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/",
       "ok": true,
       "http_status": null,
@@ -144,7 +145,7 @@
     {
       "source_id": "jp_boj",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm",
       "ok": true,
       "http_status": null,
@@ -155,18 +156,18 @@
     {
       "source_id": "jp_boj_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.boj.or.jp/about/calendar/index.htm",
       "ok": true,
       "http_status": null,
-      "extractor_result_count": 0,
+      "extractor_result_count": 1,
       "robots_checked": true,
       "fail_closed_decision": "OK"
     },
     {
       "source_id": "us_treasury",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions",
       "ok": true,
       "http_status": null,
@@ -177,7 +178,7 @@
     {
       "source_id": "jp_mof",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -188,7 +189,7 @@
     {
       "source_id": "jp_stat_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.stat.go.jp/data/cpi/4-1.html",
       "ok": true,
       "http_status": null,
@@ -199,7 +200,7 @@
     {
       "source_id": "jp_esri_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html",
       "ok": true,
       "http_status": null,
@@ -210,7 +211,7 @@
     {
       "source_id": "jp_customs_trade",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.customs.go.jp/toukei/calendar/calend.htm",
       "ok": true,
       "http_status": null,
@@ -221,7 +222,7 @@
     {
       "source_id": "us_frb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.federalreserve.gov/feeds/speeches.xml",
       "ok": true,
       "http_status": null,
@@ -232,7 +233,7 @@
     {
       "source_id": "cn_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -243,7 +244,7 @@
     {
       "source_id": "cn_nbs_data",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/",
       "ok": true,
       "http_status": null,
@@ -254,7 +255,7 @@
     {
       "source_id": "gb_construction_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -265,7 +266,7 @@
     {
       "source_id": "us_adp",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://adpemploymentreport.com/",
       "ok": true,
       "http_status": null,
@@ -276,7 +277,7 @@
     {
       "source_id": "ca_ivey",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://iveypmi.uwo.ca/faq/",
       "ok": true,
       "http_status": null,
@@ -287,7 +288,7 @@
     {
       "source_id": "us_frb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
       "ok": true,
       "http_status": null,
@@ -298,7 +299,7 @@
     {
       "source_id": "ecb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
       "ok": true,
       "http_status": null,
@@ -309,7 +310,7 @@
     {
       "source_id": "eurostat_hicp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -320,7 +321,7 @@
     {
       "source_id": "eurostat_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -331,7 +332,7 @@
     {
       "source_id": "de_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -342,7 +343,7 @@
     {
       "source_id": "eu_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -353,7 +354,7 @@
     {
       "source_id": "gb_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -364,7 +365,7 @@
     {
       "source_id": "de_zew",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.zew.de/en/press/latest-press-releases/2026-release-dates-for-zew-indicator-of-economic-sentiment-fixed",
       "ok": true,
       "http_status": null,
@@ -375,7 +376,7 @@
     {
       "source_id": "boe_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates",
       "ok": true,
       "http_status": null,
@@ -386,29 +387,29 @@
     {
       "source_id": "boc_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.bankofcanada.ca/press/upcoming-events/",
       "ok": true,
       "http_status": null,
-      "extractor_result_count": 1,
+      "extractor_result_count": 2,
       "robots_checked": true,
       "fail_closed_decision": "OK"
     },
     {
       "source_id": "rbnz_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028",
       "ok": true,
       "http_status": null,
-      "extractor_result_count": 1,
+      "extractor_result_count": 2,
       "robots_checked": true,
       "fail_closed_decision": "OK"
     },
     {
       "source_id": "snb_policy_rate",
       "type": "weekly_scrape",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
       "ok": true,
       "http_status": null,
@@ -419,11 +420,11 @@
     {
       "source_id": "manual",
       "type": "manual",
-      "fetched_at": "2026-08-29T11:37:05+09:00",
+      "fetched_at": "2026-08-29T12:40:28+09:00",
       "url": "config/manual-events.json",
       "ok": true,
       "http_status": null,
-      "extractor_result_count": 1,
+      "extractor_result_count": 2,
       "robots_checked": false,
       "fail_closed_decision": "OK"
     }
@@ -510,6 +511,26 @@
       "bundle_id": null
     },
     {
+      "event_id": "jp-official_speech-2026-09-02",
+      "date_local": "2026-09-02",
+      "time_local": "10:30",
+      "tz": "Asia/Tokyo",
+      "date_jst": "2026-09-02",
+      "datetime_jst": "2026-09-02T10:30:00+09:00",
+      "time_status": "published",
+      "country": "JP",
+      "currency": "JPY",
+      "kind": "official_speech",
+      "name_ja": "要人発言",
+      "importance": 2,
+      "source_id": "jp_boj_speeches",
+      "source_evidence": "【挨拶】高田審議委員（札幌）",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": null,
+      "halt_window_end_jst": null,
+      "bundle_id": null
+    },
+    {
       "event_id": "au-gdp-2026-09-02",
       "date_local": "2026-09-02",
       "time_local": "11:30",
@@ -520,10 +541,10 @@
       "country": "AU",
       "currency": "AUD",
       "kind": "gdp",
-      "name_ja": "GDP（Australian National Accounts）",
+      "name_ja": "第2四半期GDP【速報値】",
       "importance": 3,
       "source_id": "manual",
-      "source_evidence": "しょうさん指摘（2026-08-29、8/31週監査）: 四半期終了2か月後の第1水曜という公式運用ルールに一致する典型的な発表タイミングだが8/31週出力に欠落。config/official-sources.json au_absのnotes（task #41-4、2026-08-15）で2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済み。ただしau_absはweekly_scrape型（ABS future-releases-calendarの直近実掲載分のみを対象週判定に使う設計）のため、実ページに未掲載のうちは自動検出できない。.au-abs-gdp-recon実測（2026-08-29）で確認したところ、同ページの掲載horizonは2026-08-31までに留まり、9/2分はまだ掲載されていなかった（2026-08-15時点の実測でも同じくAug-31止まりだった＝直近1ヶ月強のみを掲載する仕様の可能性。task #79参照）。時刻11:30 Sydneyはau_abs.announce_time_by_kind.gdpと同じ標準枠（複数ソースで確認済み）。ABSの実掲載でこの日程が確定次第、要再確認・重複排除（本エントリは対象週を過ぎれば自動的に対象外になる設計だが、ABS側掲載後に同一イベントがau_abs側からも重複候補化されないか要目視確認）",
+      "source_evidence": "しょうさん指摘（2026-08-29、8/31週監査）: 四半期終了2か月後の第1水曜という公式運用ルールに一致する典型的な発表タイミングだが8/31週出力に欠落。config/official-sources.json au_absのnotes（task #41-4、2026-08-15）で2026年通年4回分の発表日（3/4・6/3・9/2・12/2）をWebSearch経由で複数ソース照合済み。ただしau_absはweekly_scrape型（ABS future-releases-calendarの直近実掲載分のみを対象週判定に使う設計）のため、実ページに未掲載のうちは自動検出できない。.au-abs-gdp-recon実測（2026-08-29）で確認したところ、同ページの掲載horizonは2026-08-31までに留まり、9/2分はまだ掲載されていなかった（2026-08-15時点の実測でも同じくAug-31止まりだった＝直近1ヶ月強のみを掲載する仕様の可能性。task #79参照）。時刻11:30 Sydneyはau_abs.announce_time_by_kind.gdpと同じ標準枠（複数ソースで確認済み）。ABS公式名は『Australian National Accounts: National Income, Expenditure and Product』（対象: 2026年4-6月期＝Q2）だが、読者向けdisplay_nameには英語表記を含めない方針（SPEC §6、しょうさん指摘2026-08-29）のため、既刊表記慣行『第○四半期GDP【速報値】』に合わせた。ABSの実掲載でこの日程が確定次第、要再確認・重複排除（本エントリは対象週を過ぎれば自動的に対象外になる設計だが、ABS側掲載後に同一イベントがau_abs側からも重複候補化されないか要目視確認）",
       "name_resolution": "dictionary",
       "halt_window_start_jst": "2026-09-01T22:30:00+09:00",
       "halt_window_end_jst": "2026-09-02T06:30:00+09:00",
@@ -547,7 +568,27 @@
       "name_resolution": "rule_generated",
       "halt_window_start_jst": "2026-09-01T23:00:00+09:00",
       "halt_window_end_jst": "2026-09-02T07:00:00+09:00",
-      "bundle_id": null
+      "bundle_id": "nz-policy_rate-2026-09-02"
+    },
+    {
+      "event_id": "nz-press_conference-2026-09-02",
+      "date_local": "2026-09-02",
+      "time_local": "15:00",
+      "tz": "Pacific/Auckland",
+      "date_jst": "2026-09-02",
+      "datetime_jst": "2026-09-02T12:00:00+09:00",
+      "time_status": "published",
+      "country": "NZ",
+      "currency": "NZD",
+      "kind": "press_conference",
+      "name_ja": "ブレマンRBNZ総裁の記者会見",
+      "importance": 3,
+      "source_id": "rbnz_policy_rate",
+      "source_evidence": "RBNZ（OCR政策金利カレンダー） 年次確定スケジュール（confirmed_at=2026-08-15, confirmed_by=しょうさん（一次ソース直接確認、Claude Chat経由））",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": "2026-09-02T00:00:00+09:00",
+      "halt_window_end_jst": "2026-09-02T08:00:00+09:00",
+      "bundle_id": "nz-policy_rate-2026-09-02"
     },
     {
       "event_id": "ca-policy_rate-2026-09-02",
@@ -567,7 +608,27 @@
       "name_resolution": "rule_generated",
       "halt_window_start_jst": "2026-09-02T10:45:00+09:00",
       "halt_window_end_jst": "2026-09-02T18:45:00+09:00",
-      "bundle_id": null
+      "bundle_id": "ca-policy_rate-2026-09-02"
+    },
+    {
+      "event_id": "ca-press_conference-2026-09-02",
+      "date_local": "2026-09-02",
+      "time_local": "10:30",
+      "tz": "America/Toronto",
+      "date_jst": "2026-09-02",
+      "datetime_jst": "2026-09-02T23:30:00+09:00",
+      "time_status": "published",
+      "country": "CA",
+      "currency": "CAD",
+      "kind": "press_conference",
+      "name_ja": "マックレムBOC総裁の記者会見",
+      "importance": 3,
+      "source_id": "boc_policy_rate",
+      "source_evidence": "task #84: WebSearch経由でbankofcanada.ca/multimedia配下の実ページ（Press Conference: Policy Rate Announcement — September 2026）を確認",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": "2026-09-02T11:30:00+09:00",
+      "halt_window_end_jst": "2026-09-02T19:30:00+09:00",
+      "bundle_id": "ca-policy_rate-2026-09-02"
     },
     {
       "event_id": "jp-bond_auction-2026-09-03",
@@ -587,6 +648,26 @@
       "name_resolution": "rule_generated",
       "halt_window_start_jst": null,
       "halt_window_end_jst": null,
+      "bundle_id": null
+    },
+    {
+      "event_id": "au-trade_balance-2026-09-03",
+      "date_local": "2026-09-03",
+      "time_local": "11:30",
+      "tz": "Australia/Sydney",
+      "date_jst": "2026-09-03",
+      "datetime_jst": "2026-09-03T10:30:00+09:00",
+      "time_status": "published",
+      "country": "AU",
+      "currency": "AUD",
+      "kind": "trade_balance",
+      "name_ja": "貿易収支",
+      "importance": 3,
+      "source_id": "manual",
+      "source_evidence": "しょうさん指摘（2026-08-30、8/31週Manus突合）: 9/3貿易収支★★★が出力に欠落。調査の結果、au-gdp-2026-09-02と同一の構造的ギャップと判明（抽出・マッピングの不具合ではない）: au_abs（weekly_scrape）はABS future-releases-calendarの直近掲載分のみを対象週判定に使う設計だが、同ページの掲載horizonはau-abs-gdp-recon実測（2026-08-29、au-gdp-2026-09-02のsource_note参照）で2026-08-31までに留まることを確認済み。2026-09-03（3日分horizon外）はau-gdp-2026-09-02（2日分horizon外）よりさらに外側で同種の未掲載。trade_balanceのkind定義自体はconfig/official-sources.json au_abs.kinds・announce_time_by_kind・config/event-names.json（match:『international trade in goods』、実タイトル『International Trade in Goods』と完全一致、source_verified:true）とも既に正しく登録済み（豪貿易収支=★★★は docs/open-questions.md Q2の恒久ルール）。時刻11:30 Sydney(=10:30 JST)はau_abs.announce_time_by_kind.trade_balanceと一致。ABS側に掲載され次第、au_abs経由での重複候補化が無いか要目視確認（au-gdp-2026-09-02と同じ運用上の注意）",
+      "name_resolution": "dictionary",
+      "halt_window_start_jst": "2026-09-02T22:30:00+09:00",
+      "halt_window_end_jst": "2026-09-03T06:30:00+09:00",
       "bundle_id": null
     },
     {
