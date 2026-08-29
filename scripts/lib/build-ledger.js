@@ -71,7 +71,7 @@ const OFFICIAL_SPEECH_IMPORTANCE_BY_RANK = {
 // official_speechはimportance_by_kindの既定値（★★）を無視し、話者のrole_rankから動的に決め直す
 function resolveOfficialSpeechImportance(candidate, officials) {
   if (candidate.kind !== 'official_speech') return { importance: candidate.importance, warning: null };
-  const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName);
+  const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName, candidate.country);
   const rank = official && official.verified ? official.role_rank : null;
   if (rank && OFFICIAL_SPEECH_IMPORTANCE_BY_RANK[rank] != null) {
     return { importance: OFFICIAL_SPEECH_IMPORTANCE_BY_RANK[rank], warning: null };
@@ -142,7 +142,7 @@ function resolveRuleGeneratedName(candidate, officials) {
     return null;
   }
   if (candidate.kind === 'official_speech') {
-    const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName);
+    const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName, candidate.country);
     if (official && official.verified && official.role_ja) {
       return naming.speechName(official, official.role_ja);
     }
