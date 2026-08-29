@@ -5,7 +5,12 @@ on:
     - cron: '6 23 * * 5'    # 土曜 08:06 JST（本番）
     - cron: '41 23 * * 5'   # 土曜 08:41 JST（保険。冪等ガードで二重生成防止）
     - cron: '23 23 * * 0'   # 月曜 08:23 JST（SPEC §3.3月曜事後突合。人気分[0/5の倍数・15・30・45]を回避）
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force_regenerate:
+        description: '既存台帳の有無・生成元コミットに関わらず対象週を強制的に再生成する（コード修正を反映させたい手動再実行時に使用）'
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -32,15 +37,42 @@ jobs:
       # 作ってしまう構造的な欠陥があった。concurrency: group: weekly-report（同一workflow内で
       # cancel-in-progress: false）により08:06のrunが完全終了する[pushまで含む]まで08:41は
       # 開始しないため、この時点のcheckoutで対象週の台帳ファイルが既にリポジトリに存在するかを
-      # 判定すれば安全に重複実行を検出できる
-      - name: 冪等チェック（対象週の台帳が既にコミット済みなら以降のpipelineをスキップ）
+      # 判定すれば安全に重複実行を検出できる。
+      #
+      # 2026-08-29再是正（しょうさん指摘）: 上記の「ファイルの存在有無だけを見る」実装には
+      # 2つの盲点があった。(1) 手動実行が対象週を先取り生成すると、その後コードを何度修正して
+      # mainへマージしても、Saturdayの本番cronが「もう存在する」と誤判定して永久にスキップし
+      # 続ける（8/17の手動実行が8/24週を先取り生成し、8/22・8/24の3回のcronすべてが
+      # 無反応にスキップした実例で発覚）。(2) コード修正を反映させたい狙いの手動再実行が
+      # 効かない。対策として、台帳meta.generated_from_commitに生成時のコミットSHAを記録し
+      # （scripts/build-ledger.mjs）、「対象週ファイルが存在し、かつ生成元コミットが現在のHEAD
+      # [github.sha]と一致する」場合のみスキップする方式に変更した。ファイルはあるが生成元
+      # コミットが異なる場合は、コード修正が反映されるべきケースとみなし再生成する。あわせて
+      # workflow_dispatchにforce_regenerateを新設し、この判定自体を明示的にバイパスできるようにした
+      - name: 冪等チェック（対象週の台帳が現在のコードで生成済みなら以降のpipelineをスキップ）
         id: idempotency
         run: |
           TARGET_WEEK_START=$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart)")
           echo "target_week_start=${TARGET_WEEK_START}" >> "$GITHUB_OUTPUT"
-          if [ -f "data/ledger/${TARGET_WEEK_START}.json" ]; then
-            echo "already_generated=true" >> "$GITHUB_OUTPUT"
-            echo "対象週(${TARGET_WEEK_START})の台帳は既にコミット済み。今回のrunはスキップします（保険cronの二重生成防止）"
+          LEDGER_PATH="data/ledger/${TARGET_WEEK_START}.json"
+          if [ "${{ github.event.inputs.force_regenerate }}" = "true" ]; then
+            echo "already_generated=false" >> "$GITHUB_OUTPUT"
+            echo "force_regenerateが指定されたため、既存台帳の有無に関わらず再生成します"
+          elif [ -f "$LEDGER_PATH" ]; then
+            EXISTING_COMMIT=$(node -e "
+              const fs = require('fs');
+              try {
+                const j = JSON.parse(fs.readFileSync('$LEDGER_PATH', 'utf8'));
+                console.log(j.meta && j.meta.generated_from_commit || '');
+              } catch (e) { console.log(''); }
+            ")
+            if [ "$EXISTING_COMMIT" = "${{ github.sha }}" ]; then
+              echo "already_generated=true" >> "$GITHUB_OUTPUT"
+              echo "対象週(${TARGET_WEEK_START})は現在のコード(${{ github.sha }})で生成済み。今回のrunはスキップします（保険cronの二重生成防止）"
+            else
+              echo "already_generated=false" >> "$GITHUB_OUTPUT"
+              echo "対象週(${TARGET_WEEK_START})の台帳は存在しますが、生成元コミット(${EXISTING_COMMIT:-不明。旧形式の台帳})が現在のHEAD(${{ github.sha }})と異なるため再生成します"
+            fi
           else
             echo "already_generated=false" >> "$GITHUB_OUTPUT"
           fi

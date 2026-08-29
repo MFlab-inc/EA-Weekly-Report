@@ -99,6 +99,29 @@ test('validateLedger: 台帳がオブジェクトでなければエラー', () =
   assert.equal(validateLedger([]).ok, false);
 });
 
+// 2026-08-29追加: meta.generated_from_commitは任意項目（未設定・null=旧形式の台帳やローカル生成、
+// 文字列=weekly.ymlの冪等ガードが比較に使うコミットSHA）。文字列・null・未設定はエラーにならず、
+// それ以外の型（数値等の設定ミス）だけを検出することを確認する
+test('validateLedger: meta.generated_from_commitは文字列・null・未設定を許可し、それ以外の型はエラー', () => {
+  const withString = baseLedger();
+  withString.meta.generated_from_commit = '03fcd77b3dcc62205fe446a0c8c7e9f91b206c2e';
+  assert.equal(validateLedger(withString).ok, true);
+
+  const withNull = baseLedger();
+  withNull.meta.generated_from_commit = null;
+  assert.equal(validateLedger(withNull).ok, true);
+
+  const withoutField = baseLedger();
+  delete withoutField.meta.generated_from_commit;
+  assert.equal(validateLedger(withoutField).ok, true);
+
+  const withNumber = baseLedger();
+  withNumber.meta.generated_from_commit = 12345;
+  const r = validateLedger(withNumber);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => e.includes('generated_from_commit')));
+});
+
 test('validateLedger: source_evidenceが空ならエラー（台帳生成時点でHOLDの根拠）', () => {
   const ledger = baseLedger();
   ledger.events[0].source_evidence = '';

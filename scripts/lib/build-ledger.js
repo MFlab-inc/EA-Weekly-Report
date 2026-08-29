@@ -349,6 +349,10 @@ function buildMetaMessages(report) {
 // recurringChecksStatus: [{name, applies_this_week, found}]（呼び出し側でimportanceRules.recurring_checks
 //   とmatchesRecurringRule/report.resultsのfoundKindsから組み立てる。ESM依存関数を含むため
 //   build-ledger.js自体には持たせず、呼び出し側[scripts/phase1/以下]で計算して渡す）
+// generatedFromCommit: 生成時点のmainブランチコミットSHA（省略時null。scripts/build-ledger.mjsが
+//   GITHUB_SHAから設定する）。weekly.ymlの冪等チェックが「対象週ファイルの存在有無」だけでなく
+//   「現在のHEADと同一コミットで生成済みか」まで見られるようにするための識別子（2026-08-29是正、
+//   しょうさん指摘: 手動実行が先取り生成した週をコード修正後も永久にスキップしてしまう不具合があった）
 function buildLedger({
   report,
   sourcesConfig,
@@ -359,6 +363,7 @@ function buildLedger({
   recurringChecksStatus,
   pipelineVersion,
   generatedAt,
+  generatedFromCommit,
 }) {
   const { warnings, holds } = buildMetaMessages(report);
   const outcome = report.outcome.status === 'HOLD' ? 'HOLD' : 'PUBLISH_READY';
@@ -375,6 +380,7 @@ function buildLedger({
       target_week_start: report.targetWeek.start,
       target_week_end: report.targetWeek.end,
       pipeline_version: pipelineVersion,
+      generated_from_commit: generatedFromCommit || null,
       outcome,
       warnings: [...warnings, ...officialSpeechWarnings],
       holds,

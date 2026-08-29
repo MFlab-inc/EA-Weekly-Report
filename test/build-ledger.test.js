@@ -231,6 +231,29 @@ test('buildLedger: 実データに近い合成入力からスキーマに合格�
   assert.ok(ledger.sources.some((s) => s.source_id === 'manual'), '手動イベント用のmanualソースが常に追加される');
 });
 
+// 2026-08-29追加（しょうさん指摘: weekly.ymlの冪等ガードが「対象週ファイルの存在有無」だけを見て
+// いたため、手動実行が先取り生成した週をコード修正後も永久にスキップしてしまう不具合があった）。
+// meta.generated_from_commitはこの冪等判定の材料になるため、渡した値がそのままmetaに載ること、
+// 未指定時はnullになる（旧形式の台帳・ローカル生成との後方互換）ことを確認する
+test('buildLedger: generatedFromCommitを渡すとmeta.generated_from_commitに反映され、未指定時はnullになる', () => {
+  const report = syntheticReport();
+  const sourcesConfig = syntheticSourcesConfig();
+  const base = {
+    report, sourcesConfig, manualEventsConfig: { entries: [] },
+    candidates: [{ ...report.results[0].thisWeek[0], sourceId: 'au_rba', sourceEvidence: 'Cash Rate（ground truth一致確認済み）' }],
+    expectedCoverageResult: { required: new Array(8).fill(0), missing: [] },
+    recurringChecksStatus: [], pipelineVersion: 'test-pipeline-1', generatedAt: '2026-08-15T08:06:00+09:00',
+  };
+
+  const withCommit = buildLedger({ ...base, generatedFromCommit: '03fcd77b3dcc62205fe446a0c8c7e9f91b206c2e' });
+  assert.equal(withCommit.meta.generated_from_commit, '03fcd77b3dcc62205fe446a0c8c7e9f91b206c2e');
+  assert.equal(validateLedger(withCommit).ok, true);
+
+  const withoutCommit = buildLedger(base);
+  assert.equal(withoutCommit.meta.generated_from_commit, null);
+  assert.equal(validateLedger(withoutCommit).ok, true);
+});
+
 test('buildLedger: officialsConfigを渡すと規則生成命名（naming.js）がイベントへ反映される', () => {
   const report = syntheticReport({
     results: [

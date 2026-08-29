@@ -16,13 +16,13 @@ const { nowJstIso } = require('./lib/tz-convert.js');
 
 const PIPELINE_VERSION = `ea-weekly-report@${require('../package.json').version}`;
 
-export function buildLedgerFromCollectResult({ collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules, expectedCoverageConfig, generatedAt }) {
+export function buildLedgerFromCollectResult({ collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules, expectedCoverageConfig, generatedAt, generatedFromCommit }) {
   const { targetWeek, report, candidates } = collectResult;
   const recurringChecksStatus = computeRecurringChecksStatus(report.results, importanceRules, targetWeek);
   const expectedCoverageResult = validateExpectedCoverage(sourcesConfig, officialsConfig, expectedCoverageConfig);
   return buildLedger({
     report, sourcesConfig, manualEventsConfig, officialsConfig, candidates,
-    expectedCoverageResult, recurringChecksStatus, pipelineVersion: PIPELINE_VERSION, generatedAt,
+    expectedCoverageResult, recurringChecksStatus, pipelineVersion: PIPELINE_VERSION, generatedAt, generatedFromCommit,
   });
 }
 
@@ -36,7 +36,7 @@ async function main() {
 
   const ledger = buildLedgerFromCollectResult({
     collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules,
-    expectedCoverageConfig, generatedAt: nowJstIso(),
+    expectedCoverageConfig, generatedAt: nowJstIso(), generatedFromCommit: process.env.GITHUB_SHA || null,
   });
 
   const check = validateLedger(ledger);
