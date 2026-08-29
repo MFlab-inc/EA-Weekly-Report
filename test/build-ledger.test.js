@@ -141,6 +141,15 @@ test('resolveRuleGeneratedName: official_speech（JP・officials.json登録済�
   );
 });
 
+// task #88（2026-08-30、しょうさん指摘: BOEの同姓問題を受けた横断監査でBOJのもう1名の
+// 副総裁「内田」が未登録と判明したため登録した）の回帰テスト
+test('resolveRuleGeneratedName: official_speech（JP・officials.json登録済みの内田副総裁）は本人のrole_jaで解決する', () => {
+  assert.equal(
+    resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: '内田' }, officials),
+    '内田日銀副総裁の発言'
+  );
+});
+
 test('resolveRuleGeneratedName: official_speech（JP・未登録話者）はOFFICIAL_SPEECH_ROLE_BY_COUNTRYにJPが無いためnullを返す（FALLBACK_KIND_LABEL「要人発言」へ）', () => {
   assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: '田村' }, officials), null);
   assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: null }, officials), null);
@@ -158,6 +167,11 @@ test('resolveOfficialSpeechImportance: governor（日銀総裁・植田）は★
 
 test('resolveOfficialSpeechImportance: deputy_governor（日銀副総裁・氷見野）は★★★、warningは無い', () => {
   const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '氷見野', date: '2026-08-27' }, officials);
+  assert.deepEqual(r, { importance: 3, warning: null });
+});
+
+test('resolveOfficialSpeechImportance: deputy_governor（日銀副総裁・内田）は★★★、warningは無い（task #88）', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '内田', date: '2026-08-27' }, officials);
   assert.deepEqual(r, { importance: 3, warning: null });
 });
 
