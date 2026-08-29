@@ -1,6 +1,10 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+
+const REAL_EVENT_NAMES = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'event-names.json'), 'utf8')).entries;
 
 // harness.mjsはESM（scripts/phase1/の他スクリプトと同じ規約）。CJSのテストからは動的importで読み込む。
 async function loadHarness() {
@@ -440,4 +444,72 @@ test('runChecks: sourceId指定のrecurring_checksは同一kindの別ソース�
   // us_ismが同じkind=pmi_ismを対象週内に見つけていても、中国PMI（cn_pmi限定）のWARNは消えない
   assert.equal(report.recurringMissingWarnings.length, 1);
   assert.match(report.recurringMissingWarnings[0], /中国PMI/);
+});
+
+// task #87（2026-08-30、しょうさん指摘）: au_absはstatus=activeで抽出ルールも実装済みだが、
+// future-releases-calendarの掲載horizonが直近1ヶ月強のみのため、対象発表日がhorizon外だと
+// weekly_scrapeが「抽出成功・該当行なし」（ok:true・foundKinds:[]）を返し、cn_pmi等の
+// pending_reconケースとは異なり従来は無警告のまま検出漏れになっていた。sourceId指定の
+// recurring_checksでこれを可視化できることを確認する（対象週=2026-08-31週、GDPの月×日範囲に該当）
+test('runChecks: au_absがhorizon外でGDP/貿易収支を検出できない週はrecurring_checks経由でWARN可視化する（task #87）', async () => {
+  const { runChecks } = await loadHarness();
+  // GDP/trade_balance以外の無関係な行のみを含む、抽出自体は成功するfuture-releases-calendar
+  const html = `<div><strong class="event-name">Consumer Price Index, Australia</strong><time datetime="2026-08-26T01:30:00Z"></time></div>`;
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'au_abs', status: 'active', country: 'AU', kinds: ['cpi', 'gdp', 'trade_balance'], type: 'weekly_scrape',
+        access: { targets: [{ label: 'future_releases_calendar', url: 'https://example.invalid/abs' }] },
+        recurring_check_refs: [],
+      },
+    ],
+  };
+  const importanceRules = {
+    recurring_checks: [
+      { name: '豪州GDP（ABS）', rule: '3月・6月・9月・12月の1日〜5日ごろ', action: 'WARN' },
+      { name: '豪州貿易収支（ABS）', rule: '毎月1日〜10日ごろ', action: 'WARN' },
+    ],
+  };
+  const targetWeek = {
+    collectionDate: '2026-08-29', targetWeekStart: '2026-08-31', targetWeekEnd: '2026-09-04',
+    dates: [
+      { date: '2026-08-31', md: '8/31', weekday: '月' }, { date: '2026-09-01', md: '9/1', weekday: '火' },
+      { date: '2026-09-02', md: '9/2', weekday: '水' }, { date: '2026-09-03', md: '9/3', weekday: '木' },
+      { date: '2026-09-04', md: '9/4', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.outcome.status, 'OK', 'au_abs自体はok:trueのためHOLDにはならない');
+  assert.equal(report.recurringMissingWarnings.length, 2);
+  assert.ok(report.recurringMissingWarnings.some((w) => w.includes('豪州GDP（ABS）')));
+  assert.ok(report.recurringMissingWarnings.some((w) => w.includes('豪州貿易収支（ABS）')));
+});
+
+test('runChecks: au_absが対象月・対象日範囲でGDPを検出できた週はWARNが出ない（task #87の偽陽性防止）', async () => {
+  const { runChecks } = await loadHarness();
+  const html = `<div><strong class="event-name">Australian National Accounts: National Income, Expenditure and Product</strong><time datetime="2026-09-02T01:30:00Z"></time></div>`;
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'au_abs', status: 'active', country: 'AU', kinds: ['gdp'], type: 'weekly_scrape',
+        access: { targets: [{ label: 'future_releases_calendar', url: 'https://example.invalid/abs' }] },
+        recurring_check_refs: [],
+      },
+    ],
+  };
+  const importanceRules = {
+    recurring_checks: [{ name: '豪州GDP（ABS）', rule: '3月・6月・9月・12月の1日〜5日ごろ', action: 'WARN' }],
+  };
+  const targetWeek = {
+    collectionDate: '2026-08-29', targetWeekStart: '2026-08-31', targetWeekEnd: '2026-09-04',
+    dates: [
+      { date: '2026-08-31', md: '8/31', weekday: '月' }, { date: '2026-09-01', md: '9/1', weekday: '火' },
+      { date: '2026-09-02', md: '9/2', weekday: '水' }, { date: '2026-09-03', md: '9/3', weekday: '木' },
+      { date: '2026-09-04', md: '9/4', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
 });
