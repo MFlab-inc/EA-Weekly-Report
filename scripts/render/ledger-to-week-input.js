@@ -16,6 +16,7 @@
 // scripts/lib/build-ledger.jsのcomputeBundleIds()が算出したbundle_idに基づき、
 // windowGroupsForDay()でグルーピングする（しょうさん確定ルール2026-08-15実装済み）
 const { parseYmd, addDays, formatYmd, formatMd, weekdayJa } = require('../lib/dates');
+const { detectMonthEndNotice } = require('../lib/month-end-notice');
 
 // ISO国コード→国名ピル表示（日本語）。config/country-currency-map.jsonのJA表記慣行と一致させる
 // （NZ表記のみ「ニュージーランド」ではなく「NZ」のまま。既刊実例・country-currency-map.json準拠）。
@@ -134,6 +135,16 @@ function buildDays(ledger, eventComments) {
   return days;
 }
 
+// 月末・四半期末・半期末の注意喚起（task #82）。ledger.meta.target_week_start/endのみから
+// 完全に決定的に計算できるため（人手の編集判断を要しない）、narrativeのoverride対象には含めず
+// ここで直接算出する。html-renderer.js側でreportPolicy.month_end_noticeの文言テンプレートへ
+// 差し込む（label/reason/disclaimerの改変禁止はhalt_prevday_note等と同じ既存パターンを踏襲）
+function monthEndNoticeFor(ledger) {
+  const notice = detectMonthEndNotice(ledger.meta.target_week_start, ledger.meta.target_week_end);
+  if (!notice) return null;
+  return { ...notice, weekday: weekdayJa(parseYmd(notice.date)) };
+}
+
 // ledger: data/ledger/YYYY-MM-DD.json相当のパース済みオブジェクト
 // narrative: { reportMeta, createdDateJa, heroSummary, heroPills }（人手で用意する編集判断。
 //   本アダプタは生成しない。ファイル先頭コメント参照）
@@ -146,6 +157,7 @@ function ledgerToWeekInput(ledger, narrative, eventComments) {
     targetWeekEnd: ledger.meta.target_week_end,
     heroSummary: narrative.heroSummary,
     heroPills: narrative.heroPills,
+    monthEndNotice: monthEndNoticeFor(ledger),
     days: buildDays(ledger, eventComments),
   };
 }
@@ -158,4 +170,5 @@ module.exports = {
   timeFromDatetimeJst,
   countryJaOf,
   COUNTRY_JA_BY_ISO,
+  monthEndNoticeFor,
 };

@@ -8,6 +8,10 @@
 // 「台帳にないイベントがHTMLに出る／HTMLに出ないイベントが台帳にある」の両方向を必ず検出する。
 import { readFileSync } from 'node:fs';
 import { argv, exit } from 'node:process';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { detectMonthEndNotice } = require('../lib/month-end-notice.js');
 
 const WEEKDAYS_JA = ['月', '火', '水', '木', '金', '土', '日'];
 const EXPECTED_LAYOUT_VERSION = 'ea-only-v4';
@@ -179,12 +183,43 @@ export function auditTargetWeekDates(html, ledger) {
   return errors;
 }
 
+// 月末・四半期末・半期末の注意喚起（task #82）。scripts/lib/month-end-notice.jsの
+// detectMonthEndNotice()を台帳のtarget_week_start/endから独立に再計算し、HTMLの
+// data-ea-month-end-*属性と突合する。双方向（該当週で属性が出ること／非該当週で
+// ブロック自体が存在しないこと）を検査する（しょうさん指示）
+const MONTH_END_NOTICE_RE = /<div\b[^>]*class="ea-month-end-notice"[^>]*\bdata-ea-month-end-date="([^"]*)"[^>]*\bdata-ea-month-end-tier="([^"]*)"[^>]*>/;
+
+export function auditMonthEndNotice(html, ledger) {
+  const errors = [];
+  const expected = detectMonthEndNotice(ledger.meta.target_week_start, ledger.meta.target_week_end);
+  const found = MONTH_END_NOTICE_RE.exec(html);
+
+  if (expected && !found) {
+    errors.push(`MONTH_END_NOTICE_MISSING: 対象週(${ledger.meta.target_week_start}〜${ledger.meta.target_week_end})にはロンドン市場基準の月末営業日(${expected.date})が含まれるため、月末注意喚起ブロックが出力されるべきですが見つかりません`);
+    return errors;
+  }
+  if (!expected && found) {
+    errors.push(`MONTH_END_NOTICE_UNEXPECTED: 対象週に該当日が無いにもかかわらず、月末注意喚起ブロックが出力されています（date=${found[1]}）`);
+    return errors;
+  }
+  if (expected && found) {
+    if (found[1] !== expected.date) {
+      errors.push(`MONTH_END_NOTICE_DATE_MISMATCH: data-ea-month-end-date(${found[1]})が期待値(${expected.date})と一致しません`);
+    }
+    if (found[2] !== expected.tier) {
+      errors.push(`MONTH_END_NOTICE_TIER_MISMATCH: data-ea-month-end-tier(${found[2]})が期待値(${expected.tier})と一致しません`);
+    }
+  }
+  return errors;
+}
+
 export function auditLedgerHtml(html, ledger) {
   return [
     ...auditRootMeta(html, ledger),
     ...auditEventSets(html, ledger),
     ...auditDateGroups(html, ledger),
     ...auditTargetWeekDates(html, ledger),
+    ...auditMonthEndNotice(html, ledger),
   ];
 }
 

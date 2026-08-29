@@ -171,6 +171,39 @@ ${cardsHtml}    </div>
 `;
 }
 
+// 月末・四半期末・半期末の需給要因に関する注意喚起（task #82）。停止スケジュール（琥珀）・
+// 正常稼働（緑）のどちらでもない中立トーン（design-mock_v1.2.htmlの配色体系のうち、
+// 既に「バーは各日の0時〜24時を表します」の説明ボックスや免責ボックスで使われている
+// 淡いミント背景#eaf5efと灰緑#8aa097を流用。新しい色相は追加しない）で視覚的に区別する。
+// monthEndNoticeがnull（対象週に該当日が無い）の場合は空文字列を返し、ブロック自体を
+// 出力しない（しょうさん指示: 空ブロックを出さない）。文言はreportPolicy.month_end_notice
+// のテンプレートへ差し込むのみで、レンダラー側で新たな文言は作らない（既存のhalt_prevday_note
+// 等と同じ「転記のみ」パターン）
+function monthEndNoticeHtml(monthEndNotice, reportPolicy) {
+  if (!monthEndNotice) return '';
+  const cfg = reportPolicy.month_end_notice;
+  const monthCfg = cfg.months[String(monthEndNotice.month)] || cfg.months.default;
+  const [, m, d] = monthEndNotice.date.split('-');
+  const heading = cfg.heading_template
+    .replace('{DATE}', `${Number(m)}月${Number(d)}日`)
+    .replace('{WEEKDAY}', monthEndNotice.weekday)
+    .replace('{LABEL}', monthCfg.label);
+  const body = cfg.body_template
+    .replace('{FIX_TIME}', monthEndNotice.fixTimeJst.time)
+    .replace('{REASON}', monthCfg.reason);
+  return `  <div style="padding:0 14px 14px;">
+    <div class="ea-month-end-notice" data-ea-month-end-date="${monthEndNotice.date}" data-ea-month-end-tier="${monthEndNotice.tier}" style="background:#eaf5ef;border:1px solid #cfe3d8;border-left:4px solid #8aa097;border-radius:12px;padding:12px 14px;">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+        <span style="display:inline-block;width:9px;height:9px;background:#8aa097;border-radius:3px;flex-shrink:0;"></span>
+        <span style="font-size:12.5px;font-weight:800;color:#33473e;">${esc(heading)}</span>
+      </div>
+      <div style="font-size:12px;color:#43564d;line-height:1.75;">${esc(body)}</div>
+      <div style="font-size:11px;color:#6b8177;margin-top:6px;line-height:1.7;">${esc(cfg.disclaimer)}</div>
+    </div>
+  </div>
+`;
+}
+
 // 色付きバッジ+説明文の縦積み1行（既存の3段階バッジ[稼働停止/Lot50%/通常稼働]と
 // 新設の3状態バッジ[新規可/新規グリッド禁止/新規全停止]の両方で共用する見た目の基本部品）
 function tierBadge(label, colorBg, colorFg, text) {
@@ -270,6 +303,7 @@ function renderReportHtml(reportData, { reportPolicy, btcGuide }) {
     .join('\n      ');
 
   const haltCardsHtml = reportData.days.map((d) => haltDayCard(d, reportPolicy)).join('');
+  const monthEndNoticeHtmlStr = monthEndNoticeHtml(reportData.monthEndNotice, reportPolicy);
   const dateGroupsHtml = reportData.days.map((d) => dateGroup(d, reportPolicy)).join('');
   const btcCardsHtml = btcGuide.cards.map((c) => btcCard(c)).join('');
   const riskCardsHtml = reportPolicy.risk_cards
@@ -330,7 +364,7 @@ ${haltCardsHtml}
     </div>
   </div>
 
-  <!-- ▼ セクション2: 対象週の注目イベント -->
+${monthEndNoticeHtmlStr}  <!-- ▼ セクション2: 対象週の注目イベント -->
   <div style="padding:0 14px 6px;">
     <div class="ea-section-band" style="width:fit-content;margin:28px auto 6px;background:#1a3a2e;color:#ecfdf5;font-size:13px;letter-spacing:0.12em;font-weight:700;padding:7px 20px;border-radius:999px;text-align:center;">${esc(reportPolicy.section_headings[1])}</div>
     <div style="text-align:center;font-size:11.5px;color:#5b6f66;margin-bottom:12px;">${section2Subtitle}</div>
@@ -365,4 +399,4 @@ ${btcCardsHtml}  </div>
 `;
 }
 
-module.exports = { renderReportHtml, countryPill, currencyPill, btcCard };
+module.exports = { renderReportHtml, countryPill, currencyPill, btcCard, monthEndNoticeHtml };

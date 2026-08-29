@@ -98,6 +98,7 @@ function buildReportData(weekInput) {
     targetWeekLabelJa: weekInput.targetWeekLabelJa,
     heroSummary: weekInput.heroSummary,
     heroPills: weekInput.heroPills,
+    monthEndNotice: weekInput.monthEndNotice || null,
     star3Total,
     releaseWindowCount,
     dayCount: days.length,
