@@ -61,6 +61,12 @@ const RECURRING_CHECK_MATCH = {
   中国PMI: { kind: 'pmi_ism', sourceId: 'cn_pmi' },
   英国建設業PMI: { kind: 'pmi_ism', sourceId: 'gb_construction_pmi' },
   ADP雇用統計: { kind: 'employment_indicator', sourceId: 'us_adp' },
+  // task #87（2026-08-30、しょうさん指摘）: au_absはactive状態のソースだが、future-releases-calendarの
+  // 掲載horizonが直近1ヶ月強のみのため、対象発表日がhorizon外だとweekly_scrapeが無警告のまま
+  // 検出できない（担当ソース自体が無いcn_pmi等とは異なる種類の欠落）。sourceId指定でau_abs自身が
+  // その週に見つけられたかを機械的に可視化する
+  '豪州GDP（ABS）': { kind: 'gdp', sourceId: 'au_abs' },
+  '豪州貿易収支（ABS）': { kind: 'trade_balance', sourceId: 'au_abs' },
 };
 
 // jp_mof向け: auction_calendar_index.htmは月別ローリング公表（年次一括ではない）ため、対象週が
