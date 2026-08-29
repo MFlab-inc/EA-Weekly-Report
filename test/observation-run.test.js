@@ -349,7 +349,7 @@ test('annualEntryToCandidate: ZEW景況感指数（DE sentiment）が実config�
 
 // task #41-3（しょうさん承認済み国×kindマトリクス）の回帰テスト: Eurostat HICP・GDP速報値、
 // EU/GBフラッシュPMIを新規annual_schedule_config型ソースとして追加した
-test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）が実configから名称解決できる（時刻はしょうさん発見のECB statscal静的ページで確定）', async () => {
+test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）が実configから名称解決できる（時刻はEurostat自身のld+json datePublishedで確定）', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
   const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_hicp');
   const importanceRules = { importance_by_kind: { cpi: 3 } };
@@ -357,19 +357,23 @@ test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）が実c
   assert.ok(entry, '2026-07-31のHICP速報値scheduleエントリが見つからない（2026年7月分）');
   const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
   assert.equal(c.displayName, '消費者物価指数（HICP）');
-  assert.equal(c.time, '22:00'); // 15:00 CEST(夏時間、UTC+2) → 同日22:00 JST。ECB statscal（sthicp.en.html）で直接確認
+  // 2026-08-29是正（しょうさん指摘）: 旧値15:00 CETはECBの季節調整版ページ由来の誤りだった。
+  // .eurostat-embargo-recon実測でEurostatニュースリリース本文のld+json datePublishedを直接確認し、
+  // 11:00 CET/CESTが正しい公表時刻と判明（zonedWallTimeToJst(2026,7,31,11,0,'Europe/Berlin')で
+  // 18:00 JSTと確認済み）
+  assert.equal(c.time, '18:00');
   assert.equal(c.date, '2026-07-31');
 });
 
-test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）8月分以降の新規追加分（ECB statscal由来）も名称解決できる', async () => {
+test('annualEntryToCandidate: 消費者物価指数（HICP）（EU cpi）8月分以降の新規追加分も名称解決できる', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
   const source = realSourcesConfig.sources.find((s) => s.id === 'eurostat_hicp');
   const importanceRules = { importance_by_kind: { cpi: 3 } };
   const entry = source.schedule.find((e) => e.kind === 'cpi' && e.date === '2026-09-01');
-  assert.ok(entry, '2026-09-01のHICP速報値scheduleエントリが見つからない（2026年8月分、ECB statscalで新規確認）');
+  assert.ok(entry, '2026-09-01のHICP速報値scheduleエントリが見つからない（2026年8月分）');
   const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
   assert.equal(c.displayName, '消費者物価指数（HICP）');
-  assert.equal(c.time, '22:00'); // 15:00 CEST → 同日22:00 JST
+  assert.equal(c.time, '18:00'); // 11:00 CEST → 同日18:00 JST（しょうさん自身の計算とも一致）
 });
 
 test('annualEntryToCandidate: GDP【速報値】（EU gdp）が実configから名称解決できる（8/10週の既刊fixtureと重なる実例）', async () => {
@@ -380,7 +384,10 @@ test('annualEntryToCandidate: GDP【速報値】（EU gdp）が実configから�
   assert.ok(entry, '2026-08-14のGDP統合速報scheduleエントリが見つからない（2026年04-06月期）');
   const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
   assert.equal(c.displayName, 'GDP【速報値】');
-  assert.equal(c.time, null); // announce_time_by_kind.gdp未設定
+  // 2026-08-29追加（しょうさん指摘、eurostat_hicpと同じ疑いの確認）: .eurostat-embargo-recon実測で
+  // GDPニュースリリース本文のld+json datePublishedも11:00 CET/CESTと確認できたため、
+  // announce_time_by_kind.gdpを新設した（旧: 未設定でtime:null）
+  assert.equal(c.time, '18:00'); // 11:00 CEST → 同日18:00 JST
 });
 
 // task #46（2026-08-15、しょうさん指示の経路A/B）の回帰テスト: EurostatのSPAカレンダーを迂回し、
@@ -394,7 +401,7 @@ test('annualEntryToCandidate: GDP【速報値】（EU gdp）2026Q3分（経路A�
   assert.ok(entry, '2026-11-13のGDP統合速報scheduleエントリが見つからない（2026年07-09月期、task #46で新規追加）');
   const c = annualEntryToCandidate(entry, source, importanceRules, realEventNames);
   assert.equal(c.displayName, 'GDP【速報値】');
-  assert.equal(c.time, null); // 経路A・Bのいずれにも時刻記載がなかったため推測せずnullのまま
+  assert.equal(c.time, '19:00'); // 11:00 CET（11月は冬時間） → 同日19:00 JST
 });
 
 // GB pmi_ismは既存の建設業PMI（gb_construction_pmi、subtype:construction）とkind衝突するため、
