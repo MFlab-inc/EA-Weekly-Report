@@ -101,6 +101,45 @@ export function lintLeakedCountryCodes(text, countryCodes) {
   return errors;
 }
 
+// 英語イベント名の露出検出（SPEC §6「英語イベント名禁止」のvalidate対象。2026-08-29、
+// しょうさん指摘: AU/gdpの手動登録エントリでdisplay_nameに公式英語名の断片
+// 『Australian National Accounts』がそのまま残っていたが、forbidden_reader_terms（完全一致
+// リスト）・lintLeakedCountryCodes（既知ISOコードのみ）のどちらも検出できていなかった）。
+// GDP/CPI/PMI/ISM/RBNZ/BOJ/BOC等の英語略称は経済指標カレンダーの表記慣行として単体では
+// 正当に使われる（本レポート自身が「ISM製造業景況指数」「RBNZ政策金利＆声明発表」のように
+// 常用している）ため、単純な「ラテン文字が含まれるか」では大量の誤検知になる。
+// 「大文字始まりの単語が空白を挟んで2語以上連続する」という強めのシグナルのみを検出することで、
+// 単体の略称とは区別する（"Australian National Accounts"は3語連続でヒットする）。
+// ただし国名ピル「NZ」＋通貨ピル「NZD」のように、全て大文字のコード同士が隣接表示されて
+// 偶然「2語連続」に見えるケースは誤検知になる（NZはCOUNTRY_JA_BY_ISOで意図的に日本語化しない
+// 既刊実例）。英語の地の文と全大文字コードを区別するため、2語以上のうち少なくとも1語は
+// 「先頭大文字＋残り小文字」（Title Case、例: Australian）であることを追加条件とする
+// （NZ・NZD・RBNZ・GDP等は全大文字のため単独ではヒットしない）。
+// 検査範囲は停止スケジュール（ea-halt-day）と対象週の注目イベント（ea-date-group、
+// ea-event-cardを含む）のみに限定する。土日のBTC/USDガイドの「Crypto Risk Monitor」
+// 「TradingView」等の外部サイト名（しょうさん承認済み・正式名称の引用）はこれらのclassを
+// 持たないため、スコープ限定により自然に対象外となる
+const ENGLISH_PHRASE_RE = /\b[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,}\b/g;
+const TITLE_CASE_WORD_RE = /^[A-Z][a-z]+$/;
+const EVENT_TEXT_BLOCK_RE = /<div\b[^>]*class="(?:ea-halt-day|ea-date-group)"[^>]*>([\s\S]*?)(?=<div\b[^>]*class="(?:ea-halt-day|ea-date-group)"|<!-- ▼|$)/g;
+
+export function lintEnglishEventNameLeak(html) {
+  const errors = [];
+  const seen = new Set();
+  let m;
+  const blockRe = new RegExp(EVENT_TEXT_BLOCK_RE);
+  while ((m = blockRe.exec(html)) !== null) {
+    const text = stripTags(m[1]).replace(/\s+/g, ' ');
+    for (const hit of text.match(ENGLISH_PHRASE_RE) || []) {
+      if (seen.has(hit)) continue;
+      if (!hit.split(/\s+/).some((w) => TITLE_CASE_WORD_RE.test(w))) continue; // 全大文字コード同士の隣接は対象外
+      seen.add(hit);
+      errors.push(`ENGLISH_EVENT_NAME_LEAK: 停止スケジュール／注目イベントに英語表記の疑いがある文字列が含まれています（display_nameの見直しが必要な可能性、SPEC §6）: "${hit}"`);
+    }
+  }
+  return errors;
+}
+
 // href="..." を正規表現で抽出する（軽量パーサ方針。scripts/checkers/extractors/*.jsと同様）
 export function extractHrefs(html) {
   const hrefs = [];
@@ -174,6 +213,7 @@ export function runStaticLint(html, { reportPolicy, btcGuide, countryCodes = DEF
     ...lintDisclaimerPresence(text, reportPolicy),
     ...lintLinkDomains(extractHrefs(html), btcGuide.allowed_domains),
     ...lintLeakedCountryCodes(text, countryCodes),
+    ...lintEnglishEventNameLeak(html),
   ];
   return errors;
 }

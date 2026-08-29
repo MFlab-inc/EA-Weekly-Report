@@ -68,6 +68,28 @@ test('candidateToLedgerEvent: displayName未解決・officials指定時はnaming
   assert.equal(pressEv.name_resolution, 'rule_generated');
 });
 
+// task #84（2026-08-30、しょうさん指摘: 8/31週監査でRBNZ・BOC総裁記者会見★★★の不検出を発見）。
+// config/official-sources.jsonのrbnz_policy_rate/boc_policy_rateへpress_conference kindを追加した
+// 回帰テスト。SNB同様officials.jsonの登録済み総裁（NZ=ブレマン、CA=マックレム）で解決できることを確認する
+test('candidateToLedgerEvent: press_conference（NZ・CA）もofficials.json登録済み総裁で解決する（task #84）', () => {
+  const used = new Set();
+  const nzCandidate = {
+    date: '2026-09-02', time: '12:00', kind: 'press_conference', country: 'NZ', importance: 3,
+    displayName: null, sourceId: 'rbnz_policy_rate', sourceEvidence: 'RBNZ年次確定スケジュール',
+  };
+  const nzEv = candidateToLedgerEvent(nzCandidate, used, officials);
+  assert.equal(nzEv.name_ja, 'ブレマンRBNZ総裁の記者会見');
+  assert.equal(nzEv.name_resolution, 'rule_generated');
+
+  const caCandidate = {
+    date: '2026-09-02', time: '23:30', kind: 'press_conference', country: 'CA', importance: 3,
+    displayName: null, sourceId: 'boc_policy_rate', sourceEvidence: 'BOC年次確定スケジュール',
+  };
+  const caEv = candidateToLedgerEvent(caCandidate, used, officials);
+  assert.equal(caEv.name_ja, 'マックレムBOC総裁の記者会見');
+  assert.equal(caEv.name_resolution, 'rule_generated');
+});
+
 test('resolveRuleGeneratedName: bond_auction（tenorJa無し）・official_speech（US以外）は未対応でnullを返す', () => {
   assert.equal(resolveRuleGeneratedName({ kind: 'bond_auction', country: 'JP' }, officials), null, 'tenorJaが無いbond_auction');
   assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP' }, officials), null, 'US以外のofficial_speech（役職ラベル未定義）');
@@ -395,4 +417,18 @@ test('buildLedger: report.outcome=HOLDのときledger.meta.outcome=HOLD・holds�
   assert.deepEqual(ledger.meta.holds, ['判定不能: 2件のソースが同時に失敗']);
   const r = validateLedger(ledger);
   assert.equal(r.ok, true);
+});
+
+// task #84（2026-08-30）: RBNZ・BOCのpress_conference追加時、schedule[]へのpolicy_rate/press_conference
+// 追加漏れ（片方だけ日付を足し忘れる等）を今後の年次スケジュール更新時に検出するための実config監査。
+// SNB/RBA/FRB/ECBは既存実装のため対象外（新規追加した2ソースの回帰防止が目的）
+test('実config — boc_policy_rate/rbnz_policy_rateのpolicy_rate日程はすべてpress_conference日程を伴う（task #84）', () => {
+  const sourcesConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
+  for (const id of ['boc_policy_rate', 'rbnz_policy_rate']) {
+    const source = sourcesConfig.sources.find((s) => s.id === id);
+    const policyRateDates = new Set(source.schedule.filter((e) => e.kind === 'policy_rate').map((e) => e.date));
+    const pressConferenceDates = new Set(source.schedule.filter((e) => e.kind === 'press_conference').map((e) => e.date));
+    assert.deepEqual([...policyRateDates].sort(), [...pressConferenceDates].sort(), `${id}: policy_rateとpress_conferenceの日付集合が一致しない`);
+    assert.ok(source.announce_time_by_kind.press_conference, `${id}: announce_time_by_kind.press_conferenceが未定義`);
+  }
 });

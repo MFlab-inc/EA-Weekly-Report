@@ -101,6 +101,50 @@ test('lintLeakedCountryCodes: 既知の限界 — リーク値の直後に区切
   assert.deepEqual(errors, []); // 本来は漏れだが、この関数の設計上は検出不可（コメント参照）
 });
 
+// 2026-08-29追加（しょうさん指摘: AU/gdpの手動登録エントリでdisplay_nameに公式英語名の断片
+// 『Australian National Accounts』がそのまま残っていたが、既存のforbidden_reader_terms・
+// lintLeakedCountryCodesのどちらも検出できなかった）。「大文字始まりの単語が2語以上連続」
+// という強めのシグナルで検出する（ea-halt-day/ea-date-group内に限定）
+test('lintEnglishEventNameLeak: ea-date-group内の英語表記の断片（複数語連続）を検出する', async () => {
+  const { lintEnglishEventNameLeak } = await loadPolicyLint();
+  const html = '<div class="ea-date-group" data-ea-date="2026-09-02" data-ea-date-event-count="1"><div class="ea-event-card" data-ea-event-id="au-gdp-2026-09-02" data-ea-event-importance="3"><span>GDP（Australian National Accounts）</span></div></div>';
+  const errors = lintEnglishEventNameLeak(html);
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /Australian National Accounts/);
+});
+
+test('lintEnglishEventNameLeak: ea-halt-day内の英語表記も検出する', async () => {
+  const { lintEnglishEventNameLeak } = await loadPolicyLint();
+  const html = '<div class="ea-halt-day" data-ea-date="2026-09-02"><span>GDP（Australian National Accounts）</span></div>';
+  const errors = lintEnglishEventNameLeak(html);
+  assert.equal(errors.length, 1);
+});
+
+// 国名ピル「NZ」＋通貨ピル「NZD」、国名ピル「NZ」＋中銀略称「RBNZ」開始の名称のように、
+// 全て大文字のコード・略称同士が隣接して「2語連続」に見えるケースは誤検知にしない
+// （実際にrunStaticLintを通した8/31週の実生成HTMLで発生していた誤検知パターンの回帰テスト）
+test('lintEnglishEventNameLeak: 全大文字コード同士の隣接（NZ NZD・NZ RBNZ等）は誤検知しない', async () => {
+  const { lintEnglishEventNameLeak } = await loadPolicyLint();
+  const html = '<div class="ea-halt-day" data-ea-date="2026-09-02">'
+    + '<span>NZ</span><span>NZD</span>　▲<span>11:00</span>　RBNZ政策金利＆声明発表'
+    + '</div>';
+  assert.deepEqual(lintEnglishEventNameLeak(html), []);
+});
+
+test('lintEnglishEventNameLeak: 単体の英語略称（GDP・ISM・RBNZ等）は誤検知しない', async () => {
+  const { lintEnglishEventNameLeak } = await loadPolicyLint();
+  const html = '<div class="ea-date-group" data-ea-date="2026-09-01" data-ea-date-event-count="1"><div class="ea-event-card" data-ea-event-id="us-pmi_ism-2026-09-01" data-ea-event-importance="3"><span>ISM製造業景況指数</span></div></div>';
+  assert.deepEqual(lintEnglishEventNameLeak(html), []);
+});
+
+// 土日のBTC/USDガイド（Crypto Risk Monitor・TradingView等の承認済み外部サイト名）は
+// ea-halt-day/ea-date-groupのclassを持たないため、スコープ限定により対象外になることを確認する
+test('lintEnglishEventNameLeak: ea-halt-day/ea-date-group以外（BTCガイド等）は対象外', async () => {
+  const { lintEnglishEventNameLeak } = await loadPolicyLint();
+  const html = '<div style="padding:0 14px 10px;"><a href="https://mflab-inc.github.io/Crypto-Risk-Monitor/">Crypto Risk Monitor（金曜の事前確認）</a></div>';
+  assert.deepEqual(lintEnglishEventNameLeak(html), []);
+});
+
 // runStaticLintのデフォルトcountryCodesはCOUNTRY_JA_BY_ISOからNZ（意図的に生コードのまま
 // 表示する既刊実例）を除外している。含めてしまうと「NZ雇用統計」等の正常表記を誤検出する
 test('runStaticLint: デフォルトの国コード検査はNZを除外する（意図的な非日本語化のため誤検出しない）', async () => {
