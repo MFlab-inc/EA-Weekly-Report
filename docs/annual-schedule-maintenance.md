@@ -170,6 +170,18 @@ Manus生成レポートとの突合で、登録済み（statusがactive/draft_sc
 
 **次回実施目安**: 年1回（次回目安2027年8月頃）、または新規ソース追加時・Manus等の外部レポートとの突合で新たな欠落が見つかった時。
 
+## 公表リリース差分監査（catalog_audit_excluded_release_ids）の年次見直し（task #93フォローアップ、2026-09-05）
+
+`checkFredCatalogAudit`（`scripts/checkers/harness.mjs`）は、BLS（source_id=22）・BEA（source_id=18）が実際に公表している全リリースと`official-sources.json`に登録済みのkindsとの差分を検出し、未登録のリリースをWARN化する仕組み（task #93、Manus突合廃止に伴う欠落検知強化3点のひとつ）。2026-09-05の本番初回runで、州別・郡別・産業別の細分化統計・低頻度学術系列など39件が一括でノイズWARN化されたため、`config/official-sources.json`のus_bls_fred.fred.catalog_audit_excluded_release_idsへ除外リストとして登録した（各IDの除外理由はconfig内のnoteに個別記載）。
+
+除外は「現時点でEA週次レポートの対象外」という判断であり、将来的に発表元の統計改編・再編でこの判断が変わる可能性がある（本ドキュメント上部「発表元の統計改編への追随漏れ」パターンと同種のリスク）。年1回、以下を確認すること:
+
+1. `catalog_audit_excluded_release_ids`に登録されている各release_idについて、FRED（`https://api.stlouisfed.org/fred/release?release_id={id}`）で名称・公表内容が除外時の判断根拠（configのnote記載）から変化していないか確認する
+2. 変化があれば（例: 州別統計だったものが全国統計へ再編された、既存トラッキング統計との重複が解消された等）、除外リストから外し、`kinds[]`・`event-names.json`側の対応を検討する
+3. 変化が無ければ何もしない（除外を維持）
+
+**次回実施目安**: 2027年9月頃（初回運用から1年後）、または新規に大量の除外対象が発生した時。
+
 ## config更新時のチェックリスト（Claude Code向け）
 
 1. 該当ソースの最新年次スケジュールPDF/ページを取得
