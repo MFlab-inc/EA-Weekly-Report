@@ -122,6 +122,29 @@ test('validateLedger: meta.generated_from_commitは文字列・null・未設定�
   assert.ok(r.errors.some((e) => e.includes('generated_from_commit')));
 });
 
+// 2026-09-06追加（task #92）: meta.generated_from_code_hashも同じ規約（文字列・null・未設定は
+// 許可、それ以外の型のみエラー）。冪等ガードの実体がgenerated_from_commitからこちらへ
+// 移行したため、generated_from_commitと同じ回帰テストパターンを踏襲する
+test('validateLedger: meta.generated_from_code_hashは文字列・null・未設定を許可し、それ以外の型はエラー', () => {
+  const withString = baseLedger();
+  withString.meta.generated_from_code_hash = 'a'.repeat(64);
+  assert.equal(validateLedger(withString).ok, true);
+
+  const withNull = baseLedger();
+  withNull.meta.generated_from_code_hash = null;
+  assert.equal(validateLedger(withNull).ok, true);
+
+  const withoutField = baseLedger();
+  delete withoutField.meta.generated_from_code_hash;
+  assert.equal(validateLedger(withoutField).ok, true);
+
+  const withNumber = baseLedger();
+  withNumber.meta.generated_from_code_hash = 12345;
+  const r = validateLedger(withNumber);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => e.includes('generated_from_code_hash')));
+});
+
 test('validateLedger: source_evidenceが空ならエラー（台帳生成時点でHOLDの根拠）', () => {
   const ledger = baseLedger();
   ledger.events[0].source_evidence = '';

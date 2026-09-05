@@ -30,12 +30,15 @@ import { runStaticLint, extractHrefs, checkLinkReachability } from './policy-lin
 import { checkMobileLayout, summarizeResults as summarizeMobileResults } from './mobile-layout-check.mjs';
 import { nowJstIso } from '../lib/tz-convert.js';
 import { checkEventVolume } from '../lib/validate-event-volume.js';
+import { checkEventVolumeTrend } from '../lib/validate-event-volume-trend.js';
+import { loadHistoricalCounts } from '../lib/event-volume-history.js';
 
 function parseArgs(args) {
   const opts = {
     ledger: null, html: null, result: 'gate-result.json',
     btcGuideConfig: 'config/btc-weekend-guide.json', reportPolicyConfig: 'config/report-policy.json',
     volumeCheckConfig: 'config/volume-check-policy.json',
+    ledgerDir: 'data/ledger',
     skipMobile: false, skipLinkReachability: false, acknowledgeLowVolume: false,
   };
   for (let i = 0; i < args.length; i++) {
@@ -45,6 +48,7 @@ function parseArgs(args) {
     else if (args[i] === '--btc-guide-config') opts.btcGuideConfig = args[++i];
     else if (args[i] === '--report-policy-config') opts.reportPolicyConfig = args[++i];
     else if (args[i] === '--volume-check-config') opts.volumeCheckConfig = args[++i];
+    else if (args[i] === '--ledger-dir') opts.ledgerDir = args[++i];
     else if (args[i] === '--skip-mobile') opts.skipMobile = true;
     else if (args[i] === '--skip-link-reachability') opts.skipLinkReachability = true;
     else if (args[i] === '--acknowledge-low-volume') opts.acknowledgeLowVolume = true;
@@ -82,11 +86,14 @@ export async function runGateChecks({ ledger, html, reportPolicy, btcGuide, skip
 // PUBLISH_READY/REVIEW_REQUIRED/HOLDの3状態判定（純粋関数）。
 // checksに1件でもERRORがあればHOLD最優先（下限チェックの結果に関わらず）。
 // acknowledgeLowVolume:trueは「人間が内容を確認し妥当と判断した」ことを表す明示的な
-// オーバーライドで、下限チェックの抵触をPUBLISH_READY相当に格上げする（HOLDは上書きしない）
-export function decideGateOutcome(checks, volumeCheck, { acknowledgeLowVolume = false } = {}) {
+// オーバーライドで、下限チェック・推移チェックいずれの抵触もPUBLISH_READY相当に格上げする
+// （HOLDは上書きしない）。trendCheckは省略可（task #93、2026-09-06追加。省略時は
+// belowThreshold相当なしとして扱い、既存の呼び出し元との後方互換を保つ）
+export function decideGateOutcome(checks, volumeCheck, { acknowledgeLowVolume = false, trendCheck } = {}) {
   const hasError = checks.some((c) => c.errors.length > 0);
   if (hasError) return 'HOLD';
-  if (volumeCheck.belowThreshold && !acknowledgeLowVolume) return 'REVIEW_REQUIRED';
+  const belowThreshold = volumeCheck.belowThreshold || (trendCheck && trendCheck.belowThreshold);
+  if (belowThreshold && !acknowledgeLowVolume) return 'REVIEW_REQUIRED';
   return 'PUBLISH_READY';
 }
 
@@ -107,7 +114,12 @@ async function main() {
     skipMobile: opts.skipMobile, skipLinkReachability: opts.skipLinkReachability, mobileHtmlPath: opts.html,
   });
   const volumeCheck = checkEventVolume(ledger, volumeCheckPolicy);
-  const decision = decideGateOutcome(checks, volumeCheck, { acknowledgeLowVolume: opts.acknowledgeLowVolume });
+  // task #93（2026-09-06）: 絶対下限（checkEventVolume）に加え、過去実績の中央値との相対比較も行う。
+  // 対象週自身の台帳は実績から除外する（ledger.meta.target_week_startが対象週の台帳ファイル名と
+  // 一致するため、force_regenerate等で対象週の台帳が既にdata/ledger/に存在していても二重計上しない）
+  const historicalCounts = loadHistoricalCounts(opts.ledgerDir, ledger.meta?.target_week_start);
+  const trendCheck = checkEventVolumeTrend(volumeCheck.displayedCount, volumeCheck.star3Count, historicalCounts, volumeCheckPolicy.historical_median_check);
+  const decision = decideGateOutcome(checks, volumeCheck, { acknowledgeLowVolume: opts.acknowledgeLowVolume, trendCheck });
 
   const payload = {
     schema_version: '1.1',
@@ -115,7 +127,8 @@ async function main() {
     checked_at_jst: nowJstIso(),
     checks,
     volume_check: { ...volumeCheck, acknowledged: opts.acknowledgeLowVolume },
-    rule: 'いずれかの検査でERRORが1件でもあればHOLD。ERRORが無くイベント件数の下限チェックに抵触すればREVIEW_REQUIRED。いずれもクリアすればPUBLISH_READY。HOLD/REVIEW_REQUIRED時は完成版として配信・投稿せず、output/は更新しない。',
+    volume_trend_check: trendCheck,
+    rule: 'いずれかの検査でERRORが1件でもあればHOLD。ERRORが無くイベント件数の下限チェックまたは過去実績比較の推移チェックに抵触すればREVIEW_REQUIRED。いずれもクリアすればPUBLISH_READY。HOLD/REVIEW_REQUIRED時は完成版として配信・投稿せず、output/は更新しない。',
   };
   mkdirSync(dirname(opts.result) || '.', { recursive: true });
   writeFileSync(opts.result, JSON.stringify(payload, null, 2) + '\n');
@@ -127,6 +140,11 @@ async function main() {
     for (const e of c.errors) console.log(`      ERROR: ${e}`);
   }
   console.log(`  - volume_check: 掲載対象=${volumeCheck.displayedCount}件 / ★★★=${volumeCheck.star3Count}件${volumeCheck.belowThreshold ? ` (${volumeCheck.reasons.join('、')})` : ''}`);
+  if (trendCheck.skipped) {
+    console.log(`  - volume_trend_check: スキップ（${trendCheck.skippedReason}）`);
+  } else {
+    console.log(`  - volume_trend_check: 過去${trendCheck.sampleSize}週の中央値と比較${trendCheck.belowThreshold ? ` (${trendCheck.reasons.join('、')})` : '（異常なし）'}`);
+  }
 
   if (decision === 'HOLD') {
     console.log('配信保留（HOLD）: いずれかの検査エラーを解消してください。');

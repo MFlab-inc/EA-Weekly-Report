@@ -218,6 +218,50 @@ function isWithinWeek(dateStr, weekStartStr, weekEndStr) {
   return dateStr >= weekStartStr && dateStr <= weekEndStr;
 }
 
+// task #93（2026-09-06、しょうさん指示: Manus突合廃止に伴う欠落検知強化の2点目
+// 「公表リリース全量の差分監査」）: 個々のrelease_idの日程を見る（checkFredSource）のではなく、
+// 発表元（FRED上のsource_id）が現在公表している全リリースの一覧そのものを取得し、
+// config/official-sources.jsonにまだ登録されていないrelease_idが無いか照合する。
+// このプロジェクトの実際の欠落（CPI/PPI/雇用統計/GDP/PCE/新規失業保険申請件数/
+// ミシガン大学消費者信頼感指数）は全てFRED経由（BLS=source_id 22、BEA=source_id 18が中心）
+// だったため、まずこの2元をスコープとした（他の週次スクレイプ系ソース[ONS・ABS・BOJ等]への
+// 拡張は発表元ごとに全量一覧APIの有無・形式が異なり別途設計が必要なため対象外。
+// source.fred.catalog_audit_source_idsが未設定のソースは何もしない）。
+// あくまで人間へ知らせるための情報提供（WARN）であり、run自体を失敗させたりHOLDにはしない
+// （fetch失敗・パース失敗は静かにスキップする＝この監査自体の不調で本編のパイプラインを
+// 巻き込まない設計。checkFredSourceのfail-closed設計とは意図的に非対称）
+export async function checkFredCatalogAudit(source, { fetchImpl = fetch, apiKey } = {}) {
+  const sourceIds = source?.fred?.catalog_audit_source_ids || [];
+  if (sourceIds.length === 0 || !apiKey) return { newReleases: [] };
+  const registeredIds = new Set((source.fred.releases || []).map((r) => r.release_id));
+  const newReleases = [];
+  for (const sourceId of sourceIds) {
+    const url = new URL('https://api.stlouisfed.org/fred/source/releases');
+    url.searchParams.set('source_id', String(sourceId));
+    url.searchParams.set('api_key', apiKey);
+    url.searchParams.set('file_type', 'json');
+    let res;
+    try {
+      res = await fetchImpl(url.toString());
+    } catch (e) {
+      continue;
+    }
+    if (!res.ok) continue;
+    let body;
+    try {
+      body = await res.json();
+    } catch (e) {
+      continue;
+    }
+    for (const rel of body?.releases || []) {
+      if (rel?.id != null && !registeredIds.has(rel.id)) {
+        newReleases.push({ sourceId, releaseId: rel.id, name: rel.name || '(名称不明)' });
+      }
+    }
+  }
+  return { newReleases };
+}
+
 export async function checkFredSource(source, targetWeek, { fetchImpl = fetch, apiKey, eventNames = [], importanceRules } = {}) {
   // targetWeek.targetWeekStart/targetWeekEnd は既に 'YYYY-MM-DD' 文字列（scripts/lib/dates.js）。
   // 日付演算にはparseYmd（文字列→疑似Date）とaddDaysを使う（.getTime()は文字列には無い）
@@ -493,6 +537,20 @@ export async function runChecks({ sourcesConfig, importanceRules, eventNames, ta
     results.push({ id: source.id, ...result, recurringCheckMatches: result.recurringCheckMatches || recurringCheckMatches });
   }
 
+  // task #93「公表リリース全量の差分監査」: date_api_fred型でcatalog_audit_source_idsを
+  // 定義しているソースについて、登録漏れのFRED release_idが無いか確認する（情報提供のみ・
+  // run自体には影響しない）
+  const catalogAuditWarnings = [];
+  for (const source of sourcesConfig.sources) {
+    if (source.type !== 'date_api_fred' || !source.fred?.catalog_audit_source_ids) continue;
+    const audit = await checkFredCatalogAudit(source, { fetchImpl, apiKey });
+    for (const nr of audit.newReleases) {
+      catalogAuditWarnings.push(
+        `公表リリース差分監査WARN: ${source.id} — FRED source_id=${nr.sourceId}に未登録のリリース「${nr.name}」(release_id=${nr.releaseId})が見つかりました。関連する指標か確認してください`
+      );
+    }
+  }
+
   const failures = results
     .filter((r) => !r.skipped && !r.ok)
     .map((r) => ({
@@ -540,6 +598,7 @@ export async function runChecks({ sourcesConfig, importanceRules, eventNames, ta
     outcome,
     residualWarnings,
     recurringMissingWarnings,
+    catalogAuditWarnings,
   };
 }
 

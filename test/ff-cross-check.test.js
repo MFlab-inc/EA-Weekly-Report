@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { titleMatchesKind, matchesCountryQualifier, findFfCandidates, crossCheck } = require('../scripts/lib/ff-cross-check');
+const { titleMatchesKind, matchesCountryQualifier, findFfCandidates, crossCheck, findMissingHighImpactFfEvents } = require('../scripts/lib/ff-cross-check');
 
 test('titleMatchesKind: kind別キーワードで大小無視の部分一致判定', () => {
   assert.equal(titleMatchesKind('CPI y/y', 'cpi'), true);
@@ -116,4 +116,73 @@ test('task #39 実データ回帰: 2026-08-17週の台帳とFF thisweekの突合
     ff_time_jst_candidates: ['18:00'],
     ff_titles: ['German ZEW Economic Sentiment'],
   });
+});
+
+// task #93（2026-09-06、しょうさん指示: Manus突合廃止に伴う欠落検知強化の1点目
+// 「FF突合の欠落検出への拡張」）: 「FF→台帳」の逆方向検査。このセッション中に実際に発生した
+// 完全欠落クラスのバグ（米新規失業保険申請件数が丸ごと未実装だった、task #89）を、
+// もしManus突合ではなくこの機構が先に検出していたら捕まえられたはずのシナリオとして再現する
+test('findMissingHighImpactFfEvents: 高インパクトFFイベントに対応する台帳イベントが1件も無ければ検出する（task #89の再現）', () => {
+  const ledgerEvents = [
+    { country: 'US', kind: 'ppi', dateJst: '2026-09-10' },
+  ];
+  const ffEvents = [
+    { jstDate: '2026-09-10', jstTime: '21:30', currency: 'USD', title: 'PPI m/m', impact: 'High' },
+    // task #89が実際に発覚する前の状態を再現: 新規失業保険申請件数はFFにHigh impactで載っているが、
+    // 当時のconfig/event-names.json・importance-rules.jsonには一切登録が無く、台帳に対応イベントが無い
+    { jstDate: '2026-09-10', jstTime: '21:30', currency: 'USD', title: 'Unemployment Claims', impact: 'High' },
+  ];
+  const result = findMissingHighImpactFfEvents(ledgerEvents, ffEvents);
+  assert.equal(result.missingRecognizedKind.length, 1);
+  assert.equal(result.missingRecognizedKind[0].title, 'Unemployment Claims');
+  assert.deepEqual(result.missingRecognizedKind[0].matched_kinds, ['jobless_claims']);
+  assert.deepEqual(result.missingRecognizedKind[0].applicable_countries, ['US']);
+});
+
+test('findMissingHighImpactFfEvents: 対応する台帳イベントがあれば検出しない', () => {
+  const ledgerEvents = [{ country: 'US', kind: 'jobless_claims', dateJst: '2026-09-10' }];
+  const ffEvents = [{ jstDate: '2026-09-10', jstTime: '21:30', currency: 'USD', title: 'Unemployment Claims', impact: 'High' }];
+  const result = findMissingHighImpactFfEvents(ledgerEvents, ffEvents);
+  assert.equal(result.missingRecognizedKind.length, 0);
+});
+
+test('findMissingHighImpactFfEvents: Medium/Lowインパクトは対象外（ノイズ回避）', () => {
+  const ffEvents = [
+    { jstDate: '2026-09-10', jstTime: '21:30', currency: 'USD', title: 'Unemployment Claims', impact: 'Medium' },
+    { jstDate: '2026-09-10', jstTime: '21:30', currency: 'USD', title: 'Some Low Impact Thing', impact: 'Low' },
+  ];
+  const result = findMissingHighImpactFfEvents([], ffEvents);
+  assert.equal(result.missingRecognizedKind.length, 0);
+  assert.equal(result.unrecognizedKind.length, 0);
+});
+
+test('findMissingHighImpactFfEvents: 追跡していない通貨は対象外', () => {
+  const ffEvents = [{ jstDate: '2026-09-10', jstTime: '10:00', currency: 'ZAR', title: 'Some ZAR High Impact Event', impact: 'High' }];
+  const result = findMissingHighImpactFfEvents([], ffEvents);
+  assert.equal(result.missingRecognizedKind.length, 0);
+  assert.equal(result.unrecognizedKind.length, 0);
+});
+
+test('findMissingHighImpactFfEvents: KIND_KEYWORDSのどれにも一致しないタイトルはunrecognizedKindへ（run失敗の対象外）', () => {
+  const ffEvents = [{ jstDate: '2026-09-10', jstTime: '10:00', currency: 'USD', title: 'Some Brand New Indicator Nobody Has Modeled', impact: 'High' }];
+  const result = findMissingHighImpactFfEvents([], ffEvents);
+  assert.equal(result.missingRecognizedKind.length, 0);
+  assert.equal(result.unrecognizedKind.length, 1);
+  assert.equal(result.unrecognizedKind[0].title, 'Some Brand New Indicator Nobody Has Modeled');
+});
+
+// EUR通貨はEU（ユーロ圏集計）・DE（ドイツ単独）の両方に対応しうるため、逆方向でも
+// matchesCountryQualifierで正しく振り分けられることを確認する（forward方向のtask #53と同じ懸念）
+test('findMissingHighImpactFfEvents: EUR通貨のEU集計値・DE単独値を国名修飾語で正しく振り分ける', () => {
+  const ledgerEvents = [{ country: 'EU', kind: 'sentiment', dateJst: '2026-09-10' }];
+  const ffEvents = [
+    // ドイツ単独のZEW（Highと仮定）は台帳にDE分の対応イベントが無いため検出されるべき
+    { jstDate: '2026-09-10', jstTime: '18:00', currency: 'EUR', title: 'German ZEW Economic Sentiment', impact: 'High' },
+    // ユーロ圏集計のZEWは台帳のEU分と対応するため検出されないべき
+    { jstDate: '2026-09-10', jstTime: '18:00', currency: 'EUR', title: 'ZEW Economic Sentiment', impact: 'High' },
+  ];
+  const result = findMissingHighImpactFfEvents(ledgerEvents, ffEvents);
+  assert.equal(result.missingRecognizedKind.length, 1);
+  assert.equal(result.missingRecognizedKind[0].title, 'German ZEW Economic Sentiment');
+  assert.deepEqual(result.missingRecognizedKind[0].applicable_countries, ['DE']);
 });

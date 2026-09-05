@@ -20,8 +20,33 @@ task #13（検証スクリプト5本の移植＋新設3検査）、しょうさ�
     "target_week_end": "2026-08-21",                   // 対象週金曜
     "pipeline_version": "...",                          // 生成パイプラインのバージョン識別子
     "generated_from_commit": "03fcd77b...",             // 生成時点のmainブランチコミットSHA（ローカル生成時等はnull）。
-                                                          // weekly.ymlの冪等チェックが「対象週ファイルの存在」だけでなく
-                                                          // 「現在のHEADと同一コミットで生成済みか」を判定するために使う
+                                                          // 2026-09-06（task #92）以降は「どのコミットが実際に生成したか」を
+                                                          // 追跡するための記録用フィールド。冪等ガードの判定には使わない
+                                                          // （下記generated_from_code_hash参照）
+    "generated_from_code_hash": "3f7a1c...",             // scripts/lib/pipeline-code-hash.jsが計算するSHA-256（64文字16進）。
+                                                          // ローカル生成時等はnull。weekly.ymlの冪等チェックはこの値と現在の
+                                                          // チェックアウトで再計算した値が一致する場合のみパイプラインを
+                                                          // スキップする（task #92、2026-09-06是正）。
+                                                          //
+                                                          // 【対象範囲＝「何が変わったら再生成すべきか」の判断基準そのもの】
+                                                          // scripts/・config/・package.json・package-lock.json・
+                                                          // .github/workflows/weekly.yml のみを対象とする（pipeline-code-hash.js
+                                                          // のPIPELINE_HASH_SCOPE_PATHSが単一の真実源）。data/・output/・docs/・
+                                                          // test/・reference/・templates/は対象外（パイプラインの出力や
+                                                          // ドキュメント・テストは挙動そのものを変えないため）。対象範囲を
+                                                          // 変更する場合はpipeline-code-hash.jsのコメントとこの記述の両方を
+                                                          // 更新すること。
+                                                          //
+                                                          // 【旧方式(generated_from_commit比較)から移行した理由】
+                                                          // コミットSHAは「パイプラインの出力に影響するファイルが変わったか」の
+                                                          // 代理指標として機能しなかった: (1) 過剰スキップ（2026-08-22）— 手動
+                                                          // 実行が先取り生成した週を、後からコード修正してmainへマージしても
+                                                          // 「もう存在する」の判定のみだと永久にスキップし続けた。(2) 過小
+                                                          // スキップ（2026-09-05）— コミットSHA比較へ是正した後も、本番cronの
+                                                          // commit outputsステップ自体がHEADを進めるため、32分後の保険cronは
+                                                          // 「記録済みSHA≠現在のHEAD」に必ずなり、コードが一切変わっていなくても
+                                                          // 毎回再生成してしまっていた。ハッシュ方式はdata/・output/への書き込み
+                                                          // に影響されないため両方が解消される
     "outcome": "PUBLISH_READY",                         // "PUBLISH_READY" | "HOLD"
     "warnings": ["..."],                                 // 非ブロッキング（残量監視WARN・定例欠落WARN等）
     "holds": []                                           // outcome=HOLD時は1件以上必須（HOLD理由）

@@ -28,6 +28,8 @@
       "fred": {
         "api_base": "https://api.stlouisfed.org/fred/release/dates",
         "api_key_env": "FRED_API_KEY",
+        "catalog_audit_source_ids": [22, 18],
+        "catalog_audit_source_ids_note": "2026-09-06追加（task #93、しょうさん指示: Manus突合廃止に伴う欠落検知強化の2点目『公表リリース全量の差分監査』）。22=米労働統計局（BLS、fred.stlouisfed.org/source?soid=22で確認）、18=米経済分析局（BEA、fred.stlouisfed.org/source?soid=18で確認）。scripts/checkers/harness.mjsのcheckFredCatalogAuditが両source_idの『全リリース一覧』を取得し、下記releases[].release_idに未登録のものをWARNとして報告する（run自体は失敗させない情報提供のみ）。このプロジェクトで実際に発生した欠落（CPI/PPI/雇用統計/GDP/PCE/新規失業保険申請件数）は全てこの2元のいずれかに属していたため、まずここをスコープとした。ミシガン大学消費者信頼感指数（release_id=91）はUniversity of Michiganという別の発表元でBLS/BEAいずれのsource_idにも属さないため、本監査の対象外（3元目のsource_idを追加すれば拡張可能）。ONS・ABS・BOJ等の他ソースは同等の『全量一覧』APIが無いか形式が異なるため未対応（発表元ごとに個別調査が必要）",
         "releases": [
           {
             "release_id": 10,

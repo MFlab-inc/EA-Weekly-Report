@@ -5,7 +5,10 @@
   "require_at_least_one_star3": true,
   "require_at_least_one_star3_note": "trueの場合、★★★（importance=3）が0件の週もREVIEW_REQUIRED対象とする",
   "historical_median_check": {
-    "enabled": false,
-    "note": "しょうさん指示2026-08-15: 8週分の実績が溜まったら『過去中央値の50%未満』も条件に追加することを検討。実績データが無いため現時点ではenabled:false。有効化する際はhistorical_event_counts等の実績データソースと閾値計算方法を別途設計すること"
+    "enabled": true,
+    "min_history_weeks": 4,
+    "displayed_ratio_threshold": 0.5,
+    "star3_ratio_threshold": 0.5,
+    "note": "2026-09-06有効化（task #93、しょうさん指示: Manus突合廃止に伴う欠落検知強化の3点目『掲載件数の推移監視』。scripts/lib/validate-event-volume-trend.js参照）。実績データソースは新規ファイルを持たず、既存のdata/ledger/配下の過去台帳そのものを使う（scripts/lib/event-volume-history.js）。min_history_weeks未満の実績しか無い週は誤検知を避けるため自動的にスキップされる（サイレントに実績を積み上げるのみ）。2026-09-06時点の実績は3週分（8/24・8/31・9/7）のため、9/14週生成時点ではまだmin_history_weeks(4)に届かず未発動、9/21週から発動する見込み。しきい値(displayed/star3とも中央値の50%)は初期値であり、実際の運用実績を見て過剰検知が多ければ緩める・見逃しが多ければ厳しくする調整を想定"
   }
 }

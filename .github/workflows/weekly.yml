@@ -44,34 +44,55 @@ jobs:
       # mainへマージしても、Saturdayの本番cronが「もう存在する」と誤判定して永久にスキップし
       # 続ける（8/17の手動実行が8/24週を先取り生成し、8/22・8/24の3回のcronすべてが
       # 無反応にスキップした実例で発覚）。(2) コード修正を反映させたい狙いの手動再実行が
-      # 効かない。対策として、台帳meta.generated_from_commitに生成時のコミットSHAを記録し
-      # （scripts/build-ledger.mjs）、「対象週ファイルが存在し、かつ生成元コミットが現在のHEAD
-      # [github.sha]と一致する」場合のみスキップする方式に変更した。ファイルはあるが生成元
-      # コミットが異なる場合は、コード修正が反映されるべきケースとみなし再生成する。あわせて
-      # workflow_dispatchにforce_regenerateを新設し、この判定自体を明示的にバイパスできるようにした
+      # 効かない。対策として台帳meta.generated_from_commitに生成時のコミットSHAを記録し、
+      # 「対象週ファイルが存在し、かつ生成元コミットが現在のHEADと一致する」場合のみスキップする
+      # 方式に変更した。
+      #
+      # 2026-09-06再々是正（task #92、しょうさん指摘: 9/5の本番→保険cron連続実行で発覚）:
+      # 上記のコミットSHA比較方式には別の盲点があった。本番cron（08:06 JST）がpipeline実行後の
+      # commit outputsステップでdata/・output/をコミットするとHEADが進む。32分後の保険cron
+      # （08:41 JST）がその新しいHEADをチェックアウトすると、台帳に記録済みのgenerated_from_commit
+      # （本番cronのチェックアウト時点のSHA＝古い方）と現在のHEAD（本番cron自身のコミットで
+      # 進んだ新しい方）が必ず不一致になり、コードが一切変わっていなくても保険cronが毎回
+      # 再生成してしまっていた（実害は無かったが「二重生成防止」という設計目的が機能していない
+      # 状態だった）。コミットSHAは「パイプラインの出力に影響するファイルが変わったか」の代理
+      # 指標として不適切（パイプライン自身の書き込みでも変わってしまうため）と判断し、
+      # scripts/lib/pipeline-code-hash.jsが計算する専用ハッシュ（scripts/・config/・
+      # package.json・package-lock.json・.github/workflows/weekly.yml自身のみを対象とし、
+      # data/・output/は対象外）による比較に置き換えた。これにより:
+      # - 8/22の過剰スキップ（コードが変わったのにスキップし続ける）→ ハッシュが変わるので
+      #   正しく再生成される
+      # - 9/5の過小スキップ（コードが変わっていないのに毎回再生成する）→ data/・output/への
+      #   書き込みはハッシュに影響しないので正しくスキップされる
+      # の両方が同時に解消される。ハッシュ対象範囲の定義そのものが「何が変わったら再生成すべきか」
+      # の判断基準になるため、範囲を変更する場合はpipeline-code-hash.jsのコメント・
+      # docs/ledger-schema.mdの該当記述もあわせて更新すること。generated_from_commitは
+      # 「実際にどのコミットが生成したか」を追跡する記録用フィールドとして引き続き記録する。
+      # workflow_dispatchのforce_regenerateはこの判定自体を明示的にバイパスする
       - name: 冪等チェック（対象週の台帳が現在のコードで生成済みなら以降のpipelineをスキップ）
         id: idempotency
         run: |
           TARGET_WEEK_START=$(node -e "console.log(require('./scripts/lib/dates').getTargetWeek().targetWeekStart)")
           echo "target_week_start=${TARGET_WEEK_START}" >> "$GITHUB_OUTPUT"
           LEDGER_PATH="data/ledger/${TARGET_WEEK_START}.json"
+          CURRENT_CODE_HASH=$(node -e "console.log(require('./scripts/lib/pipeline-code-hash.js').computePipelineCodeHash())")
           if [ "${{ github.event.inputs.force_regenerate }}" = "true" ]; then
             echo "already_generated=false" >> "$GITHUB_OUTPUT"
             echo "force_regenerateが指定されたため、既存台帳の有無に関わらず再生成します"
           elif [ -f "$LEDGER_PATH" ]; then
-            EXISTING_COMMIT=$(node -e "
+            EXISTING_CODE_HASH=$(node -e "
               const fs = require('fs');
               try {
                 const j = JSON.parse(fs.readFileSync('$LEDGER_PATH', 'utf8'));
-                console.log(j.meta && j.meta.generated_from_commit || '');
+                console.log(j.meta && j.meta.generated_from_code_hash || '');
               } catch (e) { console.log(''); }
             ")
-            if [ "$EXISTING_COMMIT" = "${{ github.sha }}" ]; then
+            if [ -n "$EXISTING_CODE_HASH" ] && [ "$EXISTING_CODE_HASH" = "$CURRENT_CODE_HASH" ]; then
               echo "already_generated=true" >> "$GITHUB_OUTPUT"
-              echo "対象週(${TARGET_WEEK_START})は現在のコード(${{ github.sha }})で生成済み。今回のrunはスキップします（保険cronの二重生成防止）"
+              echo "対象週(${TARGET_WEEK_START})は現在のパイプラインコード(hash=${CURRENT_CODE_HASH})で生成済み。今回のrunはスキップします（保険cronの二重生成防止）"
             else
               echo "already_generated=false" >> "$GITHUB_OUTPUT"
-              echo "対象週(${TARGET_WEEK_START})の台帳は存在しますが、生成元コミット(${EXISTING_COMMIT:-不明。旧形式の台帳})が現在のHEAD(${{ github.sha }})と異なるため再生成します"
+              echo "対象週(${TARGET_WEEK_START})の台帳は存在しますが、生成元コードハッシュ(${EXISTING_CODE_HASH:-不明。旧形式の台帳})が現在のコード(${CURRENT_CODE_HASH})と異なるため再生成します"
             fi
           else
             echo "already_generated=false" >> "$GITHUB_OUTPUT"

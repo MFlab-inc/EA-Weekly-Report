@@ -101,6 +101,85 @@ test('checkFredSource: 実config（us_bls_fred）のjobless_claims/sentimentが�
   assert.equal(sentiment.importance, 2);
 });
 
+// task #93（2026-09-06、しょうさん指示: 「公表リリース全量の差分監査」）の単体テスト
+test('checkFredCatalogAudit: catalog_audit_source_idsが無いソースは常にnewReleases:[]', async () => {
+  const { checkFredCatalogAudit } = await loadHarness();
+  const r = await checkFredCatalogAudit({ fred: { releases: [] } }, { fetchImpl: async () => { throw new Error('呼ばれてはいけない'); }, apiKey: 'dummy' });
+  assert.deepEqual(r.newReleases, []);
+});
+
+test('checkFredCatalogAudit: apiKey未設定はfetchせずnewReleases:[]', async () => {
+  const { checkFredCatalogAudit } = await loadHarness();
+  const source = { fred: { releases: [], catalog_audit_source_ids: [22] } };
+  const r = await checkFredCatalogAudit(source, { fetchImpl: async () => { throw new Error('呼ばれてはいけない'); }, apiKey: '' });
+  assert.deepEqual(r.newReleases, []);
+});
+
+test('checkFredCatalogAudit: 登録済みrelease_idはnewReleasesに含めない', async () => {
+  const { checkFredCatalogAudit } = await loadHarness();
+  const source = { fred: { releases: [{ release_id: 10 }], catalog_audit_source_ids: [22] } };
+  const fetchImpl = async () => ({ ok: true, json: async () => ({ releases: [{ id: 10, name: 'Consumer Price Index' }] }) });
+  const r = await checkFredCatalogAudit(source, { fetchImpl, apiKey: 'dummy' });
+  assert.deepEqual(r.newReleases, []);
+});
+
+test('checkFredCatalogAudit: 未登録のrelease_idはnewReleasesに含める（複数source_idをまとめて監査）', async () => {
+  const { checkFredCatalogAudit } = await loadHarness();
+  const source = { fred: { releases: [{ release_id: 10 }], catalog_audit_source_ids: [22, 18] } };
+  const fetchImpl = async (url) => {
+    const sourceId = new URL(url).searchParams.get('source_id');
+    if (sourceId === '22') return { ok: true, json: async () => ({ releases: [{ id: 10, name: 'CPI' }, { id: 999, name: 'Brand New BLS Release' }] }) };
+    return { ok: true, json: async () => ({ releases: [{ id: 888, name: 'Brand New BEA Release' }] }) };
+  };
+  const r = await checkFredCatalogAudit(source, { fetchImpl, apiKey: 'dummy' });
+  assert.equal(r.newReleases.length, 2);
+  assert.ok(r.newReleases.some((n) => n.releaseId === 999 && n.sourceId === 22 && n.name === 'Brand New BLS Release'));
+  assert.ok(r.newReleases.some((n) => n.releaseId === 888 && n.sourceId === 18 && n.name === 'Brand New BEA Release'));
+});
+
+test('checkFredCatalogAudit: fetch失敗・HTTPエラー・JSON parse失敗はrun全体を巻き込まず静かにスキップする', async () => {
+  const { checkFredCatalogAudit } = await loadHarness();
+  const source = { fred: { releases: [], catalog_audit_source_ids: [22, 18, 1] } };
+  const fetchImpl = async (url) => {
+    const sourceId = new URL(url).searchParams.get('source_id');
+    if (sourceId === '22') throw new Error('network error');
+    if (sourceId === '18') return { ok: false, status: 500 };
+    return { ok: true, json: async () => { throw new Error('invalid json'); } };
+  };
+  const r = await checkFredCatalogAudit(source, { fetchImpl, apiKey: 'dummy' });
+  assert.deepEqual(r.newReleases, []);
+});
+
+// task #93: runChecks()経由での結線確認。実configのus_bls_fred（catalog_audit_source_ids設定済み）が
+// meta.warningsへ反映される経路（report.catalogAuditWarnings）まで通ることを確認する
+test('runChecks: catalog_audit_source_ids設定済みソースの未登録リリースがcatalogAuditWarningsへ反映される', async () => {
+  const officialSources = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
+  const importanceRules = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'importance-rules.json'), 'utf8'));
+  const { runChecks } = await loadHarness();
+  const targetWeek = {
+    targetWeekStart: '2026-09-07',
+    targetWeekEnd: '2026-09-11',
+    dates: [{ date: '2026-09-07' }, { date: '2026-09-08' }, { date: '2026-09-09' }, { date: '2026-09-10' }, { date: '2026-09-11' }],
+    collectionDate: '2026-09-05',
+  };
+  // us_bls_fred以外の全ソースはfetchを避けるため、pending_recon以外はskip扱いにできないので
+  // 単純に「release_id/source_idを含まないURLは全て404」とし、us_bls_fredのcheckFredSource自体は
+  // release_dates:[]（今週は何も無い）、catalog_audit_source_idsの照会にだけ新規リリースを混ぜる
+  const fetchImpl = async (url) => {
+    if (url.includes('source_id=22')) return { ok: true, json: async () => ({ releases: [{ id: 99999, name: 'Brand New Indicator' }] }) };
+    if (url.includes('release_id=')) return { ok: true, json: async () => ({ release_dates: [] }) };
+    return { ok: false, status: 404 };
+  };
+  const report = await runChecks({
+    sourcesConfig: officialSources, importanceRules, eventNames: REAL_EVENT_NAMES, targetWeek,
+    fetchImpl, apiKey: 'dummy', robotsChecker: { isAllowed: async () => ({ allowed: true }) },
+  });
+  assert.ok(
+    report.catalogAuditWarnings.some((w) => w.includes('Brand New Indicator') && w.includes('99999')),
+    JSON.stringify(report.catalogAuditWarnings)
+  );
+});
+
 test('checkAnnualScheduleSource: schedule内に対象週の日程があればannualConfigHasTargetWeek=true', async () => {
   const { checkAnnualScheduleSource } = await loadHarness();
   const source = { schedule: [{ date: '2026-08-11', kind: 'policy_rate' }] };
