@@ -37,6 +37,13 @@ function matchesRecurringRule(rule, targetWeekDates) {
   if (text.includes('中旬')) {
     return dates.some((d) => d.getUTCDate() >= 10 && d.getUTCDate() <= 19);
   }
+  // "毎週"（例: 米新規失業保険申請件数、task #89）は祝日でずれる週はあっても対象週の判定自体は
+  // 常にtrue（曜日を問わずどの週にも該当する）。祝日でその週自体が発表されない場合の欠落は
+  // 「該当見込みだが検出なし」のWARNとして許容する（しょうさん方針: 見落とし防止を優先し、
+  // 稀な誤検知[祝日で本当に発表が無かった週のWARN]は許容する）
+  if (text.includes('毎週')) {
+    return true;
+  }
   return false;
 }
 

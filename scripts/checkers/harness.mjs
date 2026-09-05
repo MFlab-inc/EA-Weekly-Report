@@ -48,6 +48,10 @@ export const USER_AGENT = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA
 const RECURRING_CHECK_MATCH = {
   米雇用統計: { kind: 'employment_situation' },
   米CPI: { kind: 'cpi' },
+  // task #89（2026-09-06、しょうさん指摘: 毎週発表の米新規失業保険申請件数が完全に未実装で
+  // 恒常的に欠落していたと発覚）。us_bls_fred（FRED release_id=180）が唯一の担当ソースのため
+  // sourceId指定は不要（他ソースとkindが重複しない）
+  米新規失業保険申請件数: { kind: 'jobless_claims' },
   // RBA総裁下院経済委員会証言（testimony）は担当ソース未定義（task #18）のため、
   // このWARNは恒常的に出続ける想定。しょうさんが手動でその週の実施有無を確認する運用
   RBA総裁下院経済委員会証言: { kind: 'testimony' },

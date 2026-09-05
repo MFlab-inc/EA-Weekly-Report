@@ -109,3 +109,24 @@
 ### O2. 公式ソースチェッカーの未実装期間中の掲載除外範囲
 
 `docs/phase1-official-sources.md` の実装順に従い、優先度Bのソース（財務省JGB入札・FRB理事講演・S&P Global系PMI・ADP・Ivey）が未実装の間、該当イベントは掲載除外＋WARN運用となる（SPEC §3.4）。検収基準1（既刊2週100%捕捉）は全ソース実装完了時点で満たす。実装完了までの中間状態をどう扱うか（並行運用開始のタイミングに影響）は、優先度Bソースの実装完了後に改めて相談する。
+
+### O7. 米新規失業保険申請件数・ミシガン大学消費者信頼感指数が完全未実装だった → 修正・クローズ（2026-09-06）
+
+9/7週の突合（しょうさん実施）で、毎週木曜発表の米新規失業保険申請件数（Initial Jobless Claims）が8/24週・9/7週いずれもManus版には存在するのに本システムには一度も登録されていなかったと判明した。
+
+- **発覚した欠陥の性質**: 中国PMI・英建設業PMI・ADP雇用統計（task #16）のような「担当ソースがpending_reconで恒常的にWARNが出る」既知の欠落とは異なり、jobless_claimsはkind自体がconfig/event-names.json・config/importance-rules.jsonのいずれにも一切登録されていない**完全な未実装**であり、WARNすら出ずに無警告で欠落していた点が発見を遅らせた
+- **横断確認**（task #90、しょうさん指示「毎週発生するのに毎週漏れている類のイベントが他にないか確認してください」）: 同様の完全未実装が無いか確認した結果、米ミシガン大学消費者信頼感指数（月2回発表、速報値・確定値）も同じ理由で未登録だったと判明。これ以外の恒常的な週次イベントは確認できなかった
+- **修正**: 両指標ともFRED経由（jobless_claims=release_id 180、sentiment=release_id 91、いずれもWebSearchで複数独立ページによりrelease_idを確認）でus_bls_fredに追加。jobless_claimsはrecurring_checks（`matchesRecurringRule`に「毎週」キーワード分岐を新設）でも監視し、以後同種の欠落が再発してもWARNで即座に可視化されるようにした。ミシガン大学消費者信頼感指数は速報値/確定値の呼称の出し分けは今回実装せず、表示名は「ミシガン大学消費者信頼感指数」の1本に統一した（必要なら別途対応）
+- **あわせて発覚**: 英国月次GDP（ONS「GDP monthly estimate, UK」、通常11日前後発表）も9/7週で不検出だった。原因はGB/gdpのmatchキーワードが四半期速報版（「GDP first quarterly estimate」）のみで、月次版のタイトル文言と一致していなかったため（config/official-sources.jsonのgb_onsソースnotesが2026-08-15時点で実タイトルの存在自体は記録していたにもかかわらず、対応するmatchキーワードの追加が漏れていた）。CA/gdpと同じ「月次・四半期の2エントリ共存」方式でmatchキーワードを追加して解消した
+- **反映**: config/official-sources.json（us_bls_fred releases・announce_time_by_kind）・config/event-names.json（US/jobless_claims・US/sentiment・GB/gdp月次版）・config/importance-rules.json（jobless_claims=★★・recurring_checks）・scripts/lib/recurring-rules.js（「毎週」分岐）を更新。test/harness.test.js・test/recurring-rules.test.jsに実configベースの回帰テストを追加
+
+### O8. FRB理事（議長以外）の登録とBOJ審議委員6名の登録 → 実装・クローズ（2026-09-06）
+
+task #17（FRB理事の登録）としょうさんの追加指摘（BOJ政策委員会の審議委員6名も登録）をあわせて実施した。
+
+- **BOJ側**: 高田創・田村直樹・小枝淳子・増一行・浅田統一郎・佐藤綾野の6名をofficials.jsonへ登録（role_rank=board_member=★★）。boj.or.jp公式ドメインの個人別bioページ＋日本経済新聞等の複数報道で就任日・役職名を確認
+- **「増」一文字姓の安全性**: しょうさん強調指摘を受け、`naming.js`の`resolveOfficialBySurname`を全面的に見直した。従来は日本語表記・英語併記表記の区別なく`.includes()`（文字列中間一致）で照合していたため、一文字姓「増」が万一無関係な文字列（例:「増加」等の一般語や他の登録者名の一部）に誤マッチする理論上のリスクがあった。日本語表記（丸括弧の英語併記が無いもの）は姓が必ず名前の先頭に来る表記慣行を利用し、前方一致（`.startsWith()`）へ厳格化した（英語併記表記は従来どおり中間一致を維持。両者は丸括弧の有無で振り分ける）。test/build-ledger.test.jsに「増加」「小増」等の非該当文字列が誤マッチしないことを確認する回帰テストを追加
+- **実データでの表記形式確認**: しょうさん指示どおり、9/5の実本番run（GitHub Actions実ネットワーク経由）で実際にBOJ公式ページから抽出された文字列を確認したところ、増審議委員の講演は「増」という姓のみ（フルネーム「増一行」は表示されない）であることが確認できた。これはWebSearchで確認した他の審議委員（高田審議委員・田村審議委員等、いずれも姓のみ表記）の実例とも整合する
+- **FRB側**: ジェファーソン（副議長）・ボウマン（副議長・金融監督担当）・バー・クック・ウォラーの5名を登録。federalreserve.gov公式bio・Congress.gov CRS Reportで確認。role_rankは当初「FOMCの議決権保有者は全員対等」という理屈でgovernor（★★★）とする案を検討したが、test/regen-sample-weeks.test.jsの既刊ground truth（scripts/phase0/expected-events.json、2026-08-06のクック理事講演の実績importance=2）と矛盾することがテスト実行で判明し、実測データを優先してboard_member（★★）へ修正した。地区連銀総裁の講演はus_frb_speeches（FRB理事講演RSSのみ）では検出されないため、今回は理事会メンバーのみを優先登録した（地区連銀総裁は今後、実際に講演が検出される経路ができた時点で追加）
+- **付随して発覚**: クック理事は2025年8月にトランプ大統領が解任を発表し係争となった経緯があるが、2026年時点の複数の独立ソース（Congress.gov CRS Report・Brookings）で引き続き現職理事として扱われているため解任は不成立と判断し登録した。今後の係争の帰趨によっては見直しが必要（要継続監視）
+- **反映**: config/officials.json・scripts/lib/naming.js・test/naming.test.js・test/build-ledger.test.jsを更新。既刊ground truthベースのregen-sample-weeks.test.js・render.test.jsも、Cook理事が登録済みになったことに伴う名称・heroSummary選出結果の変化を反映して更新した

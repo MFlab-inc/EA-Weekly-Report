@@ -132,19 +132,30 @@ test('resolveOfficialBySurname: full_name欄の英語表記に部分一致し、
   assert.equal(found.role_ja, 'RBA総裁');
 });
 
-test('resolveOfficialBySurname: 現時点のofficials.jsonにはFRB理事個人（議長以外）が未登録のため常にnull（task #17）', () => {
-  assert.equal(naming.resolveOfficialBySurname(officials, 'Cook', 'US'), null);
-  assert.equal(naming.resolveOfficialBySurname(officials, 'Waller', 'US'), null);
-});
+// task #17フォローアップ（2026-09-06、しょうさん指示: FRB理事[議長以外]の登録を実施）の回帰テスト。
+// 旧テストは「未登録のため常にnull」を検証していたが、登録が完了したため実登録データでの
+// 解決確認に更新した
+test('resolveOfficialBySurname: FRB理事個人（議長以外）が登録済みで解決できる（task #17）', () => {
+  const cook = naming.resolveOfficialBySurname(officials, 'Cook', 'US');
+  assert.ok(cook, 'Cookが解決できない');
+  assert.equal(cook.role_ja, 'FRB理事');
+  assert.equal(naming.speechName(cook, cook.role_ja), 'クックFRB理事の発言');
 
-test('resolveOfficialBySurname: task #17登録後を想定した合成データでは解決できる（既存のfull_name併記慣行を踏襲する前提）', () => {
-  const futureOfficials = [
-    ...officials,
-    { role_ja: 'FRB理事', role_type: 'fed_governor', country: 'US', name_ja: 'クック', verified: true, full_name: 'リサ・クック（Lisa D. Cook）' },
-  ];
-  const found = naming.resolveOfficialBySurname(futureOfficials, 'Cook', 'US');
-  assert.equal(found.role_ja, 'FRB理事');
-  assert.equal(naming.speechName(found, found.role_ja), 'クックFRB理事の発言');
+  const waller = naming.resolveOfficialBySurname(officials, 'Waller', 'US');
+  assert.ok(waller, 'Wallerが解決できない');
+  assert.equal(waller.role_ja, 'FRB理事');
+
+  const jefferson = naming.resolveOfficialBySurname(officials, 'Jefferson', 'US');
+  assert.ok(jefferson, 'Jeffersonが解決できない');
+  assert.equal(jefferson.role_ja, 'FRB副議長');
+
+  const bowman = naming.resolveOfficialBySurname(officials, 'Bowman', 'US');
+  assert.ok(bowman, 'Bowmanが解決できない');
+  assert.equal(bowman.role_ja, 'FRB副議長（金融監督担当）');
+
+  const barr = naming.resolveOfficialBySurname(officials, 'Barr', 'US');
+  assert.ok(barr, 'Barrが解決できない');
+  assert.equal(barr.role_ja, 'FRB理事');
 });
 
 test('resolveOfficialBySurname: 該当なし・surname未指定・country未指定はnull', () => {

@@ -172,6 +172,10 @@ test('FRED(us_bls_fred): CPI/PPI/雇用統計/JOLTSの4件が既刊と日時・�
     53: JSON.stringify({ release_dates: [] }),
     // release_id=54（US PCE、2026-08-22追加）: 同上の理由でスキーマ準拠の空応答スタブ
     54: JSON.stringify({ release_dates: [] }),
+    // release_id=180（米新規失業保険申請件数、task #89・2026-09-06追加）: 同上の理由でスキーマ準拠の空応答スタブ
+    180: JSON.stringify({ release_dates: [] }),
+    // release_id=91（ミシガン大学消費者信頼感指数、task #90・2026-09-06追加）: 同上の理由でスキーマ準拠の空応答スタブ
+    91: JSON.stringify({ release_dates: [] }),
   };
   const fetchImpl = async (url) => {
     const idM = /release_id=(\d+)/.exec(url);

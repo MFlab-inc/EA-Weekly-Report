@@ -26,6 +26,14 @@ test('matchesRecurringRule: 「中旬」ルールは月末週でfalse', () => {
   assert.equal(matchesRecurringRule(rule, ['2026-08-24', '2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28']), false);
 });
 
+// task #89（2026-09-06、しょうさん指摘: 米新規失業保険申請件数が毎週発表なのに完全未実装だった）
+test('matchesRecurringRule: 「毎週」ルールはどの週でも常にtrue', () => {
+  const rule = { rule: '毎週木曜（祝日で水曜等にずれる週あり）' };
+  assert.equal(matchesRecurringRule(rule, ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07']), true);
+  assert.equal(matchesRecurringRule(rule, ['2026-08-24', '2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28']), true);
+  assert.equal(matchesRecurringRule(rule, ['2026-12-28', '2026-12-29', '2026-12-30', '2026-12-31']), true);
+});
+
 test('matchesRecurringRule: 未知のルール文字列はfalse（例外を投げない）', () => {
   const rule = { rule: '未定義のルール' };
   assert.equal(matchesRecurringRule(rule, ['2026-08-10']), false);

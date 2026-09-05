@@ -15,12 +15,15 @@
         "employment_situation",
         "employment_indicator",
         "gdp",
-        "pce"
+        "pce",
+        "jobless_claims",
+        "sentiment"
       ],
       "type": "date_api_fred",
       "recurring_check_refs": [
         "米雇用統計",
-        "米CPI"
+        "米CPI",
+        "米新規失業保険申請件数"
       ],
       "fred": {
         "api_base": "https://api.stlouisfed.org/fred/release/dates",
@@ -56,6 +59,16 @@
             "release_id": 54,
             "kind": "pce",
             "note": "2026-08-22追加（しょうさん指摘、Manus版8/24週突合: 8/26の米PCEデフレータが未捕捉だった）。release_id=54はFRED『Personal Income and Outlays』（BEA）。WebSearch経由での確認（fred.stlouisfed.org/release?rid=54等の複数独立ページで確認）。gdp（release_id=53）とは別リリース。ライブ検証はmanus-diff-recon一時ワークフロー（実FRED_API_KEY経由）で実施予定"
+          },
+          {
+            "release_id": 180,
+            "kind": "jobless_claims",
+            "note": "2026-09-06追加（task #89、しょうさん指摘: 毎週木曜発表の米新規失業保険申請件数が恒常的に欠落しており、8/24週・9/7週の両方でManus版に存在するのに本システムには一度も登録されていなかったと判明。他のCPI/PPI等と異なりevent-names.json/importance-rules.jsonのいずれにも一切の登録が無い『完全な未実装』であり、pending_reconのようなWARNすら出ない点が発見を遅らせた）。release_id=180はFRED『Unemployment Insurance Weekly Claims Report』（U.S. Employment and Training Administration）。WebSearch経由で複数独立ページ（fred.stlouisfed.org/release?rid=180・同release/tables?rid=180等）で確認。CPI等の月次リリースと異なり毎週発表のため、release_datesが返す日程は目視上『月内に複数回』になるのが正常（既存releaseは月1回が前提だったコードパスに悪影響が無いことをtest/harness.test.jsで確認要）。実APIレスポンスでのライブ検証は次回本番runで実施"
+          },
+          {
+            "release_id": 91,
+            "kind": "sentiment",
+            "note": "2026-09-06追加（task #90、しょうさん指摘: 同種の恒常的欠落が無いか横断確認した際に発覚。米ミシガン大学消費者信頼感指数[速報値・確定値とも月2回発表]がevent-names.json/importance-rules.jsonのいずれにも未登録だった）。release_id=91はFRED『Surveys of Consumers』（University of Michigan）。WebSearch経由で複数独立ページ（fred.stlouisfed.org/release?rid=91・同releases/calendar?rid=91等）で確認。速報値（月中旬）・確定値（月末）の両方が同一release_idの別日程として返る想定（CPI等と異なり月2回発表される点はjobless_claimsの毎週発表と同じ非月1回パターン）。速報値/確定値の呼称の出し分けは今回は実装せず、display_nameは『ミシガン大学消費者信頼感指数』の1本に統一した（config/event-names.jsonのUS/sentimentエントリ参照。しょうさんが速報値/確定値の呼称区別を必要とする場合は日付[月前半/後半]による分岐を別途追加する）。実APIレスポンスでのライブ検証は次回本番runで実施"
           }
         ]
       },
@@ -84,6 +97,16 @@
         "pce": {
           "local_time": "08:30",
           "tz": "America/New_York"
+        },
+        "jobless_claims": {
+          "local_time": "08:30",
+          "tz": "America/New_York",
+          "note": "2026-09-06追加（task #89）。毎週木曜08:30 ET発表が通例（祝日で水曜発表にずれる週あり、announce_time_by_kindは通常週の値）"
+        },
+        "sentiment": {
+          "local_time": "10:00",
+          "tz": "America/New_York",
+          "note": "2026-09-06追加（task #90）。ミシガン大学消費者信頼感指数（速報値・確定値とも）は10:00 ET発表が通例"
         }
       },
       "notes": "docs/phase1-official-sources.md §5-4参照。BLS直接アクセスはrobots.txt 403のためFRED経由に統一"
