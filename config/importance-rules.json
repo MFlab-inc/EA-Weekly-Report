@@ -22,6 +22,7 @@
     "official_speech": 2,
     "sentiment": 2,
     "capex": 2,
+    "jobless_claims": 2,
     "holiday": 0
   },
   "kind_definitions": {
@@ -34,6 +35,7 @@
     "trade_balance": "貿易収支。豪州のみcountry_overridesで★★★に引き上げ（既刊実績・AUD系EA運用実態）",
     "official_speech": "中銀理事・地区連銀総裁等の発言（議長本人の発言はpress_conference/testimonyへ分類）。2026-08-22改訂（しょうさん指摘、task #64フォローアップ）: country_overridesによる国単位の重要度指定は行わない（話者の格を区別できないまま一律引き上げると、審議委員クラスの地方講演まで昇格し★★★の希少性が損なわれ停止判断の説得力が落ちるため、フラッシュPMIを★★据え置きとしたのと同じ理由で不採用とした）。代わりにofficials.jsonのrole_rank（governor/deputy_governor/board_member）を話者単位で参照し、scripts/lib/build-ledger.jsのresolveOfficialSpeechImportanceが総裁・副総裁級→★★★／審議委員・理事級→★★／未登録話者→★★（安全側）+WARN、を動的に決定する。importance_by_kind.official_speech=2はこの『未登録話者』時の実質的なデフォルト値として機能する",
     "bond_auction": "国債入札（日本・米国等）",
+    "jobless_claims": "米新規失業保険申請件数（毎週木曜発表、Initial Jobless Claims）。2026-09-06新設（task #89、しょうさん指摘: 毎週発生する定例統計が恒常的に欠落していたと発覚。★★（雇用統計本体[employment_situation]より軽い扱い、既存の各国雇用統計との整合を優先し既定値どおり据え置き）",
     "industrial_production": "鉱工業生産指数。2026-08-15新設（しょうさん承認・国×kind必須マトリクス、CN=NBS担当）",
     "pce": "個人消費支出（PCE）物価指数（総合・コア）。米国のみ（BEA発表、FRED release_id=54）。2026-08-22新設（しょうさん指摘、Manus版8/24週突合）: FRBが政策目標（2%物価目標）の算出に用いる公式の物価指標であり、CPIと同格の★★★とした。GDP kind（release_id=53）とは別リリースだが同時期に発表されることがあるため、同日の場合はbundling_ruleにより1発表枠へ束ねられる",
     "capex": "民間設備投資（豪州ABS『Private New Capital Expenditure and Expected Expenditure, Australia』）。2026-08-22新設（しょうさん指摘、Manus版8/24週突合で発見した未追跡リリース）。GDP先行指標としてAUD系ペアに影響するため掲載するが、Manus版も★★掲載のため既定値どおり★★とする（country_overrides不要）"
@@ -56,6 +58,7 @@
     { "name": "英国建設業PMI", "rule": "毎月1日〜7日ごろ（S&P Global系PMIの通例的な公表時期）", "action": "同上（担当ソースgb_construction_pmiがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）" },
     { "name": "ADP雇用統計", "rule": "毎月1日〜7日ごろ（米雇用統計[第1金曜]の直前、水曜公表が通例）", "action": "同上（担当ソースus_adpがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）" },
     { "name": "豪州GDP（ABS）", "rule": "3月・6月・9月・12月の1日〜5日ごろ（四半期末2ヶ月強後の第1水曜が通例。既知実績: 3/4・6/3・9/2・12/2）", "action": "対象週が該当月×該当日範囲に入っているのに au_abs で検出なしならWARN（task #87、しょうさん指摘2026-08-30: au_absのfuture-releases-calendarは掲載horizonが直近1ヶ月強に留まるため、対象発表日がhorizon外の週はweekly_scrapeで自動検出できない。manual-events.jsonでの暫定登録では今後も同じ事象が繰り返されるため、au_absソース自体が拾えなかったことを機械的に可視化する）" },
-    { "name": "豪州貿易収支（ABS）", "rule": "毎月1日〜10日ごろ（前月または前々月分を公表。既刊実績: 9/3発表分）", "action": "同上（task #87。trade_balanceはkind自体は正しく登録済みで、au_absのhorizon外にあるだけの場合でも警告が出る）" }
+    { "name": "豪州貿易収支（ABS）", "rule": "毎月1日〜10日ごろ（前月または前々月分を公表。既刊実績: 9/3発表分）", "action": "同上（task #87。trade_balanceはkind自体は正しく登録済みで、au_absのhorizon外にあるだけの場合でも警告が出る）" },
+    { "name": "米新規失業保険申請件数", "rule": "毎週木曜（祝日で水曜等にずれる週あり）", "action": "対象週に該当し得るのに不在ならWARN（task #89。2026-09-06新設: 完全な未実装だったjobless_claims kindの登録に合わせ、以後同種の欠落が再発してもWARNで即座に可視化されるようにした）" }
   ]
 }

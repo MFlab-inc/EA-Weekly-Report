@@ -112,9 +112,25 @@ function resolveGovernor(officials, country) {
 // 部分文字列と一致してしまい、国を問わずBOE総裁に誤認識される）。countryを必須の第3引数とし、
 // 未指定時はフェールクローズで一致なし（同姓の別人問題と同じ「不確実なら安全側」の方針）。
 // 呼び出し側は必ずcandidate.countryを渡すこと（scripts/lib/build-ledger.js参照）
+//
+// task #17フォローアップ（2026-09-06、しょうさん指摘: BOJ審議委員「増一行」の姓が
+// 一文字「増」のみのため、中間一致（.includes）だと無関係な文字列や他の登録者のfull_name中の
+// 偶然の部分文字列に誤マッチする危険がある）: 日本語表記のみ（英語併記の丸括弧「（」を含まない）の
+// full_nameは、日本人の姓名が必ず姓→名の順で連続表記される（区切り文字なし）という表記慣行に基づき、
+// 前方一致（.startsWith）へ厳格化した。中間一致だと例えば候補「田」（何らかの理由で姓が1文字だけ
+// 誤抽出された場合）が「田村直樹」の姓の一部と偶然一致する等のリスクがあるが、前方一致なら
+// 姓の位置がfull_nameの先頭でなければ一致しない。一方、非日本人（例:「アンドリュー・ベイリー
+// （Andrew Bailey）」）はfull_nameの先頭が日本語カタカナ表記のため前方一致が使えず、
+// 英語フルネームは括弧内の中間に位置する。そのため丸括弧の有無で判定方式を振り分ける。
+// 残存する限界: 姓のみ（フルネーム不明）表記の情報源（BOJ公表予定ページ等）から抽出した候補と、
+// 同一国内に同姓の別人が複数登録された場合は前方一致だけでは区別できない（情報源側の制約であり
+// コード側では解決不能。同姓の別人が実在する場合はofficials.json登録時に個別の運用判断が必要）
 function resolveOfficialBySurname(officials, surnameEn, country) {
   if (!surnameEn || !country) return null;
-  return (officials || []).find((o) => o.country === country && o.full_name && o.full_name.includes(surnameEn)) || null;
+  return (officials || []).find((o) => {
+    if (o.country !== country || !o.full_name) return false;
+    return o.full_name.includes('（') ? o.full_name.includes(surnameEn) : o.full_name.startsWith(surnameEn);
+  }) || null;
 }
 
 module.exports = {

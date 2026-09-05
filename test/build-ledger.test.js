@@ -126,8 +126,11 @@ test('resolveRuleGeneratedName: bond_auction（tenorJaあり）は国別テン�
   );
 });
 
-test('resolveRuleGeneratedName: official_speech（US）はspeakerLastNameの照合結果に関わらず役職ラベルは返す（未登録は役職のみ）', () => {
-  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'US', speakerLastName: 'Cook' }, officials), 'FRB理事の発言');
+test('resolveRuleGeneratedName: official_speech（US）は未登録話者なら役職ラベルのみ、登録済み話者なら本人名で返す', () => {
+  // 「Cook」は2026-09-06（task #17）でofficials.jsonへ登録済みになったため、本人名で解決される
+  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'US', speakerLastName: 'Cook' }, officials), 'クックFRB理事の発言');
+  // 未登録話者（本ファイルに存在しない架空の姓）は役職のみのフォールバックのまま
+  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'US', speakerLastName: 'NonexistentSurname' }, officials), 'FRB理事の発言');
   assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'US', speakerLastName: null }, officials), 'FRB理事の発言');
 });
 
@@ -151,8 +154,25 @@ test('resolveRuleGeneratedName: official_speech（JP・officials.json登録済�
 });
 
 test('resolveRuleGeneratedName: official_speech（JP・未登録話者）はOFFICIAL_SPEECH_ROLE_BY_COUNTRYにJPが無いためnullを返す（FALLBACK_KIND_LABEL「要人発言」へ）', () => {
-  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: '田村' }, officials), null);
+  // 「田村」は2026-09-06（task #17フォローアップ）でofficials.jsonへ登録済みになったため、
+  // ここでは未登録話者の例として別の（本ファイル内に存在しない）姓「神山」を使う
+  assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: '神山' }, officials), null);
   assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: null }, officials), null);
+});
+
+// task #17フォローアップ（2026-09-06、しょうさん指摘: BOJ政策委員会6審議委員の一括登録）の回帰テスト
+test('resolveRuleGeneratedName: official_speech（JP・登録済みの6審議委員）は各人のrole_jaで解決する', () => {
+  const cases = [
+    ['高田', '高田日銀審議委員の発言'],
+    ['田村', '田村日銀審議委員の発言'],
+    ['小枝', '小枝日銀審議委員の発言'],
+    ['増', '増日銀審議委員の発言'],
+    ['浅田', '浅田日銀審議委員の発言'],
+    ['佐藤', '佐藤日銀審議委員の発言'],
+  ];
+  for (const [speakerLastName, want] of cases) {
+    assert.equal(resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName }, officials), want);
+  }
 });
 
 // task #68（しょうさん指摘: 一律★★★は不採用、話者の格[role_rank]に応じて重要度を決める）の回帰テスト
@@ -175,10 +195,43 @@ test('resolveOfficialSpeechImportance: deputy_governor（日銀副総裁・内�
   assert.deepEqual(r, { importance: 3, warning: null });
 });
 
-test('resolveOfficialSpeechImportance: 未登録話者（田村審議委員等）は安全側で★★、warningを添える', () => {
-  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '田村', date: '2026-08-27' }, officials);
+test('resolveOfficialSpeechImportance: 未登録話者（神山理事等）は安全側で★★、warningを添える', () => {
+  // 「田村」は2026-09-06（task #17フォローアップ）でofficials.jsonへ登録済みになったため、
+  // ここでは未登録話者の例として別の姓「神山」を使う
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '神山', date: '2026-08-27' }, officials);
   assert.equal(r.importance, 2);
-  assert.ok(r.warning && r.warning.includes('田村'), 'warningに話者名を含むべき');
+  assert.ok(r.warning && r.warning.includes('神山'), 'warningに話者名を含むべき');
+});
+
+// task #17フォローアップ（2026-09-06）の回帰テスト: 6審議委員は全員board_member→★★・warningなし
+test('resolveOfficialSpeechImportance: board_member（BOJ審議委員6名）は★★、warningは無い', () => {
+  for (const speakerLastName of ['高田', '田村', '小枝', '増', '浅田', '佐藤']) {
+    const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName, date: '2026-09-10' }, officials);
+    assert.deepEqual(r, { importance: 2, warning: null }, `speakerLastName=${speakerLastName}`);
+  }
+});
+
+// task #17フォローアップ（しょうさん強調指摘）: 姓が一文字「増」の誤マッチ耐性の回帰テスト。
+// naming.resolveOfficialBySurnameを前方一致(startsWith)へ是正したことで、他の登録者
+// （植田・内田・氷見野・高田・田村・小枝・浅田・佐藤）のいずれのfull_nameも「増」で始まらず
+// 誤マッチしないことを確認する。また「増」を含むが先頭ではない架空の姓（例:「小増」）や、
+// 「増」を含む無関係な語（例:「増加」＝経済指標の説明文などに現れうる一般語）が
+// 誤って「増一行」に解決されないことも確認する
+test('resolveOfficialSpeechImportance/resolveRuleGeneratedName: 一文字姓「増」は増一行にのみ解決し、無関係な文字列には誤マッチしない（task #17フォローアップ）', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '増', date: '2026-09-10' }, officials);
+  assert.deepEqual(r, { importance: 2, warning: null });
+  assert.equal(
+    resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName: '増' }, officials),
+    '増日銀審議委員の発言'
+  );
+  // 「増」を含むが前方一致しない候補は誰にも解決されない（安全側フォールバック）
+  for (const speakerLastName of ['小増', '増加', '未増']) {
+    assert.equal(
+      resolveRuleGeneratedName({ kind: 'official_speech', country: 'JP', speakerLastName }, officials),
+      null,
+      `speakerLastName=${speakerLastName}は誰にも誤マッチしてはいけない`
+    );
+  }
 });
 
 test('resolveOfficialSpeechImportance: 話者未指定（speakerLastName null）も安全側で★★、warningを添える', () => {

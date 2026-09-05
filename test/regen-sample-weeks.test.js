@@ -58,9 +58,13 @@ const NAME_OVERRIDE = {
   ca_labour_20260807: '雇用統計',
   us_employment_situation_20260807: '雇用統計：非農業部門雇用者数・失業率・平均時給',
   ca_ivey_pmi_20260807: 'Ivey購買部協会景況指数',
-  // official_speech: Cook理事はofficials.json未登録（task #17）のため、SPEC §4.2の
-  // 「verified:falseは役職のみ」規則どおり役職のみで命名する（既存の週データ・naming.test.jsと同じ判断）
-  us_cook_speech_20260805: 'FRB理事の発言',
+  // official_speech: Cook理事は2026-09-06（task #17）でofficials.jsonへ登録済みになったため、
+  // SPEC §4.2の規則生成命名（naming.speechName）で「クックFRB理事の発言」となる。
+  // 既刊ground truthの生テキスト「FRB理事リサ・クック講演」（役職+フルネームの語順、
+  // scripts/phase0/expected-events.json）とは語順・フルネーム/姓のみの点で異なるが、
+  // 2026-08-15しょうさん指示の設計方針（辞書解決kindは既刊の生テキストではなくv4レンダラーの
+  // 命名規則の出力を正解とする）に従い、テンプレート出力を正解データとして上書きする
+  us_cook_speech_20260805: 'クックFRB理事の発言',
 };
 
 function expectedNameOf(g) {

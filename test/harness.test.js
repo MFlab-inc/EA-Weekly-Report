@@ -56,6 +56,51 @@ test('checkFredSource: HTTPエラーはok:false', async () => {
   assert.equal(r.ok, false);
 });
 
+// task #89/#90（2026-09-06、しょうさん指摘: 米新規失業保険申請件数[毎週]・ミシガン大学消費者
+// 信頼感指数が完全に未実装で恒常的に欠落していたと発覚）の回帰テスト。実configのus_bls_fredを
+// そのまま使い、release_id=180（jobless_claims）・release_id=91（sentiment）が正しく
+// resolveKindCandidates経由でdisplayName/importanceまで解決されることを確認する
+test('checkFredSource: 実config（us_bls_fred）のjobless_claims/sentimentが対象週内で正しく解決される（task #89/#90）', async () => {
+  const officialSources = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
+  const importanceRules = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'importance-rules.json'), 'utf8'));
+  const usBlsFred = officialSources.sources.find((s) => s.id === 'us_bls_fred');
+  assert.ok(usBlsFred, 'us_bls_fredがconfigに存在するはず');
+
+  const { checkFredSource } = await loadHarness();
+  const fetchImpl = async (url) => {
+    const releaseId = new URL(url).searchParams.get('release_id');
+    const datesByRelease = {
+      // jobless_claimsは毎週木曜。対象週(2026-09-07〜09-11)内の9/10（木）を1件だけ含める
+      180: ['2026-08-27', '2026-09-03', '2026-09-10', '2026-09-17'],
+      // sentimentは月2回（速報値・確定値）。対象週内には確定値の1件のみが該当する想定で作る
+      91: ['2026-08-14', '2026-08-29', '2026-09-11'],
+    };
+    return { ok: true, json: async () => ({ release_dates: (datesByRelease[releaseId] || []).map((date) => ({ date })) }) };
+  };
+  const targetWeek = {
+    targetWeekStart: '2026-09-07',
+    targetWeekEnd: '2026-09-11',
+    dates: [
+      { date: '2026-09-07' }, { date: '2026-09-08' }, { date: '2026-09-09' }, { date: '2026-09-10' }, { date: '2026-09-11' },
+    ],
+  };
+  const r = await checkFredSource(usBlsFred, targetWeek, { fetchImpl, apiKey: 'dummy', eventNames: REAL_EVENT_NAMES, importanceRules });
+  assert.equal(r.ok, true);
+  assert.ok(r.foundKinds.includes('jobless_claims'), 'jobless_claimsが対象週内で見つかるはず');
+  assert.ok(r.foundKinds.includes('sentiment'), 'sentimentが対象週内で見つかるはず');
+
+  const claims = r.thisWeek.find((c) => c.kind === 'jobless_claims');
+  assert.ok(claims, 'jobless_claimsのcandidateが無い');
+  assert.equal(claims.displayName, '新規失業保険申請件数');
+  assert.equal(claims.importance, 2);
+  assert.equal(claims.date, '2026-09-10');
+
+  const sentiment = r.thisWeek.find((c) => c.kind === 'sentiment');
+  assert.ok(sentiment, 'sentimentのcandidateが無い');
+  assert.equal(sentiment.displayName, 'ミシガン大学消費者信頼感指数');
+  assert.equal(sentiment.importance, 2);
+});
+
 test('checkAnnualScheduleSource: schedule内に対象週の日程があればannualConfigHasTargetWeek=true', async () => {
   const { checkAnnualScheduleSource } = await loadHarness();
   const source = { schedule: [{ date: '2026-08-11', kind: 'policy_rate' }] };
@@ -245,14 +290,19 @@ test('checkWeeklyScrapeSource: us_frb_speeches（RSS pubDateをutcInstantとし�
 // タイトル形式（'GDP monthly estimate, UK: {Month} {Year}'）はWebSearchでons.gov.uk実在の
 // ブリテンシリーズ（例: gdpmonthlyestimateukapril2026等の実URL）と一致することを確認済み
 // （2026-08-15）。なお既刊ground truthの実イベント種別は「GDP first quarterly estimate」（四半期）
-// でありこのfixtureの「monthly estimate」とは別シリーズ（意図的にevent-names.jsonのmatch対象外。
-// 月次GDPを新たに追跡対象へ加える設計判断は本タスクの範囲外）。抽出関数（extractOnsReleases）が
+// でありこのfixtureの「monthly estimate」とは別シリーズ。抽出関数（extractOnsReleases）が
 // 実データのJSON構造を正しくパースできることの確認が目的（辞書照合の訂正確認は
-// test/match-event-name.test.js が別途担う）
+// test/match-event-name.test.js が別途担う）。
+// 2026-09-06追記（task #91、しょうさん指摘: 9/7週の突合でこの月次GDPが不検出だった）: 当時は
+// 「月次GDPを新たに追跡対象へ加える設計判断は本タスクの範囲外」としていたが、実際にこの release が
+// 9/7週の対象週内（2026-09-11）に該当したことでevent-names.json未登録による欠落が実際に発生した。
+// GB/gdpにsubtype:"monthly"のmatchエントリを追加したため、以下でfindEventNameが正しく解決することも
+// あわせて確認する
 test('ONS(gb_ons): 実キャプチャ済みfixture（release-type=type-upcoming）から実在の未来リリースを正しく抽出する（過去週照合不可の代替としての回帰テスト）', () => {
   const { readFileSync } = require('node:fs');
   const { join } = require('node:path');
   const { extractOnsReleases } = require('../scripts/checkers/extractors/ons.js');
+  const { findEventName } = require('../scripts/lib/match-event-name.js');
   const json = readFileSync(join(__dirname, 'fixtures', 'official-sources', 'gb_ons', 'releases_api_upcoming_gdp.json'), 'utf8');
   const r = extractOnsReleases(json);
   assert.equal(r.ok, true);
@@ -260,6 +310,13 @@ test('ONS(gb_ons): 実キャプチャ済みfixture（release-type=type-upcoming�
   assert.ok(monthly, 'GDP monthly estimate, UK: July 2026が抽出されるはず');
   assert.equal(monthly.utcInstant, '2026-09-11T06:00:00.000Z');
   assert.equal(monthly.cancelled, false);
+
+  const nameEntry = findEventName(REAL_EVENT_NAMES, 'GB', 'gdp', monthly.title);
+  assert.ok(nameEntry, 'task #91是正後は月次GDPもevent-names.jsonで解決できるはず');
+  assert.equal(nameEntry.display_name, '月次GDP');
+  // 四半期版のエントリと誤って混同されないことも確認
+  const quarterly = findEventName(REAL_EVENT_NAMES, 'GB', 'gdp', 'GDP first quarterly estimate, UK: April to June 2026');
+  assert.equal(quarterly.display_name, 'GDP【速報値】');
 });
 
 function snbSource() {
