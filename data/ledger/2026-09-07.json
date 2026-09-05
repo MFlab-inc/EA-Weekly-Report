@@ -1,11 +1,11 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "generated_at": "2026-09-05T10:25:48+09:00",
+    "generated_at": "2026-09-05T12:06:14+09:00",
     "target_week_start": "2026-09-07",
     "target_week_end": "2026-09-11",
     "pipeline_version": "ea-weekly-report@0.1.0",
-    "generated_from_commit": "f402440bb26cf4c6c6239e5f1b80098a5e3be72e",
+    "generated_from_commit": "20beeeeacab9844f0c30d95e8a687db57a782bff",
     "outcome": "PUBLISH_READY",
     "warnings": [
       "残量監視WARN: nz_stats_cpi — 年次スケジュールconfigに対象週(2026-09-07)から4週先(2026-10-05)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
@@ -16,8 +16,7 @@
       "定例欠落: 「中国PMI」（毎月1日〜7日ごろ（RatingDog製造業・非製造業とも月初公表が通例））が対象週に該当する見込みだが検出されなかった。対象週が該当日範囲に入っているのに検出なしならWARN（担当ソースcn_pmiがstatus=pending_recon[task #16]のため恒常的にWARNが出る想定。担当ソース実装まではWARNで欠落を可視化し、HOLDにはしない。しょうさん指示2026-08-15）",
       "定例欠落: 「英国建設業PMI」（毎月1日〜7日ごろ（S&P Global系PMIの通例的な公表時期））が対象週に該当する見込みだが検出されなかった。同上（担当ソースgb_construction_pmiがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）",
       "定例欠落: 「ADP雇用統計」（毎月1日〜7日ごろ（米雇用統計[第1金曜]の直前、水曜公表が通例））が対象週に該当する見込みだが検出されなかった。同上（担当ソースus_adpがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）",
-      "定例欠落: 「豪州貿易収支（ABS）」（毎月1日〜10日ごろ（前月または前々月分を公表。既刊実績: 9/3発表分））が対象週に該当する見込みだが検出されなかった。同上（task #87。trade_balanceはkind自体は正しく登録済みで、au_absのhorizon外にあるだけの場合でも警告が出る）",
-      "official_speechの話者の格を判定できず★★（安全側）とした: country=JP speaker=\"増\" date=2026-09-10（officials.json未登録、またはrole_rank未設定）"
+      "定例欠落: 「豪州貿易収支（ABS）」（毎月1日〜10日ごろ（前月または前々月分を公表。既刊実績: 9/3発表分））が対象週に該当する見込みだが検出されなかった。同上（task #87。trade_balanceはkind自体は正しく登録済みで、au_absのhorizon外にあるだけの場合でも警告が出る）"
     ],
     "holds": []
   },
@@ -25,18 +24,18 @@
     {
       "source_id": "us_bls_fred",
       "type": "date_api_fred",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://api.stlouisfed.org/fred/release/dates",
       "ok": true,
       "http_status": null,
-      "extractor_result_count": 4,
+      "extractor_result_count": 5,
       "robots_checked": false,
       "fail_closed_decision": "OK"
     },
     {
       "source_id": "au_rba",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.rba.gov.au/schedules-events/board-meeting-schedules.html",
       "ok": true,
       "http_status": null,
@@ -47,7 +46,7 @@
     {
       "source_id": "us_census",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.census.gov/economic-indicators/calendar-listview.html",
       "ok": true,
       "http_status": null,
@@ -58,18 +57,18 @@
     {
       "source_id": "gb_ons",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP",
       "ok": true,
       "http_status": null,
-      "extractor_result_count": 0,
+      "extractor_result_count": 1,
       "robots_checked": true,
       "fail_closed_decision": "OK"
     },
     {
       "source_id": "nz_statsnz",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
       "ok": true,
       "http_status": null,
@@ -80,7 +79,7 @@
     {
       "source_id": "nz_stats_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/calendar-export?month=8&year=2026",
       "ok": true,
       "http_status": null,
@@ -91,7 +90,7 @@
     {
       "source_id": "nz_stats_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -102,7 +101,7 @@
     {
       "source_id": "nz_stats_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -113,7 +112,7 @@
     {
       "source_id": "ca_statcan",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
       "ok": true,
       "http_status": null,
@@ -124,7 +123,7 @@
     {
       "source_id": "au_abs",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.abs.gov.au/release-calendar/future-releases-calendar",
       "ok": true,
       "http_status": null,
@@ -135,7 +134,7 @@
     {
       "source_id": "us_ism",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/",
       "ok": true,
       "http_status": null,
@@ -146,7 +145,7 @@
     {
       "source_id": "jp_boj",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm",
       "ok": true,
       "http_status": null,
@@ -157,7 +156,7 @@
     {
       "source_id": "jp_boj_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.boj.or.jp/about/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -168,7 +167,7 @@
     {
       "source_id": "us_treasury",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions",
       "ok": true,
       "http_status": null,
@@ -179,7 +178,7 @@
     {
       "source_id": "jp_mof",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -190,7 +189,7 @@
     {
       "source_id": "jp_stat_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.stat.go.jp/data/cpi/4-1.html",
       "ok": true,
       "http_status": null,
@@ -201,7 +200,7 @@
     {
       "source_id": "jp_esri_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html",
       "ok": true,
       "http_status": null,
@@ -212,7 +211,7 @@
     {
       "source_id": "jp_customs_trade",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.customs.go.jp/toukei/calendar/calend.htm",
       "ok": true,
       "http_status": null,
@@ -223,7 +222,7 @@
     {
       "source_id": "us_frb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.federalreserve.gov/feeds/speeches.xml",
       "ok": true,
       "http_status": null,
@@ -234,7 +233,7 @@
     {
       "source_id": "cn_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -245,7 +244,7 @@
     {
       "source_id": "cn_nbs_data",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/",
       "ok": true,
       "http_status": null,
@@ -256,7 +255,7 @@
     {
       "source_id": "gb_construction_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -267,7 +266,7 @@
     {
       "source_id": "us_adp",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://adpemploymentreport.com/",
       "ok": true,
       "http_status": null,
@@ -278,7 +277,7 @@
     {
       "source_id": "ca_ivey",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://iveypmi.uwo.ca/faq/",
       "ok": true,
       "http_status": null,
@@ -289,7 +288,7 @@
     {
       "source_id": "us_frb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
       "ok": true,
       "http_status": null,
@@ -300,7 +299,7 @@
     {
       "source_id": "ecb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
       "ok": true,
       "http_status": null,
@@ -311,7 +310,7 @@
     {
       "source_id": "eurostat_hicp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -322,7 +321,7 @@
     {
       "source_id": "eurostat_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -333,7 +332,7 @@
     {
       "source_id": "de_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -344,7 +343,7 @@
     {
       "source_id": "eu_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -355,7 +354,7 @@
     {
       "source_id": "gb_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -366,7 +365,7 @@
     {
       "source_id": "de_zew",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.zew.de/en/press/latest-press-releases/2026-release-dates-for-zew-indicator-of-economic-sentiment-fixed",
       "ok": true,
       "http_status": null,
@@ -377,7 +376,7 @@
     {
       "source_id": "boe_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates",
       "ok": true,
       "http_status": null,
@@ -388,7 +387,7 @@
     {
       "source_id": "gb_boe_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.bankofengland.co.uk/rss/speeches",
       "ok": true,
       "http_status": null,
@@ -399,7 +398,7 @@
     {
       "source_id": "boc_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.bankofcanada.ca/press/upcoming-events/",
       "ok": true,
       "http_status": null,
@@ -410,7 +409,7 @@
     {
       "source_id": "rbnz_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028",
       "ok": true,
       "http_status": null,
@@ -421,7 +420,7 @@
     {
       "source_id": "snb_policy_rate",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
       "ok": true,
       "http_status": null,
@@ -432,7 +431,7 @@
     {
       "source_id": "manual",
       "type": "manual",
-      "fetched_at": "2026-09-05T10:25:48+09:00",
+      "fetched_at": "2026-09-05T12:06:14+09:00",
       "url": "config/manual-events.json",
       "ok": true,
       "http_status": null,
@@ -513,7 +512,7 @@
       "country": "JP",
       "currency": "JPY",
       "kind": "official_speech",
-      "name_ja": "要人発言",
+      "name_ja": "増日銀審議委員の発言",
       "importance": 2,
       "source_id": "jp_boj_speeches",
       "source_evidence": "【挨拶】増審議委員（福井）",
@@ -583,6 +582,26 @@
       "bundle_id": "us-ppi-2026-09-10"
     },
     {
+      "event_id": "us-jobless_claims-2026-09-10",
+      "date_local": "2026-09-10",
+      "time_local": "08:30",
+      "tz": "America/New_York",
+      "date_jst": "2026-09-10",
+      "datetime_jst": "2026-09-10T21:30:00+09:00",
+      "time_status": "published",
+      "country": "US",
+      "currency": "USD",
+      "kind": "jobless_claims",
+      "name_ja": "新規失業保険申請件数",
+      "importance": 2,
+      "source_id": "us_bls_fred",
+      "source_evidence": "FRED release_id=180（release_date=2026-09-10）",
+      "name_resolution": "dictionary",
+      "halt_window_start_jst": null,
+      "halt_window_end_jst": null,
+      "bundle_id": "us-ppi-2026-09-10"
+    },
+    {
       "event_id": "eu-press_conference-2026-09-10",
       "date_local": "2026-09-10",
       "time_local": "14:45",
@@ -601,6 +620,26 @@
       "halt_window_start_jst": "2026-09-10T09:45:00+09:00",
       "halt_window_end_jst": "2026-09-10T17:45:00+09:00",
       "bundle_id": "eu-policy_rate-2026-09-10"
+    },
+    {
+      "event_id": "gb-gdp-2026-09-11",
+      "date_local": "2026-09-11",
+      "time_local": "07:00",
+      "tz": "Europe/London",
+      "date_jst": "2026-09-11",
+      "datetime_jst": "2026-09-11T15:00:00+09:00",
+      "time_status": "published",
+      "country": "GB",
+      "currency": "GBP",
+      "kind": "gdp",
+      "name_ja": "月次GDP",
+      "importance": 3,
+      "source_id": "gb_ons",
+      "source_evidence": "GDP monthly estimate, UK: July 2026",
+      "name_resolution": "dictionary",
+      "halt_window_start_jst": "2026-09-11T03:00:00+09:00",
+      "halt_window_end_jst": "2026-09-11T11:00:00+09:00",
+      "bundle_id": null
     },
     {
       "event_id": "us-cpi-2026-09-11",
@@ -688,6 +727,11 @@
         "name": "豪州貿易収支（ABS）",
         "applies_this_week": true,
         "found": false
+      },
+      {
+        "name": "米新規失業保険申請件数",
+        "applies_this_week": true,
+        "found": true
       }
     ]
   }
