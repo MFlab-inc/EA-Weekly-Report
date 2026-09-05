@@ -1,11 +1,12 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "generated_at": "2026-09-05T12:06:14+09:00",
+    "generated_at": "2026-09-05T12:37:46+09:00",
     "target_week_start": "2026-09-07",
     "target_week_end": "2026-09-11",
     "pipeline_version": "ea-weekly-report@0.1.0",
-    "generated_from_commit": "20beeeeacab9844f0c30d95e8a687db57a782bff",
+    "generated_from_commit": "9124e8705a27905d38bf05c54f01ecd75bc63629",
+    "generated_from_code_hash": "fb35121e07f6bcb922d892622a20b6d652507a7672eb769884c06ce50c605dca",
     "outcome": "PUBLISH_READY",
     "warnings": [
       "残量監視WARN: nz_stats_cpi — 年次スケジュールconfigに対象週(2026-09-07)から4週先(2026-10-05)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
@@ -16,7 +17,46 @@
       "定例欠落: 「中国PMI」（毎月1日〜7日ごろ（RatingDog製造業・非製造業とも月初公表が通例））が対象週に該当する見込みだが検出されなかった。対象週が該当日範囲に入っているのに検出なしならWARN（担当ソースcn_pmiがstatus=pending_recon[task #16]のため恒常的にWARNが出る想定。担当ソース実装まではWARNで欠落を可視化し、HOLDにはしない。しょうさん指示2026-08-15）",
       "定例欠落: 「英国建設業PMI」（毎月1日〜7日ごろ（S&P Global系PMIの通例的な公表時期））が対象週に該当する見込みだが検出されなかった。同上（担当ソースgb_construction_pmiがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）",
       "定例欠落: 「ADP雇用統計」（毎月1日〜7日ごろ（米雇用統計[第1金曜]の直前、水曜公表が通例））が対象週に該当する見込みだが検出されなかった。同上（担当ソースus_adpがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）",
-      "定例欠落: 「豪州貿易収支（ABS）」（毎月1日〜10日ごろ（前月または前々月分を公表。既刊実績: 9/3発表分））が対象週に該当する見込みだが検出されなかった。同上（task #87。trade_balanceはkind自体は正しく登録済みで、au_absのhorizon外にあるだけの場合でも警告が出る）"
+      "定例欠落: 「豪州貿易収支（ABS）」（毎月1日〜10日ごろ（前月または前々月分を公表。既刊実績: 9/3発表分））が対象週に該当する見込みだが検出されなかった。同上（task #87。trade_balanceはkind自体は正しく登録済みで、au_absのhorizon外にあるだけの場合でも警告が出る）",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Employment Cost Index」(release_id=11)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Productivity and Costs」(release_id=47)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Total Factor Productivity for Major Industries」(release_id=107)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「State Employment and Unemployment」(release_id=112)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Metropolitan Area Employment and Unemployment」(release_id=113)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Unemployment in States and Local Areas (all other areas)」(release_id=116)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「U.S. Import and Export Price Indexes」(release_id=188)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「International Indexes of Consumer Prices」(release_id=201)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「International Unemployment Rates and Employment Indexes」(release_id=202)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「International Comparisons of Annual Labor Force Statistics」(release_id=203)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「International Comparisons of GDP per Capita and per Hour」(release_id=204)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「International Comparisons of Manufacturing Productivity and Unit Labor Cost Trends」(release_id=230)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「State and Metro Area Employment, Hours, and Earnings」(release_id=308)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Weekly and Hourly Earnings from the Current Population Survey」(release_id=332)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Labor Force Status Flows from the Current Population Survey」(release_id=334)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Research Consumer Price Index」(release_id=345)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Alternative Measures of Labor Underutilization for States」(release_id=353)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Hours of Wage and Salary Workers on Nonfarm Payrolls by Sector」(release_id=357)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Quarterly Census of Employment and Wages」(release_id=362)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Characteristics of Minimum Wage Workers」(release_id=384)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Labor Force Participation by State」(release_id=446)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Average Price Data」(release_id=454)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Consumer Expenditure Surveys」(release_id=479)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=22に未登録のリリース「Industry Productivity」(release_id=490)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「U.S. International Transactions」(release_id=49)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「U.S. International Trade in Goods and Services」(release_id=51)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Supplemental Estimates, Motor Vehicles」(release_id=93)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Personal Income by State」(release_id=110)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Gross Domestic Product by State」(release_id=140)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Personal Income by County」(release_id=175)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Supplemental Estimates, Underlying Detail Tables」(release_id=281)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Federal Recovery Programs and BEA Statistics」(release_id=286)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Gross Domestic Product by Industry」(release_id=331)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Fixed Assets」(release_id=356)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「U.S. International Investment Position」(release_id=359)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Health Care Satellite Account」(release_id=360)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Personal Consumption Expenditures by State」(release_id=391)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Gross Domestic Product by County」(release_id=397)が見つかりました。関連する指標か確認してください",
+      "公表リリース差分監査WARN: us_bls_fred — FRED source_id=18に未登録のリリース「Real Personal Income for States」(release_id=403)が見つかりました。関連する指標か確認してください"
     ],
     "holds": []
   },
@@ -24,7 +64,7 @@
     {
       "source_id": "us_bls_fred",
       "type": "date_api_fred",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://api.stlouisfed.org/fred/release/dates",
       "ok": true,
       "http_status": null,
@@ -35,7 +75,7 @@
     {
       "source_id": "au_rba",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.rba.gov.au/schedules-events/board-meeting-schedules.html",
       "ok": true,
       "http_status": null,
@@ -46,7 +86,7 @@
     {
       "source_id": "us_census",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.census.gov/economic-indicators/calendar-listview.html",
       "ok": true,
       "http_status": null,
@@ -57,7 +97,7 @@
     {
       "source_id": "gb_ons",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP",
       "ok": true,
       "http_status": null,
@@ -68,7 +108,7 @@
     {
       "source_id": "nz_statsnz",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
       "ok": true,
       "http_status": null,
@@ -79,7 +119,7 @@
     {
       "source_id": "nz_stats_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/calendar-export?month=8&year=2026",
       "ok": true,
       "http_status": null,
@@ -90,7 +130,7 @@
     {
       "source_id": "nz_stats_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -101,7 +141,7 @@
     {
       "source_id": "nz_stats_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -112,7 +152,7 @@
     {
       "source_id": "ca_statcan",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
       "ok": true,
       "http_status": null,
@@ -123,7 +163,7 @@
     {
       "source_id": "au_abs",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.abs.gov.au/release-calendar/future-releases-calendar",
       "ok": true,
       "http_status": null,
@@ -134,7 +174,7 @@
     {
       "source_id": "us_ism",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/",
       "ok": true,
       "http_status": null,
@@ -145,7 +185,7 @@
     {
       "source_id": "jp_boj",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm",
       "ok": true,
       "http_status": null,
@@ -156,7 +196,7 @@
     {
       "source_id": "jp_boj_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.boj.or.jp/about/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -167,7 +207,7 @@
     {
       "source_id": "us_treasury",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions",
       "ok": true,
       "http_status": null,
@@ -178,7 +218,7 @@
     {
       "source_id": "jp_mof",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -189,7 +229,7 @@
     {
       "source_id": "jp_stat_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.stat.go.jp/data/cpi/4-1.html",
       "ok": true,
       "http_status": null,
@@ -200,7 +240,7 @@
     {
       "source_id": "jp_esri_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html",
       "ok": true,
       "http_status": null,
@@ -211,7 +251,7 @@
     {
       "source_id": "jp_customs_trade",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.customs.go.jp/toukei/calendar/calend.htm",
       "ok": true,
       "http_status": null,
@@ -222,7 +262,7 @@
     {
       "source_id": "us_frb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.federalreserve.gov/feeds/speeches.xml",
       "ok": true,
       "http_status": null,
@@ -233,7 +273,7 @@
     {
       "source_id": "cn_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -244,7 +284,7 @@
     {
       "source_id": "cn_nbs_data",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/",
       "ok": true,
       "http_status": null,
@@ -255,7 +295,7 @@
     {
       "source_id": "gb_construction_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -266,7 +306,7 @@
     {
       "source_id": "us_adp",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://adpemploymentreport.com/",
       "ok": true,
       "http_status": null,
@@ -277,7 +317,7 @@
     {
       "source_id": "ca_ivey",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://iveypmi.uwo.ca/faq/",
       "ok": true,
       "http_status": null,
@@ -288,7 +328,7 @@
     {
       "source_id": "us_frb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
       "ok": true,
       "http_status": null,
@@ -299,7 +339,7 @@
     {
       "source_id": "ecb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
       "ok": true,
       "http_status": null,
@@ -310,7 +350,7 @@
     {
       "source_id": "eurostat_hicp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -321,7 +361,7 @@
     {
       "source_id": "eurostat_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -332,7 +372,7 @@
     {
       "source_id": "de_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -343,7 +383,7 @@
     {
       "source_id": "eu_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -354,7 +394,7 @@
     {
       "source_id": "gb_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -365,7 +405,7 @@
     {
       "source_id": "de_zew",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.zew.de/en/press/latest-press-releases/2026-release-dates-for-zew-indicator-of-economic-sentiment-fixed",
       "ok": true,
       "http_status": null,
@@ -376,7 +416,7 @@
     {
       "source_id": "boe_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates",
       "ok": true,
       "http_status": null,
@@ -387,7 +427,7 @@
     {
       "source_id": "gb_boe_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.bankofengland.co.uk/rss/speeches",
       "ok": true,
       "http_status": null,
@@ -398,7 +438,7 @@
     {
       "source_id": "boc_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.bankofcanada.ca/press/upcoming-events/",
       "ok": true,
       "http_status": null,
@@ -409,7 +449,7 @@
     {
       "source_id": "rbnz_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028",
       "ok": true,
       "http_status": null,
@@ -420,7 +460,7 @@
     {
       "source_id": "snb_policy_rate",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
       "ok": true,
       "http_status": null,
@@ -431,7 +471,7 @@
     {
       "source_id": "manual",
       "type": "manual",
-      "fetched_at": "2026-09-05T12:06:14+09:00",
+      "fetched_at": "2026-09-05T12:37:46+09:00",
       "url": "config/manual-events.json",
       "ok": true,
       "http_status": null,
