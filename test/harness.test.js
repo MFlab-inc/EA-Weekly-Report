@@ -137,6 +137,51 @@ test('checkFredCatalogAudit: 未登録のrelease_idはnewReleasesに含める（
   assert.ok(r.newReleases.some((n) => n.releaseId === 888 && n.sourceId === 18 && n.name === 'Brand New BEA Release'));
 });
 
+// 2026-09-06追加（実運用初回runで発覚・即日是正）: 除外リスト無しで実行したところ、BLS・BEAの
+// 全リリース39件が『未登録』としてWARN化され、本来の情報が埋もれた。除外リストで意図的に
+// 対象外としたrelease_idはnewReleasesに含めないことを確認する
+test('checkFredCatalogAudit: catalog_audit_excluded_release_idsに含まれるrelease_idはnewReleasesに含めない', async () => {
+  const { checkFredCatalogAudit } = await loadHarness();
+  const source = {
+    fred: {
+      releases: [{ release_id: 10 }],
+      catalog_audit_source_ids: [22],
+      catalog_audit_excluded_release_ids: [11, 47],
+    },
+  };
+  const fetchImpl = async () => ({
+    ok: true,
+    json: async () => ({
+      releases: [
+        { id: 10, name: 'CPI' },
+        { id: 11, name: 'Employment Cost Index' },
+        { id: 47, name: 'Productivity and Costs' },
+        { id: 999, name: 'Genuinely New Release' },
+      ],
+    }),
+  });
+  const r = await checkFredCatalogAudit(source, { fetchImpl, apiKey: 'dummy' });
+  assert.deepEqual(r.newReleases.map((n) => n.releaseId), [999]);
+});
+
+// 実configのcatalog_audit_excluded_release_idsが最新のBLS/BEAカタログをそのまま反映していれば
+// newReleasesは空になるはず（実運用初回runで実際に検出した39件をそのまま登録した回帰テスト）
+test('checkFredCatalogAudit: 実config（us_bls_fred）は実運用で検出済みの39件を全て除外リストに含む', async () => {
+  const officialSources = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
+  const usBlsFred = officialSources.sources.find((s) => s.id === 'us_bls_fred');
+  const { checkFredCatalogAudit } = await loadHarness();
+  const knownReleaseIdsFromFirstRun = [11, 47, 107, 112, 113, 116, 188, 201, 202, 203, 204, 230, 308, 332, 334, 345, 353, 357, 362, 384, 446, 454, 479, 490, 49, 51, 93, 110, 140, 175, 281, 286, 331, 356, 359, 360, 391, 397, 403];
+  const fetchImpl = async (url) => {
+    const sourceId = new URL(url).searchParams.get('source_id');
+    const ids = sourceId === '22'
+      ? [10, 46, 50, 192, 180, ...knownReleaseIdsFromFirstRun.slice(0, 24)]
+      : [53, 54, ...knownReleaseIdsFromFirstRun.slice(24)];
+    return { ok: true, json: async () => ({ releases: ids.map((id) => ({ id, name: `release ${id}` })) }) };
+  };
+  const r = await checkFredCatalogAudit(usBlsFred, { fetchImpl, apiKey: 'dummy' });
+  assert.deepEqual(r.newReleases, [], JSON.stringify(r.newReleases));
+});
+
 test('checkFredCatalogAudit: fetch失敗・HTTPエラー・JSON parse失敗はrun全体を巻き込まず静かにスキップする', async () => {
   const { checkFredCatalogAudit } = await loadHarness();
   const source = { fred: { releases: [], catalog_audit_source_ids: [22, 18, 1] } };

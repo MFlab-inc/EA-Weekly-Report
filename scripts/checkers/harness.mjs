@@ -230,10 +230,19 @@ function isWithinWeek(dateStr, weekStartStr, weekEndStr) {
 // あくまで人間へ知らせるための情報提供（WARN）であり、run自体を失敗させたりHOLDにはしない
 // （fetch失敗・パース失敗は静かにスキップする＝この監査自体の不調で本編のパイプラインを
 // 巻き込まない設計。checkFredSourceのfail-closed設計とは意図的に非対称）
+// 2026-09-06追記（実運用初回runで発覚・即日是正）: BLS(source_id=22)だけで約28件、
+// BEA(source_id=18)で約17件のリリースがあり、その大半は州別・郡別・産業別の細分化統計や
+// 学術目的の専門系列（例: Fixed Assets, International Comparisons of Manufacturing
+// Productivity, Personal Income by County等）で、このEA向け週次レポートの対象（FX主要通貨に
+// 影響しうる全国集計の主要指標）とは無関係。除外リストを設けずに実行したところ、初回runだけで
+// 39件のWARNが出て本来見るべき情報が埋もれる状態になったため、source.fred.catalog_audit_excluded_
+// release_idsで「確認済み・対象外と判断した」release_idを明示的に除外できるようにした
+// （黙って無視するのではなく、config側にどのリリースを何故対象外としたかを記録する）
 export async function checkFredCatalogAudit(source, { fetchImpl = fetch, apiKey } = {}) {
   const sourceIds = source?.fred?.catalog_audit_source_ids || [];
   if (sourceIds.length === 0 || !apiKey) return { newReleases: [] };
   const registeredIds = new Set((source.fred.releases || []).map((r) => r.release_id));
+  const excludedIds = new Set(source.fred.catalog_audit_excluded_release_ids || []);
   const newReleases = [];
   for (const sourceId of sourceIds) {
     const url = new URL('https://api.stlouisfed.org/fred/source/releases');
@@ -254,7 +263,7 @@ export async function checkFredCatalogAudit(source, { fetchImpl = fetch, apiKey 
       continue;
     }
     for (const rel of body?.releases || []) {
-      if (rel?.id != null && !registeredIds.has(rel.id)) {
+      if (rel?.id != null && !registeredIds.has(rel.id) && !excludedIds.has(rel.id)) {
         newReleases.push({ sourceId, releaseId: rel.id, name: rel.name || '(名称不明)' });
       }
     }
