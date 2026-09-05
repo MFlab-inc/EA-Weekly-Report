@@ -179,6 +179,37 @@ test('decideGateOutcome: 検査エラー無し・件数下限もクリアならP
   assert.equal(decision, 'PUBLISH_READY');
 });
 
+// task #93（2026-09-06、しょうさん指示: 掲載件数の推移監視）: 絶対下限(volumeCheck)は
+// クリアしていても、trendCheck.belowThresholdがtrueならREVIEW_REQUIRED
+test('decideGateOutcome: 絶対下限はクリアでもtrendCheck.belowThresholdがtrueならREVIEW_REQUIRED', async () => {
+  const { decideGateOutcome } = await loadGate();
+  const checks = [{ name: 'ledger_schema', errors: [], warnings: [] }];
+  const decision = decideGateOutcome(
+    checks,
+    { belowThreshold: false, reasons: [] },
+    { trendCheck: { belowThreshold: true, reasons: ['過去実績比で異常に少ない'] } }
+  );
+  assert.equal(decision, 'REVIEW_REQUIRED');
+});
+
+test('decideGateOutcome: trendCheck省略時は従来どおりvolumeCheckのみで判定する（後方互換）', async () => {
+  const { decideGateOutcome } = await loadGate();
+  const checks = [{ name: 'ledger_schema', errors: [], warnings: [] }];
+  const decision = decideGateOutcome(checks, { belowThreshold: false, reasons: [] });
+  assert.equal(decision, 'PUBLISH_READY');
+});
+
+test('decideGateOutcome: acknowledgeLowVolume:trueはtrendCheckの抵触もPUBLISH_READYへ格上げする', async () => {
+  const { decideGateOutcome } = await loadGate();
+  const checks = [{ name: 'ledger_schema', errors: [], warnings: [] }];
+  const decision = decideGateOutcome(
+    checks,
+    { belowThreshold: false, reasons: [] },
+    { acknowledgeLowVolume: true, trendCheck: { belowThreshold: true, reasons: ['test'] } }
+  );
+  assert.equal(decision, 'PUBLISH_READY');
+});
+
 // task #38の8/17週の再現ケース: baseLedger()は既定でイベント1件のみ（掲載対象<4件）のため、
 // 実際のrunGateChecks()結果と組み合わせてもREVIEW_REQUIRED相当になることを確認する
 test('統合: baseLedger()（イベント1件のみ）はchecksにERROR無しでもcheckEventVolumeで下限抵触する', async () => {

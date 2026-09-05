@@ -343,6 +343,29 @@ test('buildLedger: generatedFromCommitを渡すとmeta.generated_from_commitに�
   assert.equal(validateLedger(withoutCommit).ok, true);
 });
 
+// 2026-09-06追加（task #92、しょうさん指摘: generated_from_commit比較方式には
+// 「パイプライン自身のcommit outputsステップでHEADが進むと保険cronが毎回誤って
+// 再生成してしまう」欠陥があったため、scripts/lib/pipeline-code-hash.jsのハッシュ値へ移行）。
+// meta.generated_from_code_hashに渡した値がそのまま反映され、未指定時はnullになることを確認する
+test('buildLedger: generatedFromCodeHashを渡すとmeta.generated_from_code_hashに反映され、未指定時はnullになる', () => {
+  const report = syntheticReport();
+  const sourcesConfig = syntheticSourcesConfig();
+  const base = {
+    report, sourcesConfig, manualEventsConfig: { entries: [] },
+    candidates: [{ ...report.results[0].thisWeek[0], sourceId: 'au_rba', sourceEvidence: 'Cash Rate（ground truth一致確認済み）' }],
+    expectedCoverageResult: { required: new Array(8).fill(0), missing: [] },
+    recurringChecksStatus: [], pipelineVersion: 'test-pipeline-1', generatedAt: '2026-08-15T08:06:00+09:00',
+  };
+
+  const withHash = buildLedger({ ...base, generatedFromCodeHash: 'a'.repeat(64) });
+  assert.equal(withHash.meta.generated_from_code_hash, 'a'.repeat(64));
+  assert.equal(validateLedger(withHash).ok, true);
+
+  const withoutHash = buildLedger(base);
+  assert.equal(withoutHash.meta.generated_from_code_hash, null);
+  assert.equal(validateLedger(withoutHash).ok, true);
+});
+
 test('buildLedger: officialsConfigを渡すと規則生成命名（naming.js）がイベントへ反映される', () => {
   const report = syntheticReport({
     results: [

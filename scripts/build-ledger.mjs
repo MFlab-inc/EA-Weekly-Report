@@ -13,16 +13,17 @@ const { buildLedger } = require('./lib/build-ledger.js');
 const { validateLedger } = require('./lib/validate-ledger.js');
 const { validateExpectedCoverage } = require('./lib/validate-expected-coverage.js');
 const { nowJstIso } = require('./lib/tz-convert.js');
+const { computePipelineCodeHash } = require('./lib/pipeline-code-hash.js');
 
 const PIPELINE_VERSION = `ea-weekly-report@${require('../package.json').version}`;
 
-export function buildLedgerFromCollectResult({ collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules, expectedCoverageConfig, generatedAt, generatedFromCommit }) {
+export function buildLedgerFromCollectResult({ collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules, expectedCoverageConfig, generatedAt, generatedFromCommit, generatedFromCodeHash }) {
   const { targetWeek, report, candidates } = collectResult;
   const recurringChecksStatus = computeRecurringChecksStatus(report.results, importanceRules, targetWeek);
   const expectedCoverageResult = validateExpectedCoverage(sourcesConfig, officialsConfig, expectedCoverageConfig);
   return buildLedger({
     report, sourcesConfig, manualEventsConfig, officialsConfig, candidates,
-    expectedCoverageResult, recurringChecksStatus, pipelineVersion: PIPELINE_VERSION, generatedAt, generatedFromCommit,
+    expectedCoverageResult, recurringChecksStatus, pipelineVersion: PIPELINE_VERSION, generatedAt, generatedFromCommit, generatedFromCodeHash,
   });
 }
 
@@ -37,6 +38,7 @@ async function main() {
   const ledger = buildLedgerFromCollectResult({
     collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules,
     expectedCoverageConfig, generatedAt: nowJstIso(), generatedFromCommit: process.env.GITHUB_SHA || null,
+    generatedFromCodeHash: computePipelineCodeHash(),
   });
 
   const check = validateLedger(ledger);

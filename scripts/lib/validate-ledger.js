@@ -36,6 +36,12 @@ function validateMeta(meta, errors) {
   if (meta.generated_from_commit != null && !isNonEmptyString(meta.generated_from_commit)) {
     errors.push('meta.generated_from_commit: 文字列またはnullが必要です');
   }
+  // generated_from_code_hash: 任意項目（2026-09-06追加、task #92）。scripts/lib/pipeline-code-hash.jsが
+  // 計算するSHA-256ハッシュ。冪等ガードの実体を担う値（generated_from_commitはコミットSHAと
+  // 一致しないだけで誤って再生成/スキップしてしまう欠陥があったため、こちらへ移行した）
+  if (meta.generated_from_code_hash != null && !isNonEmptyString(meta.generated_from_code_hash)) {
+    errors.push('meta.generated_from_code_hash: 文字列またはnullが必要です');
+  }
   if (!OUTCOMES.has(meta.outcome)) errors.push(`meta.outcome: ${[...OUTCOMES].join('|')}のいずれかが必要です`);
   if (!Array.isArray(meta.warnings)) errors.push('meta.warnings: 配列が必要です');
   if (!Array.isArray(meta.holds)) errors.push('meta.holds: 配列が必要です');

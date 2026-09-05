@@ -130,3 +130,22 @@ task #17（FRB理事の登録）としょうさんの追加指摘（BOJ政策委
 - **FRB側**: ジェファーソン（副議長）・ボウマン（副議長・金融監督担当）・バー・クック・ウォラーの5名を登録。federalreserve.gov公式bio・Congress.gov CRS Reportで確認。role_rankは当初「FOMCの議決権保有者は全員対等」という理屈でgovernor（★★★）とする案を検討したが、test/regen-sample-weeks.test.jsの既刊ground truth（scripts/phase0/expected-events.json、2026-08-06のクック理事講演の実績importance=2）と矛盾することがテスト実行で判明し、実測データを優先してboard_member（★★）へ修正した。地区連銀総裁の講演はus_frb_speeches（FRB理事講演RSSのみ）では検出されないため、今回は理事会メンバーのみを優先登録した（地区連銀総裁は今後、実際に講演が検出される経路ができた時点で追加）
 - **付随して発覚**: クック理事は2025年8月にトランプ大統領が解任を発表し係争となった経緯があるが、2026年時点の複数の独立ソース（Congress.gov CRS Report・Brookings）で引き続き現職理事として扱われているため解任は不成立と判断し登録した。今後の係争の帰趨によっては見直しが必要（要継続監視）
 - **反映**: config/officials.json・scripts/lib/naming.js・test/naming.test.js・test/build-ledger.test.jsを更新。既刊ground truthベースのregen-sample-weeks.test.js・render.test.jsも、Cook理事が登録済みになったことに伴う名称・heroSummary選出結果の変化を反映して更新した
+
+### O9. 冪等ガードの3度目の是正: コミットSHA比較からパイプラインコードハッシュ比較へ → 修正・クローズ（2026-09-06）
+
+O6・8/22・9/5と、冪等ガードは実は3回目の是正である（task #92）。しょうさん指摘: 「実害が無かったのは32分でソースデータが変わらなかったという偶然によるもので、設計目的（二重生成防止）が機能していない状態は放置できない」。
+
+- **旧方式（generated_from_commit＝github.sha比較）の構造的な欠陥**: 本番cron（08:06 JST）は自身のチェックアウト時点のSHAを台帳に記録してからdata/・output/をコミットするため、その時点でHEADが進む。32分後の保険cron（08:41 JST）は進んだ後のHEADをチェックアウトするため、「記録済みSHA（本番cronのチェックアウト時点）≠現在のHEAD（本番cron自身のコミットで進んだ後）」が構造的に毎回成立してしまい、コードが一切変わっていなくても保険cronが必ず再生成していた
+- **是正方針**: 「コミットSHAが変わったか」ではなく「パイプラインの出力に影響しうるファイル群の内容が変わったか」を直接判定する。新設した`scripts/lib/pipeline-code-hash.js`が`scripts/`・`config/`・`package.json`・`package-lock.json`・`.github/workflows/weekly.yml`のみを対象にSHA-256ハッシュを計算し、台帳meta.generated_from_code_hashに記録。この対象範囲自体が「何が変わったら再生成すべきか」の判断基準になるため、`docs/ledger-schema.md`に明記した。data/・output/（パイプライン自身の書き込み先）は意図的に対象外とし、これにより本番cron自身のコミットがハッシュに影響しなくなる
+- **回帰テスト**: `test/pipeline-code-hash.test.js`に、(1) scripts/・config/配下の変更でハッシュが変わること（8/22の過剰スキップ再発防止）、(2) 「本番cron→自身のコミットでHEAD前進→保険cron」のシーケンスを模した、data/・output/への書き込みだけではハッシュが変わらないこと（9/5の過小スキップ再発防止）の両方を直接検証するテストを追加した
+- **生成元コミット自体の記録は継続**: generated_from_commitは冪等判定には使わなくなったが、「どのコミットが実際に生成したか」を追跡する記録用フィールドとして引き続き残す
+- **実運用での確認**: 9/12（土）の本番cron→保険cronの連続実行で、保険cronが正しくスキップと判定されることを確認する予定（しょうさんへ別途報告）
+
+### O10. Manus突合廃止に伴う欠落検知強化の3点 → 実装・クローズ（2026-09-06）
+
+しょうさん指示: Manus突合（並行運用の比較対象）廃止後、9/7週突合で発覚した一連の完全欠落系バグ（BOJ月境界バグ・RBNZ/BOC記者会見・米新規失業保険申請件数・英月次GDP等）を独立に検出できる仕組みが実質的に無くなるため、3点の強化を実装した（task #93）。
+
+1. **FF突合の欠落検出への拡張**（`scripts/lib/ff-cross-check.js`の`findMissingHighImpactFfEvents`）: 従来の月曜事後突合は「台帳→FF」の一方向（時刻の相違検出）のみだった。逆方向「FF→台帳」（FFでimpact=Highに分類されるイベントに対応する台帳イベントが1件も無いものを検出）を追加した。FF側のimpact値をそのまま重要度に採用しない設計方針（docs/phase0-findings.md項目3）は維持しつつ、粗い一致判定（存在有無のみ）にのみHigh impactを使うことでMedium/Low由来のノイズを避けた。通貨がEU/DEのように複数国にまたがる場合は既存のmatchesCountryQualifierを逆方向にも転用して振り分ける。KIND_KEYWORDSにjobless_claimsも追加し、今回発覚したclassのバグを再現するテストで直接検証した
+2. **公表リリース全量の差分監査**（`scripts/checkers/harness.mjs`の`checkFredCatalogAudit`）: 個々のrelease_idの日程ではなく、発表元（FRED上のsource_id）が現在公表している全リリース一覧そのものを取得し、config/official-sources.jsonに未登録のrelease_idが無いか照合する。このプロジェクトで実際に発生した欠落（CPI/PPI/雇用統計/GDP/PCE/新規失業保険申請件数）は全てFRED経由（BLS=source_id 22、BEA=source_id 18）だったため、まずこの2元をスコープとした。ミシガン大学消費者信頼感指数（University of Michigan、別の発表元）や、ONS・ABS・BOJ等の非FREDソースへの拡張は、発表元ごとに同等の「全量一覧」APIの有無・形式が異なるため今回は対象外（将来必要になれば個別に設計する）。run自体は失敗させない情報提供のみのWARNとした（fetch失敗等はこの監査自体を静かに諦め、本編のパイプラインを巻き込まない設計）
+3. **掲載件数の推移監視**（`scripts/lib/event-volume-history.js`・`scripts/lib/validate-event-volume-trend.js`）: 2026-08-15の設計メモ（config/volume-check-policy.jsonのhistorical_median_check、当時はenabled:false）を実装・有効化した。既存の絶対下限チェック（min_displayed_events等）は固定基準のため「通常10件前後の週が急に5件になった」という相対的な劣化を捉えられない。新しい履歴ファイルは持たず、既存のdata/ledger/配下の過去台帳そのものを実績データソースとして中央値を計算し、当該週の件数が中央値の50%未満ならREVIEW_REQUIRED対象に加える。実績データが少ないうち（min_history_weeks=4未満）は誤検知を避けるため自動的にスキップする（2026-09-06時点の実績は3週分のため、9/14週生成時点ではまだ発動せず9/21週から発動する見込み）
+- **反映**: `gate.mjs`のdecideGateOutcomeにtrendCheckパラメータを追加（volumeCheckとOR条件でREVIEW_REQUIRED判定、acknowledgeLowVolumeで両方まとめてオーバーライド可能）。関連する全モジュールに単体テストを追加

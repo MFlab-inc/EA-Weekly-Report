@@ -338,6 +338,7 @@ function buildMetaMessages(report) {
   if (report.outcome.status === 'HOLD') holds.push(...(report.outcome.reasons || []));
   warnings.push(...(report.residualWarnings || []).map((w) => `残量監視WARN: ${w.id} — ${w.warn}`));
   warnings.push(...(report.recurringMissingWarnings || []));
+  warnings.push(...(report.catalogAuditWarnings || []));
   return { warnings, holds };
 }
 
@@ -350,9 +351,17 @@ function buildMetaMessages(report) {
 //   とmatchesRecurringRule/report.resultsのfoundKindsから組み立てる。ESM依存関数を含むため
 //   build-ledger.js自体には持たせず、呼び出し側[scripts/phase1/以下]で計算して渡す）
 // generatedFromCommit: 生成時点のmainブランチコミットSHA（省略時null。scripts/build-ledger.mjsが
-//   GITHUB_SHAから設定する）。weekly.ymlの冪等チェックが「対象週ファイルの存在有無」だけでなく
-//   「現在のHEADと同一コミットで生成済みか」まで見られるようにするための識別子（2026-08-29是正、
-//   しょうさん指摘: 手動実行が先取り生成した週をコード修正後も永久にスキップしてしまう不具合があった）
+//   GITHUB_SHAから設定する）。2026-08-29〜09-05はweekly.ymlの冪等チェックがこの値と現在のHEADの
+//   一致で判定していたが、パイプライン自身のcommit outputsステップがHEADを進めてしまうため
+//   本番cron→保険cronの正常な連続実行でも毎回不一致になり再生成してしまう欠陥があった（task #92）。
+//   現在はgenerated_from_code_hash（下記）が冪等チェックの実体を担い、この値はどのコミットが
+//   実際に生成したかを追跡するための記録用フィールドとして残す
+// generatedFromCodeHash: scripts/lib/pipeline-code-hash.jsのcomputePipelineCodeHash()が返す
+//   ハッシュ値（省略時null）。パイプラインの出力に影響しうるファイル群（scripts/・config/・
+//   package.json・package-lock.json・.github/workflows/weekly.yml。詳細はpipeline-code-hash.jsの
+//   PIPELINE_HASH_SCOPE_PATHS参照）の内容だけに依存し、data/・output/への書き込み（パイプライン
+//   自身の出力）やgit commit自体には影響されない。weekly.ymlの冪等チェックはこの値と現在の
+//   チェックアウトで計算した値が一致する場合のみスキップする（task #92、2026-09-06是正）
 function buildLedger({
   report,
   sourcesConfig,
@@ -364,6 +373,7 @@ function buildLedger({
   pipelineVersion,
   generatedAt,
   generatedFromCommit,
+  generatedFromCodeHash,
 }) {
   const { warnings, holds } = buildMetaMessages(report);
   const outcome = report.outcome.status === 'HOLD' ? 'HOLD' : 'PUBLISH_READY';
@@ -381,6 +391,7 @@ function buildLedger({
       target_week_end: report.targetWeek.end,
       pipeline_version: pipelineVersion,
       generated_from_commit: generatedFromCommit || null,
+      generated_from_code_hash: generatedFromCodeHash || null,
       outcome,
       warnings: [...warnings, ...officialSpeechWarnings],
       holds,
