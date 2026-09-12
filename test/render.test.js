@@ -8,6 +8,34 @@ const { join } = require('node:path');
 const { regenerateWeek, WEEK_20260803, WEEK_20260810 } = require('./support/regenerate-week');
 
 const reportPolicy = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'report-policy.json'), 'utf8'));
+const importanceRules = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'importance-rules.json'), 'utf8'));
+
+// task #94フォローアップ（2026-09-12、しょうさん指摘）: 「優先度リストに載っていないkindが
+// 自動的に最下位（その他）に落ちる」という設計は、pmi_ismがしばらく見落とされていたのと同じ
+// 見落としを今後kind追加のたびに再発させる弱さがある。config/importance-rules.jsonの
+// importance_by_kindに定義済みの全kindが、hero_kind_priority（優先順位に入れる）か
+// hero_kind_priority_acknowledged_other（その他のままで問題ないと明示的に確認済み）の
+// いずれかに載っていることをCIで強制する（config/expected-coverage.jsonの国×kind検査と
+// 同じ「黙って抜け落ちさせない」思想）。新規kind追加時にこのテストが落ちれば、
+// hero_kind_priorityへの追加要否を都度検討したことになる
+test('hero_kind_priority完全性チェック: importance-rules.jsonの全kindがhero_kind_priorityかhero_kind_priority_acknowledged_otherに載っている', () => {
+  const definedKinds = Object.keys(importanceRules.importance_by_kind).filter((k) => !k.startsWith('_'));
+  const priorityKinds = new Set(reportPolicy.hero_kind_priority || []);
+  const acknowledgedOtherKinds = new Set(reportPolicy.hero_kind_priority_acknowledged_other || []);
+  const unaccounted = definedKinds.filter((k) => !priorityKinds.has(k) && !acknowledgedOtherKinds.has(k));
+  assert.deepEqual(
+    unaccounted,
+    [],
+    `新規kindがhero_kind_priority/hero_kind_priority_acknowledged_otherのいずれにも未登録です: ${unaccounted.join(', ')}。` +
+      'config/report-policy.jsonへ、優先順位に入れるか、その他のままでよい理由を明記してacknowledged_otherへ追加してください'
+  );
+  // 逆方向（設定ミス・削除漏れの検出）: 両リストに載っているkindはimportance_by_kindに実在すること
+  const definedKindSet = new Set(definedKinds);
+  const staleInPriority = (reportPolicy.hero_kind_priority || []).filter((k) => !definedKindSet.has(k));
+  const staleInAcknowledged = (reportPolicy.hero_kind_priority_acknowledged_other || []).filter((k) => !definedKindSet.has(k));
+  assert.deepEqual(staleInPriority, [], `hero_kind_priorityにimportance-rules.jsonに存在しないkindがあります: ${staleInPriority.join(', ')}`);
+  assert.deepEqual(staleInAcknowledged, [], `hero_kind_priority_acknowledged_otherにimportance-rules.jsonに存在しないkindがあります: ${staleInAcknowledged.join(', ')}`);
+});
 
 function ledgerEvent(overrides) {
   return { country: 'US', kind: 'cpi', importance: 3, name_ja: 'test', date_jst: '2026-08-12', datetime_jst: '2026-08-12T21:30:00+09:00', ...overrides };
@@ -145,13 +173,13 @@ test('buildNarrative: overrideが無ければ自動生成、overrideがあれば
 //   これは既刊「RBA政策判断、米CPI・PPI、...」（RBA関連3kindをひとまとめにし、次にCPI/PPIを挙げる
 //   構成）に選定の重み付けとしてはむしろ近づいた（旧ルールは時系列最速だった日銀の意見公表が
 //   必ず1位に来ており、既刊が一切触れていない日銀ニュースが先頭を占める点で乖離が大きかった）
-// - 0803週: 新ルールでは米国ISM製造業景況指数（kind=pmi_ism）がhero_kind_priorityに含まれないため
-//   「その他」（rank9）扱いとなり、雇用統計3ヶ国（NZ/US/CA、rank5）に押し出されてhero圏外になった。
-//   既刊はこの週のheroSummaryの先頭語が「ISM製造業・非製造業」であり、新ルールで最重要級の指標が
-//   丸ごと脱落する新規の乖離拡大が生じている。pmi_ismは国により重要度が異なる（USのみ
-//   country_overridesで★★★）kindのため、hero_kind_priorityへの追加要否はしょうさんへの
-//   報告事項として明示し、この場での追加判断は行っていない（config/report-policy.jsonの
-//   hero_kind_priorityはしょうさん指定の初期値のまま変更していない）
+// - 0803週: 選定順を重要度優先へ変更した直後（pmi_ism未追加の版）では米国ISM製造業景況指数が
+//   hero圏外になる新規の乖離が生じたため報告した。しょうさんの決定（2026-09-12フォローアップ）で
+//   pmi_ismをretail_salesの直前へ追加した結果、summaryの4件目に復帰した（雇用統計3ヶ国の後、
+//   rank8のretail_sales・trade_balanceより先）。ただしpillsは上位3件がNZ/US/CA雇用統計で
+//   埋まるため圏外のまま（pmi_ismのrank7はemployment_situation[rank5]より低いため）。
+//   既刊「ISM製造業・非製造業、NZ雇用統計、...」（ISMが先頭）とは順序が異なるが、
+//   4件中に含まれる状態まで乖離は縮小した
 test('既刊2週へのルール適用結果（実データ経路・既刊文言との比較記録）', async () => {
   const { autoHeroSummary, autoHeroPills } = await import('../scripts/render.mjs');
 
@@ -177,10 +205,10 @@ test('既刊2週へのルール適用結果（実データ経路・既刊文言�
   // 日付順で上位に入るようになったため、以下のアサーションを実際の出力へ更新した（AU retail_salesが
   // 4件目の米国雇用統計を押し出した。これは同種の「登録済みソースのkind取りこぼし」バグが8/3週にも
   // サイレントに存在していたことの副次的な確認でもある）。
-  // 2026-09-12修正（task #94）: employment_situation（rank5）がpmi_ism・trade_balance・retail_sales
-  // より優先されるようになり、米国ISM製造業景況指数と豪州貿易収支がhero圏外になった
-  // （上記コメントブロック参照。pmi_ismのhero_kind_priority追加要否はしょうさんへ報告事項とする）
-  assert.equal(summary0803, 'NZ雇用統計、米国雇用統計：非農業部門雇用者数・失業率・平均時給、カナダ雇用統計、豪州小売売上高＆【除自動車】を確認する週');
+  // 2026-09-12修正（task #94）: employment_situation（rank5）がtrade_balance・retail_sales（rank8）
+  // より優先されるため豪州貿易収支はhero圏外のままだが、pmi_ism追加（rank7）により
+  // 米国ISM製造業景況指数がsummaryの4件目に復帰した（上記コメントブロック参照）
+  assert.equal(summary0803, 'NZ雇用統計、米国雇用統計：非農業部門雇用者数・失業率・平均時給、カナダ雇用統計、米国ISM製造業景況指数を確認する週');
   // 既刊: ['ISM製造業 8/3', 'NZ雇用統計 8/5', '米雇用統計 8/7']
   assert.deepEqual(pills0803, ['NZ雇用統計 8/5', '米国雇用統計：非農業部門雇用者数・失業率・平均時給 8/7', 'カナダ雇用統計 8/7']);
 });
