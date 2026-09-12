@@ -30,8 +30,13 @@ test('autoHeroSummary: ★★★を国+kindで重複除去し、発生順に最�
   const summary = autoHeroSummary(ledger, reportPolicy);
   // 2026-08-29修正: name_jaが中銀略称（RBA）で始まる場合は国名前置を省く（しょうさん指摘、
   // heroDisplayName参照）。ただし「ブロックRBA総裁：下院経済委員会への出席」はRBAで始まって
-  // いない（総裁の姓が先頭）ため、この行は引き続き国名前置が付く
-  assert.equal(summary, 'RBA政策金利＆声明発表、米国消費者物価指数（CPI）、米国生産者物価指数（PPI）、豪州ブロックRBA総裁：下院経済委員会への出席を確認する週');
+  // いない（総裁の姓が先頭）ため、この行は引き続き国名前置が付く。
+  // 2026-09-12修正（task #94、選定順を重要度優先へ変更）: policy_rate（rank0）・cpi（rank4）は
+  // hero_kind_priorityに含まれるためこの順で上位に来るが、retail_sales（rank7）は
+  // testimony/ppi（いずれもリスト外＝その他=rank9）より優先される。testimony/ppiは同rankのため
+  // 時系列タイブレークでppi（8/13）がtestimony（8/14）より先に来て、4件目のtestimonyが
+  // 押し出される
+  assert.equal(summary, 'RBA政策金利＆声明発表、米国消費者物価指数（CPI）、米国小売売上高＆【除自動車】、米国生産者物価指数（PPI）を確認する週');
 });
 
 // task #41-3（2026-08-15）で発覚した実バグの回帰テスト: `(a.datetime_jst || '').localeCompare(...)`
@@ -49,8 +54,10 @@ test('autoHeroSummary: datetime_jst未公表（null）の★★★イベント�
     ],
   };
   const summary = autoHeroSummary(ledger, reportPolicy);
-  // 2026-08-29修正: 「日銀...」「RBA...」いずれもname_jaが中銀略称で始まるため国名前置を省く
-  assert.equal(summary, '日銀金融政策決定会合における主な意見の公表、RBA政策金利＆声明発表を確認する週');
+  // 2026-08-29修正: 「日銀...」「RBA...」いずれもname_jaが中銀略称で始まるため国名前置を省く。
+  // 2026-09-12修正（task #94）: opinions_summaryはhero_kind_priorityに無く「その他」（rank9）、
+  // policy_rateはrank0のため、時系列では日銀（8/10）がRBA（8/11）より早くても優先度でRBAが先に来る
+  assert.equal(summary, 'RBA政策金利＆声明発表、日銀金融政策決定会合における主な意見の公表を確認する週');
   assert.doesNotMatch(summary, /^(EU)?GDP【速報値】/, 'datetime_jst:nullのイベントが先頭に来てはならない');
 });
 
@@ -71,7 +78,7 @@ test('autoHeroPills: ★★★を日付順に最大3件、「{表示名} {M/D}�
       ledgerEvent({ name_ja: '時刻未公表イベント', datetime_jst: null, importance: 3 }),
     ],
   };
-  const pills = autoHeroPills(ledger);
+  const pills = autoHeroPills(ledger, reportPolicy);
   assert.deepEqual(pills, ['米国RBA政策金利＆声明発表 8/11', '米国消費者物価指数（CPI） 8/12', '米国生産者物価指数（PPI） 8/13']);
 });
 
@@ -88,7 +95,7 @@ test('autoHeroSummary/autoHeroPills: 同一kind・別国のイベント（CA CPI
   };
   const summary = autoHeroSummary(ledger, reportPolicy);
   assert.equal(summary, 'カナダ消費者物価指数（CPI）、英国消費者物価指数（CPI）を確認する週');
-  const pills = autoHeroPills(ledger);
+  const pills = autoHeroPills(ledger, reportPolicy);
   assert.deepEqual(pills, ['カナダ消費者物価指数（CPI） 8/17', '英国消費者物価指数（CPI） 8/19']);
 });
 
@@ -108,7 +115,7 @@ test('autoHeroSummary/autoHeroPills: name_jaが中銀略称で始まる場合は
   };
   const summary = autoHeroSummary(ledger, reportPolicy);
   assert.equal(summary, 'RBNZ政策金利＆声明発表、BOC政策金利＆声明発表、NZなんとかRBNZ総裁の議会証言を確認する週');
-  const pills = autoHeroPills(ledger);
+  const pills = autoHeroPills(ledger, reportPolicy);
   assert.deepEqual(pills, ['RBNZ政策金利＆声明発表 9/2', 'BOC政策金利＆声明発表 9/2', 'NZなんとかRBNZ総裁の議会証言 9/3']);
 });
 
@@ -130,31 +137,50 @@ test('buildNarrative: overrideが無ければ自動生成、overrideがあれば
 // 主体テーマへ要約する」追加編集を行っている点（例:「RBA政策判断」はpolicy_rate/quarterly_report/
 // press_conferenceの3kindを1フレーズへ要約、「米CPI・PPI」はcpi/ppiの2kindを1フレーズへ要約）のに対し、
 // 本ルールはcountry+kindの完全一致でのみ重複除去するため、上記のような複数kind横断の要約は行わない
-// （しょうさんの指定ルールどおりの実装であり、バグではない）
+// （しょうさんの指定ルールどおりの実装であり、バグではない）。
+//
+// 2026-09-12再確認（task #94、選定順を重要度優先へ変更した際の再適用）:
+// - 0810週: hero_kind_priorityによりRBA関連3kind（policy_rate/press_conference/quarterly_report）が
+//   上位3件を占め、日銀opinions_summary（リスト外＝その他）が押し出されて4件目が米CPIになった。
+//   これは既刊「RBA政策判断、米CPI・PPI、...」（RBA関連3kindをひとまとめにし、次にCPI/PPIを挙げる
+//   構成）に選定の重み付けとしてはむしろ近づいた（旧ルールは時系列最速だった日銀の意見公表が
+//   必ず1位に来ており、既刊が一切触れていない日銀ニュースが先頭を占める点で乖離が大きかった）
+// - 0803週: 新ルールでは米国ISM製造業景況指数（kind=pmi_ism）がhero_kind_priorityに含まれないため
+//   「その他」（rank9）扱いとなり、雇用統計3ヶ国（NZ/US/CA、rank5）に押し出されてhero圏外になった。
+//   既刊はこの週のheroSummaryの先頭語が「ISM製造業・非製造業」であり、新ルールで最重要級の指標が
+//   丸ごと脱落する新規の乖離拡大が生じている。pmi_ismは国により重要度が異なる（USのみ
+//   country_overridesで★★★）kindのため、hero_kind_priorityへの追加要否はしょうさんへの
+//   報告事項として明示し、この場での追加判断は行っていない（config/report-policy.jsonの
+//   hero_kind_priorityはしょうさん指定の初期値のまま変更していない）
 test('既刊2週へのルール適用結果（実データ経路・既刊文言との比較記録）', async () => {
   const { autoHeroSummary, autoHeroPills } = await import('../scripts/render.mjs');
 
   const ledger0810 = await regenerateWeek(WEEK_20260810);
   const summary0810 = autoHeroSummary(ledger0810, reportPolicy);
-  const pills0810 = autoHeroPills(ledger0810);
+  const pills0810 = autoHeroPills(ledger0810, reportPolicy);
   // 既刊: 'RBA政策判断、米CPI・PPI、英国GDP、米小売売上高を確認する週'
   // 本ルール適用結果（アサーションで固定し、将来の変更を検知できるようにする）。国名前置はtask #47で追加。
   // 2026-08-29修正: 「日銀...」「RBA...」はname_jaが中銀略称で始まるため国名前置を省く（しょうさん指摘）。
-  // 「ブロックRBA総裁の記者会見」はRBAで始まっていないため引き続き「豪州」が付く
-  assert.equal(summary0810, '日銀金融政策決定会合における主な意見の公表（7月30・31日開催分）、RBA政策金利＆声明発表、RBA四半期金融政策報告、豪州ブロックRBA総裁の記者会見を確認する週');
+  // 「ブロックRBA総裁の記者会見」はRBAで始まっていないため引き続き「豪州」が付く。
+  // 2026-09-12修正（task #94）: policy_rate(0)/press_conference(1)/quarterly_report(3)/cpi(4)の
+  // 優先順位により、rank9（その他）の日銀opinions_summaryが押し出された
+  assert.equal(summary0810, 'RBA政策金利＆声明発表、豪州ブロックRBA総裁の記者会見、RBA四半期金融政策報告、米国消費者物価指数（CPI）を確認する週');
   // 既刊: ['RBA政策金利 8/11', '米CPI 8/12', '米小売売上高 8/14']
-  assert.deepEqual(pills0810, ['日銀金融政策決定会合における主な意見の公表（7月30・31日開催分） 8/10', 'RBA政策金利＆声明発表 8/11', 'RBA四半期金融政策報告 8/11']);
+  assert.deepEqual(pills0810, ['RBA政策金利＆声明発表 8/11', '豪州ブロックRBA総裁の記者会見 8/11', 'RBA四半期金融政策報告 8/11']);
 
   const ledger0803 = await regenerateWeek(WEEK_20260803);
   const summary0803 = autoHeroSummary(ledger0803, reportPolicy);
-  const pills0803 = autoHeroPills(ledger0803);
+  const pills0803 = autoHeroPills(ledger0803, reportPolicy);
   // 既刊: 'ISM製造業・非製造業、NZ雇用統計、豪州貿易収支、カナダ・米雇用統計を確認する週'
   // 2026-08-15追記（task #50/51、しょうさんのManus突合指摘の一括監査で発覚）: au_absにretail_sales
   // （Monthly Household Spending Indicator）を追加したところ、8/4発表分（8/3週内）が新たに検出され
   // 日付順で上位に入るようになったため、以下のアサーションを実際の出力へ更新した（AU retail_salesが
   // 4件目の米国雇用統計を押し出した。これは同種の「登録済みソースのkind取りこぼし」バグが8/3週にも
-  // サイレントに存在していたことの副次的な確認でもある）
-  assert.equal(summary0803, '米国ISM製造業景況指数、豪州小売売上高＆【除自動車】、NZ雇用統計、豪州貿易収支を確認する週');
+  // サイレントに存在していたことの副次的な確認でもある）。
+  // 2026-09-12修正（task #94）: employment_situation（rank5）がpmi_ism・trade_balance・retail_sales
+  // より優先されるようになり、米国ISM製造業景況指数と豪州貿易収支がhero圏外になった
+  // （上記コメントブロック参照。pmi_ismのhero_kind_priority追加要否はしょうさんへ報告事項とする）
+  assert.equal(summary0803, 'NZ雇用統計、米国雇用統計：非農業部門雇用者数・失業率・平均時給、カナダ雇用統計、豪州小売売上高＆【除自動車】を確認する週');
   // 既刊: ['ISM製造業 8/3', 'NZ雇用統計 8/5', '米雇用統計 8/7']
-  assert.deepEqual(pills0803, ['米国ISM製造業景況指数 8/3', '豪州小売売上高＆【除自動車】 8/4', 'NZ雇用統計 8/5']);
+  assert.deepEqual(pills0803, ['NZ雇用統計 8/5', '米国雇用統計：非農業部門雇用者数・失業率・平均時給 8/7', 'カナダ雇用統計 8/7']);
 });
