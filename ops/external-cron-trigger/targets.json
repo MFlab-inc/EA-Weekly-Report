@@ -1,0 +1,12 @@
+[
+  {
+    "id": "ea-weekly-report",
+    "repo": "MFlab-inc/EA-Weekly-Report",
+    "workflow": "weekly.yml",
+    "ref": "main",
+    "cron": "5,6,7,8,9 8 * * 6",
+    "timezone": "Asia/Tokyo",
+    "enabled": true,
+    "note": "primary cron予定08:06 JSTの前後（5分間のリトライ窓）に起動を試みる。冪等ガード（generated_from_code_hash）により、GitHub側のschedule cron[08:06/08:41 JST]と多重発火しても対象週は1回しか生成されない"
+  }
+]

@@ -7,3 +7,4 @@ data/cache/
 mobile_layout_validation/
 mobile_header_validation/
 gate-result*.json
+ops/external-cron-trigger/state.json
