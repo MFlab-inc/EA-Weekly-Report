@@ -4,11 +4,20 @@
 // で weekInput 形へ変換し、既存レンダラー（build-report-data.js・html-renderer.js、design-mock_v1.2.html
 // 再現・task #12実装済み）でHTMLを生成する。
 //
-// heroSummary/heroPillsの生成ルール（しょうさん確定仕様2026-08-15）:
-// - heroSummary: 対象週の★★★イベントの表示名から、国+kindで重複を除いた上位4件
-//   （対象週内の発生順）を「、」で連結し、末尾に「を確認する週」を付ける。0件時は
+// heroSummary/heroPillsの生成ルール（しょうさん確定仕様2026-08-15、2026-09-12選定順を改訂）:
+// - heroSummary: 対象週の★★★イベントを「重要度の高い順→同順なら時系列順」に並べ、
+//   国+kindで重複を除いた上位4件を「、」で連結し、末尾に「を確認する週」を付ける。0件時は
 //   config/report-policy.jsonのhero_summary_no_star3_text
-// - heroPills: ★★★を日付順に最大3件、「{表示名} {M/D}」形式
+// - heroPills: 同じ並び順で最大3件、「{表示名} {M/D}」形式
+// - 「重要度の高い順」はconfig/report-policy.jsonのhero_kind_priority（kind配列、先頭が最優先）で
+//   決まる。リストに無いkindは最下位（その他）扱い（compareByHeroPriority参照）
+//
+// 2026-09-12改訂（task #94、しょうさん指摘）: 従来は「対象週内の発生順」のみで上位4件を
+// 選んでいたため、FOMC・BOE・日銀の政策金利が揃うような年に数回レベルの重要週でも、
+// 時系列的に先に来る経済統計（カナダCPI・独ZEW等）がヒーローに入り、政策金利イベントが
+// 1件もヒーローに入らないという実バグがあった（9/14週で発覚）。中銀の政策判断系
+// （policy_rate/press_conference/minutes_summary/quarterly_report）を経済統計より上位に
+// 置くkind優先順位をconfigへ持たせ、優先度→時系列の2段階ソートに変更した
 // このスクリプトは:
 // - --narrative <path> で {reportMeta?, createdDateJa?, heroSummary, heroPills} を持つJSON/JSファイルを
 //   指定すれば、そちらを優先する（任意の上書き。通常は指定不要）
@@ -40,13 +49,31 @@ function pad2(n) {
   return String(n).padStart(2, '0');
 }
 
-// 対象週の★★★イベントの表示名から、国+kindで重複を除いた上位4件（対象週内の発生順）を
-// 「、」で連結し、末尾に「を確認する週」を付ける（しょうさん確定仕様2026-08-15）。
+// hero_kind_priority配列（先頭が最優先）中のkindの順位を返す。リストに無いkindは
+// 配列長（＝最下位「その他」）を返すため、その他同士は下記compareByHeroPriorityの
+// 時系列タイブレークで並ぶ（task #94）
+function heroKindPriorityRank(kind, priorityOrder) {
+  const idx = priorityOrder.indexOf(kind);
+  return idx === -1 ? priorityOrder.length : idx;
+}
+
+// 「重要度の高い順→同順なら時系列順」の比較関数（task #94、しょうさん確定仕様2026-09-12）。
+// datetime_jstが無い（時刻未公表）イベントは呼び出し側で事前にフィルタ済みという前提
+// （autoHeroSummary/autoHeroPills両方とも変更前から同じ前提）
+function compareByHeroPriority(a, b, priorityOrder) {
+  const rankDiff = heroKindPriorityRank(a.kind, priorityOrder) - heroKindPriorityRank(b.kind, priorityOrder);
+  if (rankDiff !== 0) return rankDiff;
+  return a.datetime_jst.localeCompare(b.datetime_jst);
+}
+
+// 対象週の★★★イベントの表示名から、国+kindで重複を除いた上位4件（重要度の高い順→
+// 同順なら時系列順、task #94）を「、」で連結し、末尾に「を確認する週」を付ける
+// （しょうさん確定仕様2026-08-15・選定順は2026-09-12改訂）。
 // 0件時はreportPolicy.hero_summary_no_star3_text。
 // datetime_jstが無い（時刻未公表）イベントはautoHeroPillsと同様に対象外とする（2026-08-15修正、
 // task #41-3で発覚: `(a.datetime_jst || '').localeCompare(...)`だと空文字列が実時刻より前方に
 // ソートされてしまい、時刻未確定のEU GDPが週内で最も早い発表であるかのように1位表示される実バグが
-// あった。「対象週内の発生順」という仕様の趣旨上、発生順が不明なイベントを先頭に置くのは誤り）
+// あった。発生順が不明なイベントを優先度判定の対象に含めるのは誤りという判断は変更後も同じ）
 //
 // 2026-08-15追記（task #47、しょうさん監査指摘）: 表示名のみだと同一kindの別国イベント
 // （例: カナダCPIと英国CPI）が「消費者物価指数（CPI）、消費者物価指数（CPI）」のように区別不能な
@@ -59,9 +86,10 @@ function pad2(n) {
 // この場合のみ国名前置を省く（heroDisplayName参照。停止スケジュールの国名ピル表示は
 // 別ロジック[html-renderer.jsのcountryPill]でこの変更の影響を受けない）
 export function autoHeroSummary(ledger, reportPolicy) {
+  const priorityOrder = reportPolicy.hero_kind_priority || [];
   const star3 = ledger.events
     .filter((e) => e.importance === 3 && e.datetime_jst)
-    .sort((a, b) => a.datetime_jst.localeCompare(b.datetime_jst));
+    .sort((a, b) => compareByHeroPriority(a, b, priorityOrder));
   const seenCountryKind = new Set();
   const names = [];
   for (const e of star3) {
@@ -75,12 +103,14 @@ export function autoHeroSummary(ledger, reportPolicy) {
   return `${names.join('、')}を確認する週`;
 }
 
-// ★★★を日付順に最大3件、「{国名}{表示名} {M/D}」形式（しょうさん確定仕様2026-08-15、
-// 国名前置はtask #47で追加。autoHeroSummaryと同じ語彙・同じ「一律前置」方針）
-export function autoHeroPills(ledger) {
+// ★★★を「重要度の高い順→同順なら時系列順」（task #94）に最大3件、「{国名}{表示名} {M/D}」形式
+// （しょうさん確定仕様2026-08-15、国名前置はtask #47で追加。autoHeroSummaryと同じ語彙・
+// 同じ「一律前置」方針・同じ優先順位）
+export function autoHeroPills(ledger, reportPolicy) {
+  const priorityOrder = reportPolicy.hero_kind_priority || [];
   return ledger.events
     .filter((e) => e.importance === 3 && e.datetime_jst)
-    .sort((a, b) => a.datetime_jst.localeCompare(b.datetime_jst))
+    .sort((a, b) => compareByHeroPriority(a, b, priorityOrder))
     .slice(0, 3)
     .map((e) => `${heroDisplayName(e.country, e.name_ja)} ${Number(e.date_jst.slice(5, 7))}/${Number(e.date_jst.slice(8, 10))}`);
 }
@@ -97,7 +127,7 @@ export function buildNarrative(ledger, reportPolicy, override, now = new Date())
     reportMeta: override?.reportMeta || `ea-weekly-${ledger.meta.target_week_start.replace(/-/g, '')}`,
     createdDateJa: override?.createdDateJa || autoCreatedDateJa(now),
     heroSummary: override?.heroSummary || autoHeroSummary(ledger, reportPolicy),
-    heroPills: override?.heroPills || autoHeroPills(ledger),
+    heroPills: override?.heroPills || autoHeroPills(ledger, reportPolicy),
   };
 }
 

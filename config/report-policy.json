@@ -27,6 +27,8 @@
   "halt_no_star3_note": "この日は最重要（★★★）イベントはありません（★★は下記「対象週の注目イベント」欄をご確認ください）",
   "hero_summary_no_star3_text": "最重要イベントの予定はない週",
   "hero_summary_no_star3_note": "2026-08-15追加（しょうさん指示）: heroSummary自動生成ルール（scripts/render.mjsのautoHeroSummary）で対象週に★★★イベントが1件も無い場合に使う定型文",
+  "hero_kind_priority": ["policy_rate", "press_conference", "minutes_summary", "quarterly_report", "cpi", "employment_situation", "gdp", "retail_sales", "sentiment"],
+  "hero_kind_priority_note": "task #94（2026-09-12、しょうさん指摘）: heroSummary/heroPillsの選定順を『重要度の高い順→同順なら時系列順』に変更した際のkind優先順位。従来は対象週の★★★イベントを時系列順に並べて先頭4件（heroPillsは3件）を選んでいたため、政策金利週でも時系列的に先に来る経済統計がヒーローに入り、FOMC・BOE・日銀が揃うような重要週の性格を取り違える実バグがあった（9/14週で発覚: FOMC/BOE/日銀のいずれもヒーローに入らずカナダCPI・独ZEW等が並んだ）。本リストは初期値の提案（しょうさん指定）で、中銀の政策判断系（policy_rate/press_conference/minutes_summary/quarterly_report）を経済統計より上位に置く。リストに無いkind（testimony/opinions_summary/ppi/trade_balance/pce/capex/industrial_production/jobless_claims/official_speech等）は最下位『その他』扱いとし、その他同士および本リストの同順位内は時系列順（datetime_jst昇順）でタイブレークする",
   "resume_and_disclaimer_card": "発表後は、スプレッドと約定状況が通常水準へ戻ったことを確認してから再開を判断してください。停止・再開の最終判断は、各EAの設定、対象銘柄、ブローカー条件、過去検証結果に従ってください。時刻が公式に未公表のイベントは、時刻連動の停止目安には使用しません。",
   "risk_cards": [
     { "title": "重要イベントの前", "body": "取引ロット、保有ポジション、最大許容スプレッド、ニュースフィルターの作動条件を確認してください。重要イベントは、原則として予定時刻の4〜12時間前から新規エントリーを停止します。" },
