@@ -59,12 +59,10 @@ test('autoHeroSummary: ★★★を国+kindで重複除去し、発生順に最�
   // 2026-08-29修正: name_jaが中銀略称（RBA）で始まる場合は国名前置を省く（しょうさん指摘、
   // heroDisplayName参照）。ただし「ブロックRBA総裁：下院経済委員会への出席」はRBAで始まって
   // いない（総裁の姓が先頭）ため、この行は引き続き国名前置が付く。
-  // 2026-09-12修正（task #94、選定順を重要度優先へ変更）: policy_rate（rank0）・cpi（rank4）は
-  // hero_kind_priorityに含まれるためこの順で上位に来るが、retail_sales（rank7）は
-  // testimony/ppi（いずれもリスト外＝その他=rank9）より優先される。testimony/ppiは同rankのため
-  // 時系列タイブレークでppi（8/13）がtestimony（8/14）より先に来て、4件目のtestimonyが
-  // 押し出される
-  assert.equal(summary, 'RBA政策金利＆声明発表、米国消費者物価指数（CPI）、米国小売売上高＆【除自動車】、米国生産者物価指数（PPI）を確認する週');
+  // 2026-09-12修正（task #94フォローアップ、しょうさんが7kindの優先順位を確定）:
+  // policy_rate(0) < testimony(2) < cpi(6) < ppi(10) < retail_sales(12)の順になり、
+  // testimonyがretail_salesを押し出して3位に入る
+  assert.equal(summary, 'RBA政策金利＆声明発表、豪州ブロックRBA総裁：下院経済委員会への出席、米国消費者物価指数（CPI）、米国生産者物価指数（PPI）を確認する週');
 });
 
 // task #41-3（2026-08-15）で発覚した実バグの回帰テスト: `(a.datetime_jst || '').localeCompare(...)`
@@ -168,18 +166,16 @@ test('buildNarrative: overrideが無ければ自動生成、overrideがあれば
 // （しょうさんの指定ルールどおりの実装であり、バグではない）。
 //
 // 2026-09-12再確認（task #94、選定順を重要度優先へ変更した際の再適用）:
-// - 0810週: hero_kind_priorityによりRBA関連3kind（policy_rate/press_conference/quarterly_report）が
-//   上位3件を占め、日銀opinions_summary（リスト外＝その他）が押し出されて4件目が米CPIになった。
-//   これは既刊「RBA政策判断、米CPI・PPI、...」（RBA関連3kindをひとまとめにし、次にCPI/PPIを挙げる
-//   構成）に選定の重み付けとしてはむしろ近づいた（旧ルールは時系列最速だった日銀の意見公表が
-//   必ず1位に来ており、既刊が一切触れていない日銀ニュースが先頭を占める点で乖離が大きかった）
-// - 0803週: 選定順を重要度優先へ変更した直後（pmi_ism未追加の版）では米国ISM製造業景況指数が
-//   hero圏外になる新規の乖離が生じたため報告した。しょうさんの決定（2026-09-12フォローアップ）で
-//   pmi_ismをretail_salesの直前へ追加した結果、summaryの4件目に復帰した（雇用統計3ヶ国の後、
-//   rank8のretail_sales・trade_balanceより先）。ただしpillsは上位3件がNZ/US/CA雇用統計で
-//   埋まるため圏外のまま（pmi_ismのrank7はemployment_situation[rank5]より低いため）。
-//   既刊「ISM製造業・非製造業、NZ雇用統計、...」（ISMが先頭）とは順序が異なるが、
-//   4件中に含まれる状態まで乖離は縮小した
+// - 0810週: 当初（7kind確定前）はRBA関連3kindが上位を占めていたが、しょうさんが7kindの優先順位を
+//   確定した結果（testimonyをpress_conferenceの直後=rank2へ）、AU testimony（豪州総裁の下院経済
+//   委員会証言、8/14）がRBA四半期金融政策報告（quarterly_report、rank5）・米CPI（cpi、rank6）を
+//   押し出して3位に入るようになった。既刊「RBA政策判断、米CPI・PPI、...」とは構成が異なるが、
+//   これはしょうさんが「testimonyは会見と同格」と明示的に判断した結果であり、選定ルールどおりの
+//   挙動（バグではない）
+// - 0803週: pmi_ism追加（rank11）により米国ISM製造業景況指数がsummaryの4件目に復帰した（雇用統計
+//   3ヶ国の後）。pillsは上位3件がNZ/US/CA雇用統計（employment_situation、rank8）で埋まるため
+//   pmi_ismは圏外のまま。既刊「ISM製造業・非製造業、NZ雇用統計、...」（ISMが先頭）とは順序が
+//   異なるが、4件中に含まれる状態まで乖離は縮小した
 test('既刊2週へのルール適用結果（実データ経路・既刊文言との比較記録）', async () => {
   const { autoHeroSummary, autoHeroPills } = await import('../scripts/render.mjs');
 
@@ -190,11 +186,12 @@ test('既刊2週へのルール適用結果（実データ経路・既刊文言�
   // 本ルール適用結果（アサーションで固定し、将来の変更を検知できるようにする）。国名前置はtask #47で追加。
   // 2026-08-29修正: 「日銀...」「RBA...」はname_jaが中銀略称で始まるため国名前置を省く（しょうさん指摘）。
   // 「ブロックRBA総裁の記者会見」はRBAで始まっていないため引き続き「豪州」が付く。
-  // 2026-09-12修正（task #94）: policy_rate(0)/press_conference(1)/quarterly_report(3)/cpi(4)の
-  // 優先順位により、rank9（その他）の日銀opinions_summaryが押し出された
-  assert.equal(summary0810, 'RBA政策金利＆声明発表、豪州ブロックRBA総裁の記者会見、RBA四半期金融政策報告、米国消費者物価指数（CPI）を確認する週');
+  // 2026-09-12修正（task #94フォローアップ、しょうさんが7kindの優先順位を確定）:
+  // policy_rate(0) < press_conference(1) < testimony(2) < opinions_summary(4) < quarterly_report(5) < cpi(6)
+  // の順になり、AU testimony（8/14）がquarterly_report・cpiを押し出して3位に入った
+  assert.equal(summary0810, 'RBA政策金利＆声明発表、豪州ブロックRBA総裁の記者会見、豪州ブロックRBA総裁：下院経済委員会への出席、日銀金融政策決定会合における主な意見の公表（7月30・31日開催分）を確認する週');
   // 既刊: ['RBA政策金利 8/11', '米CPI 8/12', '米小売売上高 8/14']
-  assert.deepEqual(pills0810, ['RBA政策金利＆声明発表 8/11', '豪州ブロックRBA総裁の記者会見 8/11', 'RBA四半期金融政策報告 8/11']);
+  assert.deepEqual(pills0810, ['RBA政策金利＆声明発表 8/11', '豪州ブロックRBA総裁の記者会見 8/11', '豪州ブロックRBA総裁：下院経済委員会への出席 8/14']);
 
   const ledger0803 = await regenerateWeek(WEEK_20260803);
   const summary0803 = autoHeroSummary(ledger0803, reportPolicy);
