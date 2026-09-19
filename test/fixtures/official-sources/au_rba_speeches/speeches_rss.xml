@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:cb="http://www.cbwiki.net/wiki/index.php/Specification_1.2/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel rdf:about="https://www.rba.gov.au/rss/rss-cb-speeches.xml">
+    <title>Reserve Bank of Australia | Speeches</title>
+    <link>https://www.rba.gov.au/rss/index.html</link>
+    <description>Speeches by Reserve Bank of Australia Officials</description>
+    <items>
+      <rdf:Seq>
+        <rdf:li rdf:resource="https://www.rba.gov.au/speeches/2026/sp-gov-2026-09-18.html"/>
+      </rdf:Seq>
+    </items>
+    <dc:date>2026-09-18T09:30:00+10:00</dc:date>
+    <dc:publisher>Reserve Bank of Australia</dc:publisher>
+    <dc:language>en</dc:language>
+  </channel>
+  <item rdf:about="https://www.rba.gov.au/speeches/2026/sp-gov-2026-09-18.html">
+    <link>https://www.rba.gov.au/speeches/2026/sp-gov-2026-09-18.html</link>
+    <title>Testimony Opening Statement to the House of Representatives Standing Committee on Economics</title>
+    <description>Speech by Michele Bullock, Governor, to the House of Representatives Standing Committee on Economics</description>
+    <dc:date>2026-09-18T09:30:00+10:00</dc:date>
+    <cb:speech rdf:parseType="Resource">
+      <cb:simpleTitle>Testimony Opening Statement to the House of Representatives Standing Committee on Economics</cb:simpleTitle>
+      <cb:occurrenceDate>2026-09-18T09:30:00+10:00</cb:occurrenceDate>
+      <cb:institutionAbbrev>RBA</cb:institutionAbbrev>
+      <cb:resource rdf:parseType="Resource">
+        <cb:title>Speech</cb:title>
+        <cb:link>https://www.rba.gov.au/speeches/2026/sp-gov-2026-09-18.html</cb:link>
+        <cb:description>Testimony Opening Statement to the House of Representatives Standing Committee on Economics</cb:description>
+      </cb:resource>
+      <cb:person rdf:parseType="Resource">
+        <cb:nameAsWritten>Michele Bullock</cb:nameAsWritten>
+        <cb:role rdf:parseType="Resource">
+          <cb:jobTitle>Governor</cb:jobTitle>
+          <cb:affiliation>Reserve Bank of Australia</cb:affiliation>
+        </cb:role>
+      </cb:person>
+      <cb:locationAsWritten>Canberra</cb:locationAsWritten>
+    </cb:speech>
+  </item>
+</rdf:RDF>

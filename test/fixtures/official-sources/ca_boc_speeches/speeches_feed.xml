@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:cb="http://www.cbwiki.net/wiki/index.php/Specification_1.2/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel rdf:about="https://www.bankofcanada.ca/content_type/speeches/feed/">
+<title>Bank of Canada &gt; Speeches</title>
+<link>https://www.bankofcanada.ca/content_type/speeches/</link>
+</channel>
+<item rdf:about="https://www.bankofcanada.ca/2026/09/unveiling-of-vertical-20-bank-note/">
+    <title>Unveiling of Vertical $20 Bank Note</title>
+    <link>https://www.bankofcanada.ca/2026/09/unveiling-of-vertical-20-bank-note/</link>
+    <description>Governor Tiff Macklem delivers remarks at the unveiling of Canada's new vertical $20 bank note.</description>
+    <dc:date>2026-09-03T13:20:44+00:00</dc:date>
+        <cb:speech rdf:parseType="Resource">
+            <rdf:type rdf:resource="http://www.cbwiki.net/wiki/index.php/RSS-CB_1.2_RDF_Schema#LocatedAnnouncement"/>
+            <cb:simpleTitle>Unveiling of Vertical $20 Bank Note</cb:simpleTitle>
+            <cb:occurrenceDate>2026-09-03</cb:occurrenceDate>
+                <cb:person rdf:parseType="Resource">
+                    <rdf:type rdf:resource="http://www.cbwiki.net/wiki/index.php/RSS-CB_1.2_RDF_Schema#Person"/>
+                    <cb:nameAsWritten>Tiff Macklem</cb:nameAsWritten>
+                </cb:person>
+        </cb:speech>
+</item>
+<item rdf:about="https://www.bankofcanada.ca/2026/09/speech-tiff-macklem-governor-bank-canada-2026-09-21/">
+    <title>Speech: Halifax Partnership</title>
+    <link>https://www.bankofcanada.ca/2026/09/speech-tiff-macklem-governor-bank-canada-2026-09-21/</link>
+    <description>Tiff Macklem, Governor of the Bank of Canada, will speak before the Halifax Partnership.</description>
+    <dc:date>2026-09-21T15:20:00+00:00</dc:date>
+</item>
+<item rdf:about="https://www.bankofcanada.ca/2026/09/opening-statement-macklem-2026-09-21/">
+    <title>Opening statement</title>
+    <link>https://www.bankofcanada.ca/2026/09/opening-statement-macklem-2026-09-21/</link>
+    <description>Opening statement before the Halifax Partnership</description>
+    <dc:date>2026-09-21T15:20:00+00:00</dc:date>
+        <cb:speech rdf:parseType="Resource">
+            <rdf:type rdf:resource="http://www.cbwiki.net/wiki/index.php/RSS-CB_1.2_RDF_Schema#LocatedAnnouncement"/>
+            <cb:simpleTitle>Opening statement</cb:simpleTitle>
+            <cb:occurrenceDate>2026-09-21</cb:occurrenceDate>
+                <cb:person rdf:parseType="Resource">
+                    <rdf:type rdf:resource="http://www.cbwiki.net/wiki/index.php/RSS-CB_1.2_RDF_Schema#Person"/>
+                    <cb:nameAsWritten>Tiff Macklem</cb:nameAsWritten>
+                </cb:person>
+        </cb:speech>
+</item>
+<item rdf:about="https://www.bankofcanada.ca/2026/05/opening-statement-20260528/">
+    <title>Release of the Financial Stability Report</title>
+    <link>https://www.bankofcanada.ca/2026/05/opening-statement-20260528/</link>
+    <dc:date>2026-05-28T10:01:13+00:00</dc:date>
+        <cb:speech rdf:parseType="Resource">
+            <rdf:type rdf:resource="http://www.cbwiki.net/wiki/index.php/RSS-CB_1.2_RDF_Schema#LocatedAnnouncement"/>
+            <cb:occurrenceDate>2026-05-28</cb:occurrenceDate>
+                <cb:person rdf:parseType="Resource">
+                    <cb:nameAsWritten>Carolyn Rogers</cb:nameAsWritten>
+                </cb:person>
+                <cb:person rdf:parseType="Resource">
+                    <cb:nameAsWritten>Toni Gravelle</cb:nameAsWritten>
+                </cb:person>
+        </cb:speech>
+</item>
+</rdf:RDF>

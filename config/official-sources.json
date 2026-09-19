@@ -289,6 +289,26 @@
       "notes": "2026-08-14: 実測fixture（board_meeting_schedule.html）から年間8会合の日付を抽出（scripts/checkers/extractors/rba.js）し、weekly_scrapeからannual_schedule_config型へ再分類（RBAは翌年分を年1回まとめて公表する年次公表ソースのため）。8月分はground truth 3件（policy_rate/press_conference/quarterly_report、いずれも2026-08-11）と完全一致を確認。四半期報告(quarterly_report)を伴う月は公知のRBA運用（Feb/May/Aug/Nov）と仮定しているが、既刊で確認できたのは8月分のみのため、他3ヶ月（Feb/May/Nov）は月曜FF事後突合（SPEC §3.3）での確認待ち。下院経済委員会証言（testimony）はRBAではなく豪州議会（aph.gov.au）側の告知が必要なため本ソースの担当外（未実装・将来対応） | 2026-08-15追記（task #41-1、しょうさん承認済み国×kindマトリクス）: minutes_summary（RBA議事要旨、Minutes of the Monetary Policy Meeting of the Board）を追加。会合2週間後固定オフセット（火曜11:30現地）で算出。会合日程自体は既存実測データをそのまま利用（新規フェッチ不要）"
     },
     {
+      "id": "au_rba_speeches",
+      "name_ja": "RBA（総裁・幹部講演RSS）",
+      "status": "active",
+      "country": "AU",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          { "label": "speeches_rss", "url": "https://www.rba.gov.au/rss/rss-cb-speeches.xml" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #72（2026-09-19、しょうさん指摘: 9/21週にマックレムBOC総裁・ブロックRBA総裁の講演★★★が2件とも未検出だったことを機にBOC/RBA/ECB/SNBの講演ソースを新設。RBNZは事前調査でサイトアクセス不可のため対象外）。ライブ実測（2026-09-19、GitHub Actions相当の実ネットワーク経由）: robots.txtは/rss/・/speeches/とも許可（Disallowは/assets/・特定PDF1件・/media/senior-rba-executives.html・/media/image-library/・/search/・/s/のみ）。https://www.rba.gov.au/rss/rss-cb-speeches.xmlはHTTP 200のRDF/RSS 1.0（BOE/FRBのRSS 2.0とは異なる、BOCと同じCentral Bank Wiki拡張cb:名前空間）。話者名・役職はcb:person/cb:nameAsWritten・cb:jobTitleという構造化フィールドで明示され、BOEのようなタイトル文字列パースは不要（scripts/checkers/extractors/rba-speeches.js）。dc:date/cb:occurrenceDateはISO8601の明示的UTCオフセット付き（実測+10:00=AEST。豪東部の夏時間+11:00=AEDTへの遷移も各itemが個別に明示オフセットを持つためDST判定不要）。実測で判明した制約: フィードは常に直近1件のみを掲載する設計（BOE/BOCのような複数件のローリング履歴ではない）ため、同一週内に複数講演があった場合は先の講演が既に上書きされて消えているリスクがある（実運用で漏れが観測されたら別ソース[rba.gov.au/coming-up・schedules-events/calendar等]の追加を検討する）。総裁ブロックはconfig/officials.jsonに既に登録済み（role_rank:governor）のため、本ソース追加のみで即座に★★★解決が機能する"
+    },
+    {
       "id": "us_census",
       "name_ja": "米国勢調査局（Census Bureau）",
       "status": "active",
@@ -2112,6 +2132,26 @@
       "residual_monitor_weeks": 4
     },
     {
+      "id": "ecb_speeches",
+      "name_ja": "ECB（総裁・専務理事会講演）",
+      "status": "active",
+      "country": "EU",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          { "label": "press_rss", "url": "https://www.ecb.europa.eu/rss/press.html" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #72（2026-09-19、しょうさん指摘: 9/21週にマックレムBOC総裁・ブロックRBA総裁の講演★★★が2件とも未検出だったことを機にBOC/RBA/ECB/SNBの講演ソースを新設。RBNZは事前調査でサイトアクセス不可のため対象外）。ライブ実測（2026-09-19）で判明: ECBは講演専用RSSを提供していない（/rss/speeches.html等はいずれも404）。実際に使えるのはプレスリリース・講演・インタビュー・記者会見が混在する統合フィード（https://www.ecb.europa.eu/rss/press.html、RSS 2.0、HTTP 200）のみのため、本ソースはここから<link>/<guid>のパスに\"/press/key/\"（講演）を含むitemのみへ絞り込む（プレスリリースは\"/press/pr/\"、インタビューは\"/press/inter/\"、記者会見は\"/press/press_conference/\"で判別可能なことを実データで確認済み）。タイトル書式はBOEの「speech by {フルネーム}」ではなく「{話者フルネーム}: {講演タイトル}」（例: \"Christine Lagarde: A new age of capital: growth, sovereignty and AI\"）で、講演タイトル自体にコロンを含むケースがあるため先頭のコロンのみで分割する（scripts/checkers/extractors/ecb-speeches.js）。pubDateはRFC822・明示的UTCオフセット付き（実測+0200=CEST、冬季+0100=CET）のためDST判定不要。robots.txt（実測）はCrawl-delay:5のみでrss/press配下に制限なし。総裁ラガルドはconfig/officials.jsonに既に登録済み（role_rank:governor）。副総裁は2026年6月付でde GuindosからVujčić（ヴイチッチ）へ交代済みであることをecb.europa.eu公式Executive Boardページで確認（本notesの登録時点でofficials.json未反映・別途追記要）"
+    },
+    {
       "id": "eurostat_hicp",
       "name_ja": "Eurostat（ユーロ圏HICP速報値）",
       "status": "draft_schedule",
@@ -2811,6 +2851,26 @@
       ]
     },
     {
+      "id": "ca_boc_speeches",
+      "name_ja": "BOC（総裁・幹部講演フィード）",
+      "status": "active",
+      "country": "CA",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          { "label": "speeches_feed", "url": "https://www.bankofcanada.ca/content_type/speeches/feed/" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #72（2026-09-19、しょうさん指摘: 9/21週にマックレム総裁の講演★★★が未検出だったことを機にBOC/RBA/ECB/SNBの講演ソースを新設。RBNZは事前調査でサイトアクセス不可のため対象外）。ライブ実測（2026-09-19）: robots.txtは/wp-admin/のみDisallow（admin-ajax.phpは明示的に許可）で本フィード・記事URLとも制限なし。https://www.bankofcanada.ca/content_type/speeches/feed/はHTTP 200・content-type application/rss+xmlのRSS 1.0/RDF形式（BOE/FRBのRSS 2.0とは異なる）で、Central Bank Wiki拡張名前空間（cb:）を持つ。実際の講演itemには<cb:speech>のrdf:typeがLocatedAnnouncementとして付与され、<cb:person><cb:nameAsWritten>{フルネーム}</cb:nameAsWritten></cb:person>で話者を構造化フィールドとして持つ（BOEのようなタイトル文字列からの姓抽出は不要）。同一イベントの告知/ウェブキャスト用の重複item（cb:speechブロックを持たない）も混在するため、LocatedAnnouncement（cb:speech）を持つitemのみを対象とする（scripts/checkers/extractors/boc-speeches.js）。dc:dateは実測サンプル（2026年3〜9月の複数item）全件で+00:00固定のためDST判定不要。講演の日程は事前公表される（実例: マックレム総裁の2026-09-21ハリファックス講演がconfig/manual-events.json[boc-speech-macklem-2026-09-21]の裏取り時点で既に本フィードへ掲載済みだったことを確認済み）ため、FRB（講演実施後にのみ追加される設計）とは異なり事前検出が可能。総裁マックレムはconfig/officials.jsonに既に登録済み（role_rank:governor）のため、本ソース追加のみで即座に★★★解決が機能する"
+    },
+    {
       "id": "rbnz_policy_rate",
       "name_ja": "RBNZ（OCR政策金利カレンダー）",
       "status": "active",
@@ -2996,6 +3056,26 @@
       },
       "notes": "2026-08-15訂正: しょうさんが一次ソースを直接取得し『一括先行公表なし』という前回判断が誤りだったと判明。SNB公式『Time schedule』ページ（本URL）に金融政策評価・Summary of monetary policy discussionを含む全日程が掲載されている。同ページは各イベントに個別iCalendarファイル（snb.ch/public/ical/event/en/{uuid}.ics）を提供しており、実測（scripts/phase1/source-recon-e.mjs）で94件のICSリンクを発見、サンプル3件とも有効なVCALENDAR形式（X-WR-TIMEZONE:Europe/Zurich・REFRESH-INTERVAL:PT6H）と確認済み＝公式のマシンリーダブル経路であることを裏付け。ただしICS個別取得は94件と週次には非効率かつUUID→イベントの対応がDOM順とずれる構造（実測で確認、scripts/phase1/source-recon-f.mjs）のため、本抽出はICSと同一の公式データソースであるevent-scheduleページ本文の平文リスト（『DD.MM.YYYY HH:MM タイトル』形式）を直接パースする方式を採用した（scripts/checkers/extractors/snb-policy-rate.js）。しょうさん転記の6回分の金融政策評価日程（2026/9/24・12/10、2027/3/18・6/24・9/23・12/16）と5回分のSummary of monetary policy discussion（2026/10/22、2027/1/7・4/15・7/22・10/21）を実測データで完全一致確認（scripts/phase1/source-recon-f.mjs）。schedule_status/annual_schedule_config方式は不採用とし、他の月次ローリング公表ソース（BOC等）と同じweekly_scrape型へ変更した（このページ自体が常に将来分を掲載し続けるため年次確定の手動運用が不要）",
       "residual_monitor_weeks": 4
+    },
+    {
+      "id": "snb_speeches",
+      "name_ja": "SNB（理事会講演RSS）",
+      "status": "active",
+      "country": "CH",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          { "label": "speeches_rss", "url": "https://www.snb.ch/public/rss/en/speeches" }
+        ]
+      },
+      "announce_time_by_kind": {},
+      "notes": "task #72（2026-09-19、しょうさん指摘: 9/21週にマックレムBOC総裁・ブロックRBA総裁の講演★★★が2件とも未検出だったことを機にBOC/RBA/ECB/SNBの講演ソースを新設。RBNZは事前調査でサイトアクセス不可のため対象外）。既存のsnb_policy_rate（event-scheduleページ、policy_rate/press_conference/opinions_summaryのみ担当）とは別ソース。一般講演（総裁講演等）はevent-scheduleページには不定期・不統一な書式でしか載らないことをライブ実測（2026-09-19）で確認したため、専用の講演RSSを別途追加した。https://www.snb.ch/public/rss/en/speechesはHTTP 200のRSS 2.0＋Central Bank Wiki拡張cb:名前空間（robots.txtに一切Disallowなし）。<cb:nameAsWritten>・<cb:jobTitle>が\" / \"区切りの並行リストで複数話者を表現する（例: 記者会見の総裁+副総裁+委員連名イントロ）ため、他行講演ソース（BOC/ECB）と設計を揃え先頭の話者のみを採用する（scripts/checkers/extractors/snb-speeches.js）。cb:occurrenceDateはISO8601・Z（UTC）固定（実測10件全てZ終端）のためDST判定不要。SNBのGoverning Board（金融政策を担う理事会）以外の関係者（Bank Council＝監督機関、実測で混在を確認済み。例: President of the Bank Councilの発言）を誤って含めないよう、cb:jobTitleに\"Governing Board\"を含む話者のitemのみを対象とする。議長シュレーゲルはconfig/officials.jsonに既に登録済み（role_rank:governor）"
     }
   ]
 }
