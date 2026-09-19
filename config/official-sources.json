@@ -955,6 +955,142 @@
       "notes": "2026-08-14: ドラフト生成コード実装（scripts/lib/ism-schedule.js）。既刊ground truth（2026-08-03=製造業・2026-08-05=非製造業）と一致することを確認済み。2026-08〜10月分をscheduleへ機械投入し、しょうさんによる公式カレンダーページとの目視突合・確定が完了（confirmed_at参照）。docs/annual-schedule-maintenance.md参照"
     },
     {
+      "id": "us_flash_pmi",
+      "name_ja": "S&P Global（米フラッシュPMI）",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "pmi_ism"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "automated_fetch": false,
+        "targets": [
+          { "label": "press_release_hub", "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease" }
+        ],
+        "note": "task #94フォローアップ（2026-09-19、GitHub Actions実ネットワーク経由でus-sources-recon一時ワークフローにより2回・User-Agent変更含めて実測）: pmi.spglobal.comはrobots.txt自体がHTTP 403で到達不可（ブラウザ相当UAでも再現。サンドボックス固有の問題ではなく、task #53のDE/EU/GB調査時に確定した4経路不成立と同じ構造的な壁）。investing.com・dailyfx.comの代替経路も403で到達不可。よってDE/EU/GBと同じくautomated_fetch:falseとし、規則生成＋年1回手動確認方式とする"
+      },
+      "announce_time_by_kind": {
+        "pmi_ism": {
+          "local_time": "09:45",
+          "tz": "America/New_York"
+        }
+      },
+      "notes": "task #94フォローアップ（2026-09-19、しょうさん指摘: DE/EU/GBフラッシュPMIは実装済みなのに米国だけ抜けていた）。一次情報源への直接アクセスが構造的に不可能（上記access.note参照）なため、DE/EU/GBフラッシュPMIの確定手法（config/official-sources.jsonのde_flash_pmi notes参照: WebSearch研究agent3系統＋GOV.UK公式bank-holidays.jsonでの機械計算突合による『月末5英国営業日前』規則の独立検証）と同じ規則をそのまま採用した。根拠: (1) DE/EU/GB/USのフラッシュPMIはS&P Globalが単一カレンダーで運用する同一ラウンドの発表であり、過去の実績（直近確認できた月のうち9/9ヶ月でDE/EU/GBと同一暦日）から米国のみ別日程になったことは無いと判明している、(2) しょうさんのカレンダー表示でも2026-09-23（DE/EU/GBと同日）と表示されていることを確認、(3) 22:45 JST（=09:45 ET）はS&P Global米国フラッシュPMIの一般に知られた標準発表時刻。以上の複数の独立した状況証拠が収束したため、DE/EU/GBと同一scheduleを採用する（一次ソース自体の直接検証ではないため、DE/EU/GBのconfirmed_by欄と区別し、その旨をconfirmed_noteに明記する）。祝日調整規則の詳細（12月除外等）はDE/EU/GBのdraft_rule/confirmed_noteと共通",
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-09-19",
+      "confirmed_by": "Claude Code（一次ソースへの直接アクセスが構造的に不可能なため、DE/EU/GBの既確定scheduleとの同日実績[直近9/9ヶ月一致]＋しょうさんのカレンダー表示＋S&P Global標準発表時刻[09:45 ET]の複数独立証拠の収束により、DE/EU/GBと同一scheduleを採用。pmi.spglobal.com一次ページの直接確認ではない点でDE/EU/GBのconfirmed_byとは性質が異なる）",
+      "confirmed_note": "DE/EU/GBと同一暦日での運用のため、schedule配列もDE/EU/GBと完全に同一の日付集合を採用した（12月は規則性が無く手動確定が必要なため生成対象外、他の限界事項もDE/EU/GBのconfirmed_noteと共通）。将来、米国のみ別日程になる月が実際に観測された場合は本エントリを個別に切り離すこと",
+      "draft_rule": {
+        "description": "月末から5英国営業日前（営業日は週末＋England and Wales銀行休業日を除外）。DE/EU/GBと同一規則・同一暦日（S&P Globalの単一グローバルカレンダー運用のため）。12月は規則性が無く手動確定が必要なため生成対象外。scripts/lib/flash-pmi-schedule.js（flashPmiDraftForMonth/flashPmiDraftRange）で計算し、人間またはClaude Codeが年1回、公式報道等と突合・確定する",
+        "business_day_rule": "5th_gb_business_day_before_month_end",
+        "gb_bank_holidays_source": "config/gb-bank-holidays.json（GOV.UK公式bank-holidays.json、england-and-wales区分）",
+        "december_excluded": true
+      },
+      "schedule": [
+        { "date": "2026-08-21", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-09-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-10-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2026-11-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-01-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-02-19", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-03-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-04-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-05-21", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-06-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-07-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-08-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-09-23", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-10-22", "kind": "pmi_ism", "subtype": "flash" },
+        { "date": "2027-11-23", "kind": "pmi_ism", "subtype": "flash" }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
+      "id": "us_eia_petroleum",
+      "name_ja": "EIA（週間石油在庫統計）",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "oil_inventories"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "wpsr_schedule", "url": "https://www.eia.gov/petroleum/supply/weekly/schedule.php" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "oil_inventories": {
+          "local_time": "10:30",
+          "tz": "America/New_York"
+        }
+      },
+      "notes": "task #94フォローアップ（2026-09-19、しょうさん指摘: USDCADなど原油連動ペアに効くため追加）。us-sources-recon一時ワークフロー（GitHub Actions実ネットワーク経由、ラウンド3）でhttps://www.eia.gov/petroleum/supply/weekly/schedule.phpを直接取得し、EIA公式ページ本文で『The wpsrsummary.pdf, overview.pdf, and Tables 1-14... are released to the web site after 10:30 a.m. eastern time on Wednesday』『For some weeks that include holidays, releases are delayed by one day』『The standard release time and day of the week will be at 10:30 a.m. eastern time on Wednesdays with the following exceptions』という記載と、2026年分の祝日シフト表（1月MLK・2月大統領の日・5月メモリアルデー・9月レイバーデー・10月コロンブスデー・11月退役軍人の日、いずれも該当週の水曜日→木曜12:00pmへシフト）を確認した。このページのURL自体は当初推測（`/petroleum/weekly/includes/schedule.php`ではなく`/petroleum/supply/weekly/schedule.php`が正しいURLだった）だったため、reports/upcoming.php本文の『Weekly Petroleum Status Report ( schedule )』リンクのhref抽出で実際のURLを特定した（ラウンド3）。robots.txtは/reports/のみ一部Disallowだが/reports/upcoming.phpは明示的にAllow、/petroleum/配下は制限なし。なお2026年11月11日（退役軍人の日）は本来のWPSR発表曜日である水曜そのものが祝日という珍しいケースで、木曜11/12へのシフトが確認できた。12月分（クリスマス・年末年始週）の祝日シフトはEIA側がまだ掲載しておらず（2025年の実績では通常のThu shiftではなくMonday 5:00pmへの大きなシフトだったため単純な類推は避けた）、schedule配列では2026-12-30を意図的に除外している（次回annual-schedule-maintenanceで確認・追記すること）。名称・重要度の設計判断はconfig/importance-rules.json・config/event-names.jsonのoil_inventoriesエントリのnote参照",
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-09-19",
+      "confirmed_by": "Claude Code（eia.gov公式ページ本文をGitHub Actions実ネットワーク経由で直接確認、us-sources-recon一時ワークフロー ラウンド3）",
+      "confirmed_note": "2026年12月30日（週末）分は祝日シフトの有無・時刻がEIA未掲載のため意図的にschedule配列から除外した（過去実績では通常のThu 1日シフトとは異なる大きなシフトパターンが観測されているため、単純推測は避けた）。次回のannual-schedule-maintenanceでEIA公式ページに2026年12月分が掲載され次第、確認のうえ追記すること",
+      "schedule": [
+        { "date": "2026-01-07", "kind": "oil_inventories" },
+        { "date": "2026-01-14", "kind": "oil_inventories" },
+        { "date": "2026-01-22", "kind": "oil_inventories", "local_time": "12:00", "note": "MLK Day週。通常の水曜1/21から木曜1/22・12:00pmへシフト（EIA公式確認済み）" },
+        { "date": "2026-01-28", "kind": "oil_inventories" },
+        { "date": "2026-02-04", "kind": "oil_inventories" },
+        { "date": "2026-02-11", "kind": "oil_inventories" },
+        { "date": "2026-02-19", "kind": "oil_inventories", "local_time": "12:00", "note": "大統領の日週。通常の水曜2/18から木曜2/19・12:00pmへシフト（EIA公式確認済み）" },
+        { "date": "2026-02-25", "kind": "oil_inventories" },
+        { "date": "2026-03-04", "kind": "oil_inventories" },
+        { "date": "2026-03-11", "kind": "oil_inventories" },
+        { "date": "2026-03-18", "kind": "oil_inventories" },
+        { "date": "2026-03-25", "kind": "oil_inventories" },
+        { "date": "2026-04-01", "kind": "oil_inventories" },
+        { "date": "2026-04-08", "kind": "oil_inventories" },
+        { "date": "2026-04-15", "kind": "oil_inventories" },
+        { "date": "2026-04-22", "kind": "oil_inventories" },
+        { "date": "2026-04-29", "kind": "oil_inventories" },
+        { "date": "2026-05-06", "kind": "oil_inventories" },
+        { "date": "2026-05-13", "kind": "oil_inventories" },
+        { "date": "2026-05-20", "kind": "oil_inventories" },
+        { "date": "2026-05-28", "kind": "oil_inventories", "local_time": "12:00", "note": "メモリアルデー週。通常の水曜5/27から木曜5/28・12:00pmへシフト（EIA公式確認済み）" },
+        { "date": "2026-06-03", "kind": "oil_inventories" },
+        { "date": "2026-06-10", "kind": "oil_inventories" },
+        { "date": "2026-06-17", "kind": "oil_inventories" },
+        { "date": "2026-06-24", "kind": "oil_inventories" },
+        { "date": "2026-07-01", "kind": "oil_inventories" },
+        { "date": "2026-07-08", "kind": "oil_inventories" },
+        { "date": "2026-07-15", "kind": "oil_inventories" },
+        { "date": "2026-07-22", "kind": "oil_inventories" },
+        { "date": "2026-07-29", "kind": "oil_inventories" },
+        { "date": "2026-08-05", "kind": "oil_inventories" },
+        { "date": "2026-08-12", "kind": "oil_inventories" },
+        { "date": "2026-08-19", "kind": "oil_inventories" },
+        { "date": "2026-08-26", "kind": "oil_inventories" },
+        { "date": "2026-09-02", "kind": "oil_inventories" },
+        { "date": "2026-09-10", "kind": "oil_inventories", "local_time": "12:00", "note": "レイバーデー週。通常の水曜9/9から木曜9/10・12:00pmへシフト（EIA公式確認済み）" },
+        { "date": "2026-09-16", "kind": "oil_inventories" },
+        { "date": "2026-09-23", "kind": "oil_inventories" },
+        { "date": "2026-09-30", "kind": "oil_inventories" },
+        { "date": "2026-10-07", "kind": "oil_inventories" },
+        { "date": "2026-10-15", "kind": "oil_inventories", "local_time": "12:00", "note": "コロンブスデー週。通常の水曜10/14から木曜10/15・12:00pmへシフト（EIA公式確認済み）" },
+        { "date": "2026-10-21", "kind": "oil_inventories" },
+        { "date": "2026-10-28", "kind": "oil_inventories" },
+        { "date": "2026-11-04", "kind": "oil_inventories" },
+        { "date": "2026-11-12", "kind": "oil_inventories", "local_time": "12:00", "note": "退役軍人の日（2026年は水曜11/11が祝日当日）。木曜11/12・12:00pmへシフト（EIA公式確認済み）" },
+        { "date": "2026-11-18", "kind": "oil_inventories" },
+        { "date": "2026-11-25", "kind": "oil_inventories" },
+        { "date": "2026-12-02", "kind": "oil_inventories" },
+        { "date": "2026-12-09", "kind": "oil_inventories" },
+        { "date": "2026-12-16", "kind": "oil_inventories" },
+        { "date": "2026-12-23", "kind": "oil_inventories" }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
       "id": "jp_boj",
       "name_ja": "日本銀行（BOJ）",
       "status": "draft_schedule",

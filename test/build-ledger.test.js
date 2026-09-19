@@ -262,17 +262,19 @@ test('resolveOfficialSpeechImportance: 話者未指定（speakerLastName null）
 
 // 2026-09-19修正（task #94フォローアップ、しょうさん指摘: 9/22週のジェファーソン副議長講演
 // 漏れ調査を機に「議長=★★★／副議長=★★★／理事・地区連銀総裁=★★」の整理へ変更）。
-// ジェファーソン（一般の副議長）・ボウマン（金融監督担当副議長）はdeputy_governorへ格上げ、
-// バー・クック・ウォラー（いずれも役職は「理事」でVice Chairの肩書なし）はboard_member（★★）のまま
-test('resolveOfficialSpeechImportance: FRB副議長（ジェファーソン・ボウマン）はdeputy_governor扱いで★★★、warningは無い', () => {
-  for (const speakerLastName of ['Jefferson', 'Bowman']) {
-    const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'US', speakerLastName, date: '2026-09-22' }, officials);
-    assert.deepEqual(r, { importance: 3, warning: null }, `speakerLastName=${speakerLastName}`);
-  }
+// ジェファーソン（一般の副議長、金融政策全般を含む職掌）はdeputy_governorへ格上げ。
+// 2026-09-19差し戻し（しょうさん指摘、task #94フォローアップ完了報告への回答）: ボウマンの
+// 「Vice Chair for Supervision」は銀行規制・監督業務に特化した別枠の役職でありジェファーソンの
+// 一般的な副議長とは職掌が異なる（講演内容も規制関連中心で為替への影響度が異なる）ため、
+// board_member（★★）へ差し戻した。同じ考え方（役職名に副議長／副総裁を含んでいても特定分野に
+// 職掌が限定される役職はboard_member据え置き）を他中銀の同種役職にも適用する
+test('resolveOfficialSpeechImportance: FRBジェファーソン副議長（一般の副議長）はdeputy_governor扱いで★★★、warningは無い', () => {
+  const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'US', speakerLastName: 'Jefferson', date: '2026-09-22' }, officials);
+  assert.deepEqual(r, { importance: 3, warning: null });
 });
 
-test('resolveOfficialSpeechImportance: FRB理事（バー・クック・ウォラー、副議長の肩書なし）はboard_memberのまま★★、warningは無い', () => {
-  for (const speakerLastName of ['Barr', 'Cook', 'Waller']) {
+test('resolveOfficialSpeechImportance: FRB理事（バー・クック・ウォラー、副議長の肩書なし）・ボウマン（金融監督担当に特化した副議長）はboard_memberのまま★★、warningは無い', () => {
+  for (const speakerLastName of ['Barr', 'Cook', 'Waller', 'Bowman']) {
     const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'US', speakerLastName, date: '2026-09-22' }, officials);
     assert.deepEqual(r, { importance: 2, warning: null }, `speakerLastName=${speakerLastName}`);
   }
