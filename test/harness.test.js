@@ -406,6 +406,94 @@ test('checkWeeklyScrapeSource: us_frb_speeches（RSS pubDateをutcInstantとし�
   assert.equal(cook.speakerLastName, 'Cook');
 });
 
+// us_frb_calendar（task #94フォローアップ、2026-09-19新設）: us_frb_speechesが講演実施後にしか
+// 追加されない構造的限界を補う事前検出用ソース。月別動的URL生成（jp_mofと同じ設計）＋
+// 翌月分クロスマンス先読みが正しく機能することを確認する
+test('checkWeeklyScrapeSource: us_frb_calendar は対象週の月＋翌月分の2URLをフェッチし、東部時間からJSTへ正しく変換する', async () => {
+  const { readFileSync } = require('node:fs');
+  const { join } = require('node:path');
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  const html = readFileSync(join(__dirname, 'fixtures', 'official-sources', 'us_frb_calendar', '2026-september.htm'), 'utf8');
+  const noSpeechHtml = readFileSync(join(__dirname, 'fixtures', 'official-sources', 'us_frb_calendar', '2026-october-no-speeches.htm'), 'utf8');
+  const source = {
+    id: 'us_frb_calendar',
+    country: 'US',
+    kinds: ['official_speech'],
+    access: { robots_check: true, provides_exact_time: true, month_url_pattern: 'https://www.federalreserve.gov/newsevents/{YEAR}-{MONTH_NAME}.htm' },
+    announce_time_by_kind: { official_speech: { tz: 'America/New_York' } },
+  };
+  const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
+  const requestedUrls = [];
+  const fetchImpl = async (url) => {
+    requestedUrls.push(url);
+    if (url.endsWith('2026-september.htm')) return { ok: true, status: 200, text: async () => html };
+    if (url.endsWith('2026-october.htm')) return { ok: true, status: 200, text: async () => noSpeechHtml };
+    return { ok: false, status: 404 };
+  };
+  const targetWeek = { targetWeekStart: '2026-09-21', targetWeekEnd: '2026-09-27' };
+  const r = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, robotsChecker, eventNames: [] });
+  assert.deepEqual(requestedUrls.sort(), [
+    'https://www.federalreserve.gov/newsevents/2026-october.htm',
+    'https://www.federalreserve.gov/newsevents/2026-september.htm',
+  ]);
+  assert.equal(r.ok, true);
+  // ジェファーソン副議長講演（9/22 10:20 a.m. ET=EDT）がJST 23:20として解決されることを確認
+  // （config/manual-events.jsonのfrb-speech-jefferson-2026-09-22エントリと同じ実時刻）
+  const jefferson = r.thisWeek.find((c) => c.speakerLastName === 'Philip Jefferson');
+  assert.ok(jefferson, JSON.stringify(r.thisWeek));
+  assert.equal(jefferson.date, '2026-09-22');
+  assert.equal(jefferson.time, '23:20');
+});
+
+test('checkWeeklyScrapeSource: us_frb_calendar は月またぎ週で開始月・終了月・翌月の3URLをフェッチする', async () => {
+  const { readFileSync } = require('node:fs');
+  const { join } = require('node:path');
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  const html = readFileSync(join(__dirname, 'fixtures', 'official-sources', 'us_frb_calendar', '2026-september.htm'), 'utf8');
+  const source = {
+    id: 'us_frb_calendar',
+    country: 'US',
+    kinds: ['official_speech'],
+    access: { robots_check: true, provides_exact_time: true, month_url_pattern: 'https://www.federalreserve.gov/newsevents/{YEAR}-{MONTH_NAME}.htm' },
+    announce_time_by_kind: { official_speech: { tz: 'America/New_York' } },
+  };
+  const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
+  const requestedUrls = [];
+  // マージ機構自体の検証が目的のため、3URLとも同一fixture（9月分）を返す
+  const fetchImpl = async (url) => {
+    requestedUrls.push(url);
+    return { ok: true, status: 200, text: async () => html };
+  };
+  const targetWeek = { targetWeekStart: '2026-08-31', targetWeekEnd: '2026-09-06' };
+  const r = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, robotsChecker, eventNames: [] });
+  assert.deepEqual(requestedUrls.sort(), [
+    'https://www.federalreserve.gov/newsevents/2026-august.htm',
+    'https://www.federalreserve.gov/newsevents/2026-october.htm',
+    'https://www.federalreserve.gov/newsevents/2026-september.htm',
+  ].sort());
+  assert.equal(r.ok, true);
+});
+
+test('checkWeeklyScrapeSource: us_frb_calendar は当該月にSpeechが無くても（他カテゴリの行があれば）フェールクローズしない', async () => {
+  const { readFileSync } = require('node:fs');
+  const { join } = require('node:path');
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  const noSpeechHtml = readFileSync(join(__dirname, 'fixtures', 'official-sources', 'us_frb_calendar', '2026-october-no-speeches.htm'), 'utf8');
+  const source = {
+    id: 'us_frb_calendar',
+    country: 'US',
+    kinds: ['official_speech'],
+    access: { robots_check: true, provides_exact_time: true, month_url_pattern: 'https://www.federalreserve.gov/newsevents/{YEAR}-{MONTH_NAME}.htm' },
+    announce_time_by_kind: { official_speech: { tz: 'America/New_York' } },
+  };
+  const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => noSpeechHtml });
+  const targetWeek = { targetWeekStart: '2026-10-05', targetWeekEnd: '2026-10-11' };
+  const r = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, robotsChecker, eventNames: [] });
+  assert.equal(r.ok, true);
+  assert.equal(r.thisWeek.length, 0);
+});
+
 // gb_ons（ONS releases API）は release-type=type-upcoming 固定のため、過去週（既刊2週含む）の
 // 照合はAPIの構造上不可能（config/official-sources.jsonのgb_ons notes・docs/annual-schedule-
 // maintenance.md参照）。しょうさん指示2026-08-15: 「upcoming専用だから照合できない」を恒久的な
