@@ -145,6 +145,39 @@ test('autoHeroSummary/autoHeroPills: name_jaが中銀略称で始まる場合は
   assert.deepEqual(pills, ['RBNZ政策金利＆声明発表 9/2', 'BOC政策金利＆声明発表 9/2', 'NZなんとかRBNZ総裁の議会証言 9/3']);
 });
 
+// 2026-09-19追加（しょうさん指摘: 「スイスシュレーゲルSNB総裁の記者会見」「米国ジェファーソン
+// FRB副議長の発言」のように、既に人名から始まる表示名にさらに国名を前置すると冗長）。
+// scripts/lib/build-ledger.jsが算出するevent.speaker_named（officials.json解決済みの人名で
+// name_jaが始まっている場合のみtrue）がtrueなら国名前置を省き、false（話者未解決で役職名のみ・
+// 汎用ラベル「要人発言」等にフォールバックした場合）なら国名前置を維持することを確認する
+test('autoHeroSummary/autoHeroPills: speaker_named=trueの場合は国名前置を省く（official_speech/press_conference）', async () => {
+  const { autoHeroSummary, autoHeroPills } = await import('../scripts/render.mjs');
+  const ledger = {
+    events: [
+      ledgerEvent({
+        country: 'CH', kind: 'press_conference', name_ja: 'シュレーゲルSNB総裁の記者会見',
+        datetime_jst: '2026-09-24T17:00:00+09:00', date_jst: '2026-09-24', speaker_named: true,
+      }),
+      ledgerEvent({
+        country: 'US', kind: 'official_speech', name_ja: 'ジェファーソンFRB副議長の発言',
+        datetime_jst: '2026-09-22T23:20:00+09:00', date_jst: '2026-09-22', speaker_named: true,
+      }),
+      // 話者未解決で役職名のみにフォールバックした場合（speaker_named:false）は国名前置を残す
+      ledgerEvent({
+        country: 'CH', kind: 'official_speech', name_ja: '要人発言',
+        datetime_jst: '2026-09-25T17:00:00+09:00', date_jst: '2026-09-25', speaker_named: false,
+      }),
+    ],
+  };
+  // hero_kind_priority: press_conference(rank1) < official_speech(rank15)のため、
+  // シュレーゲル総裁の記者会見が最優先。official_speech同士（ジェファーソン・CH要人発言）は
+  // 同順位のため時系列順（9/22 < 9/25）
+  const summary = autoHeroSummary(ledger, reportPolicy);
+  assert.equal(summary, 'シュレーゲルSNB総裁の記者会見、ジェファーソンFRB副議長の発言、スイス要人発言を確認する週');
+  const pills = autoHeroPills(ledger, reportPolicy);
+  assert.deepEqual(pills, ['シュレーゲルSNB総裁の記者会見 9/24', 'ジェファーソンFRB副議長の発言 9/22', 'スイス要人発言 9/25']);
+});
+
 test('buildNarrative: overrideが無ければ自動生成、overrideがあればそちらを優先', async () => {
   const { buildNarrative } = await import('../scripts/render.mjs');
   const ledger = { meta: { target_week_start: '2026-08-17' }, events: [ledgerEvent({ country: 'AU', kind: 'policy_rate', name_ja: 'RBA政策金利＆声明発表' })] };
@@ -185,13 +218,16 @@ test('既刊2週へのルール適用結果（実データ経路・既刊文言�
   // 既刊: 'RBA政策判断、米CPI・PPI、英国GDP、米小売売上高を確認する週'
   // 本ルール適用結果（アサーションで固定し、将来の変更を検知できるようにする）。国名前置はtask #47で追加。
   // 2026-08-29修正: 「日銀...」「RBA...」はname_jaが中銀略称で始まるため国名前置を省く（しょうさん指摘）。
-  // 「ブロックRBA総裁の記者会見」はRBAで始まっていないため引き続き「豪州」が付く。
   // 2026-09-12修正（task #94フォローアップ、しょうさんが7kindの優先順位を確定）:
   // policy_rate(0) < press_conference(1) < testimony(2) < opinions_summary(4) < quarterly_report(5) < cpi(6)
   // の順になり、AU testimony（8/14）がquarterly_report・cpiを押し出して3位に入った
-  assert.equal(summary0810, 'RBA政策金利＆声明発表、豪州ブロックRBA総裁の記者会見、豪州ブロックRBA総裁：下院経済委員会への出席、日銀金融政策決定会合における主な意見の公表（7月30・31日開催分）を確認する週');
+  // 2026-09-19修正（しょうさん指摘）: 「ブロックRBA総裁の記者会見」はofficials.json解決済みの人名
+  // （ブロック）から始まるため、speaker_named=trueとなり国名前置「豪州」を省くようになった
+  // （「ブロックRBA総裁：下院経済委員会への出席」はtestimony=manual-events.json由来のdisplayName直接
+  // 指定のためspeaker_named=false扱いとなり、引き続き「豪州」が付く）
+  assert.equal(summary0810, 'RBA政策金利＆声明発表、ブロックRBA総裁の記者会見、豪州ブロックRBA総裁：下院経済委員会への出席、日銀金融政策決定会合における主な意見の公表（7月30・31日開催分）を確認する週');
   // 既刊: ['RBA政策金利 8/11', '米CPI 8/12', '米小売売上高 8/14']
-  assert.deepEqual(pills0810, ['RBA政策金利＆声明発表 8/11', '豪州ブロックRBA総裁の記者会見 8/11', '豪州ブロックRBA総裁：下院経済委員会への出席 8/14']);
+  assert.deepEqual(pills0810, ['RBA政策金利＆声明発表 8/11', 'ブロックRBA総裁の記者会見 8/11', '豪州ブロックRBA総裁：下院経済委員会への出席 8/14']);
 
   const ledger0803 = await regenerateWeek(WEEK_20260803);
   const summary0803 = autoHeroSummary(ledger0803, reportPolicy);

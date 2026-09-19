@@ -38,11 +38,18 @@ const { BANK_ABBR_BY_COUNTRY } = require('./lib/naming.js');
 // 始まっている場合は国名前置を省く（2026-08-29、しょうさん指摘: 「NZRBNZ政策金利＆声明発表」
 // 「カナダBOC政策金利＆声明発表」のように国名と中銀略称が重複表示されていた。naming.jsの
 // policyRateName/quarterlyReportName/bojOpinionsName等が生成するname_jaは中銀略称で始まる
-// テンプレートのため、これと同じ辞書[BANK_ABBR_BY_COUNTRY]を単一の真実源として使う）
-function heroDisplayName(country, nameJa) {
-  const bankAbbr = BANK_ABBR_BY_COUNTRY[country];
-  if (bankAbbr && nameJa.startsWith(bankAbbr)) return nameJa;
-  return `${countryJaOf(country)}${nameJa}`;
+// テンプレートのため、これと同じ辞書[BANK_ABBR_BY_COUNTRY]を単一の真実源として使う）。
+// 2026-09-19追記（しょうさん指摘）: official_speech/press_conferenceでname_jaが既にofficials.json
+// 解決済みの人名で始まっている場合（例:「シュレーゲルSNB総裁の記者会見」）も同様に冗長なため省く。
+// 判定はscripts/lib/build-ledger.jsが算出済みのevent.speaker_named（docs/ledger-schema.md参照）を
+// 使う（文字列側から中銀略称や人名を都度推測するのではなく、実際の名前解決結果をそのまま使う）。
+// 話者が未解決で役職名のみ・汎用ラベル（「要人発言」等）にフォールバックした場合はspeaker_named=false
+// のままとなり、国だけが手がかりのため国名前置を残す
+function heroDisplayName(e) {
+  const bankAbbr = BANK_ABBR_BY_COUNTRY[e.country];
+  if (bankAbbr && e.name_ja.startsWith(bankAbbr)) return e.name_ja;
+  if (e.speaker_named) return e.name_ja;
+  return `${countryJaOf(e.country)}${e.name_ja}`;
 }
 
 function pad2(n) {
@@ -96,7 +103,7 @@ export function autoHeroSummary(ledger, reportPolicy) {
     const key = `${e.country}|${e.kind}`;
     if (seenCountryKind.has(key)) continue;
     seenCountryKind.add(key);
-    names.push(heroDisplayName(e.country, e.name_ja));
+    names.push(heroDisplayName(e));
     if (names.length === 4) break;
   }
   if (names.length === 0) return reportPolicy.hero_summary_no_star3_text;
@@ -112,7 +119,7 @@ export function autoHeroPills(ledger, reportPolicy) {
     .filter((e) => e.importance === 3 && e.datetime_jst)
     .sort((a, b) => compareByHeroPriority(a, b, priorityOrder))
     .slice(0, 3)
-    .map((e) => `${heroDisplayName(e.country, e.name_ja)} ${Number(e.date_jst.slice(5, 7))}/${Number(e.date_jst.slice(8, 10))}`);
+    .map((e) => `${heroDisplayName(e)} ${Number(e.date_jst.slice(5, 7))}/${Number(e.date_jst.slice(8, 10))}`);
 }
 
 function autoCreatedDateJa(now) {

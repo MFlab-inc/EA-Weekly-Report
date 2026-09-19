@@ -80,7 +80,10 @@ task #13（検証スクリプト5本の移植＋新設3検査）、しょうさ�
       "name_resolution": "dictionary",                        // dictionary | rule_generated
       "halt_window_start_jst": "2026-08-18T01:30:00+09:00",   // importance=3・時刻確定時のみ必須
       "halt_window_end_jst": "2026-08-18T09:30:00+09:00",
-      "bundle_id": null                                        // 同一発表枠として束ねる場合のグループID（任意）
+      "bundle_id": null,                                       // 同一発表枠として束ねる場合のグループID（任意）
+      "speaker_named": false                                   // official_speech/press_conferenceでname_jaが
+                                                                 // officials.json解決済み（verified:true）の人名で
+                                                                 // 始まる場合のみtrue。他kindは常にfalse
     }
   ],
   "coverage": {
@@ -135,6 +138,11 @@ task #13（検証スクリプト5本の移植＋新設3検査）、しょうさ�
   `config/event-names.json`辞書照合対象）は、`scripts/phase1/observation-run.mjs`の
   `resolveAnnualDictionaryName()`が解決する（2026-08-15新設。country×kindで一意に決まらない場合
   [例: US `pmi_ism`=ISM製造業/非製造業の2エントリ]は`schedule`エントリの`subtype`で絞り込む）
+- `speaker_named`（しょうさん指摘2026-09-19）: `scripts/lib/build-ledger.js`の
+  `isVerifiedSpeakerDisplayName()`が算出する。ヒーロー文言（`scripts/render.mjs`の
+  `heroDisplayName()`）が、既に人名から始まる表示名（例:「シュレーゲルSNB総裁の記者会見」）に
+  さらに国名を前置しないための判断材料。話者が未解決で役職名のみ・汎用ラベル（「要人発言」等）に
+  フォールバックした場合はfalseのままとなり、国名前置を維持して国の手がかりを残す
 - `bundle_id`（同一発表枠のグルーピング、task #34）は`scripts/lib/build-ledger.js`の
   `computeBundleIds()`が算出する（しょうさん確定ルール2026-08-15「同一国×同一source_id×
   同一日×発表時刻90分以内」）。design-mock_v1.2.htmlの「発表枠」概念（例: RBA政策金利＋声明＋

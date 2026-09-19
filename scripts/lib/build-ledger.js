@@ -163,6 +163,27 @@ function resolveRuleGeneratedName(candidate, officials) {
   return null;
 }
 
+// official_speech/press_conferenceのname_jaが、実際にofficials.json解決済み（verified:true）の
+// 話者本人の人名で始まっているかを判定する（しょうさん指摘2026-09-19: 「スイスシュレーゲルSNB総裁の
+// 記者会見」のように、既に人名から始まる表示名にさらに国名を前置すると冗長。人名が無い場合
+// [「FRB理事の発言」「要人発言」等]は国名だけが国の手がかりのため、従来どおり国名前置を残す）。
+// scripts/render.mjsのheroDisplayNameが、ヒーロー文言の国名前置を省くかどうかの判断に使う。
+// candidate.displayName（manual-events.json由来等）が既に設定されている場合は、その文言が
+// 運用者の直接指定であり人名の有無を機械的に判定できないため、常にfalse（＝国名前置を残す。安全側）
+// とする
+function isVerifiedSpeakerDisplayName(candidate, officials) {
+  if (candidate.displayName) return false;
+  if (candidate.kind === 'official_speech') {
+    const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName, candidate.country);
+    return !!(official && official.verified && official.role_ja);
+  }
+  if (candidate.kind === 'press_conference') {
+    const official = naming.resolveGovernor(officials, candidate.country);
+    return !!(official && official.verified && official.role_ja);
+  }
+  return false;
+}
+
 function pad2(n) {
   return String(n).padStart(2, '0');
 }
@@ -238,6 +259,7 @@ function candidateToLedgerEvent(candidate, usedIds, officials) {
     halt_window_start_jst: haltStart,
     halt_window_end_jst: haltEnd,
     bundle_id: null,
+    speaker_named: isVerifiedSpeakerDisplayName(candidate, officials),
   };
 }
 
