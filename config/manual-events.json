@@ -40,6 +40,45 @@
       "source_note": "しょうさん指摘（2026-08-30、8/31週Manus突合）: 9/3貿易収支★★★が出力に欠落。調査の結果、au-gdp-2026-09-02と同一の構造的ギャップと判明（抽出・マッピングの不具合ではない）: au_abs（weekly_scrape）はABS future-releases-calendarの直近掲載分のみを対象週判定に使う設計だが、同ページの掲載horizonはau-abs-gdp-recon実測（2026-08-29、au-gdp-2026-09-02のsource_note参照）で2026-08-31までに留まることを確認済み。2026-09-03（3日分horizon外）はau-gdp-2026-09-02（2日分horizon外）よりさらに外側で同種の未掲載。trade_balanceのkind定義自体はconfig/official-sources.json au_abs.kinds・announce_time_by_kind・config/event-names.json（match:『international trade in goods』、実タイトル『International Trade in Goods』と完全一致、source_verified:true）とも既に正しく登録済み（豪貿易収支=★★★は docs/open-questions.md Q2の恒久ルール）。時刻11:30 Sydney(=10:30 JST)はau_abs.announce_time_by_kind.trade_balanceと一致。ABS側に掲載され次第、au_abs経由での重複候補化が無いか要目視確認（au-gdp-2026-09-02と同じ運用上の注意）",
       "registered_by": "Claude Code（8/31週Manus突合の調査。要しょうさん確認）",
       "registered_at": "2026-08-30"
+    },
+    {
+      "id": "boc-speech-macklem-2026-09-21",
+      "date": "2026-09-21",
+      "local_time": "11:20",
+      "tz": "America/Toronto",
+      "country": "CA",
+      "kind": "official_speech",
+      "display_name": "マックレムBOC総裁の発言",
+      "importance": 3,
+      "source_note": "9/21週監査（しょうさん指摘: 9/21-23の3日連続★★★なしは実態と不一致）を受け、公式情報で裏取りのうえ登録（2026-09-19、task #94フォローアップ）。一次ソース bankofcanada.ca/2026/09/speech-tiff-macklem-governor-bank-canada-2026-09-21/ に『On Monday, September 21, 2026, Tiff Macklem, Governor of the Bank of Canada, will speak before the Halifax Partnership. ... Time: 11:20 (Eastern Time)』と明記。BOC公式speechesフィード（bankofcanada.ca/content_type/speeches/feed/）の該当item（dc:date=2026-09-21T11:20:45+00:00相当）でも裏取り。しょうさん申告時刻（9/22 00:05 JST=11:05 ET）は、実際の講演開始時刻ではなく『エンバーゴ解除・原稿掲載時刻』（同アドバイザリに『The embargo will be lifted at 11:05 (ET)』『available on the Bank's website at 11:05 (ET)』と別途明記）だったための誤差と判明。正しい講演開始時刻11:20 ET（=2026-09-22 00:20 JST）で登録する",
+      "registered_by": "Claude Code（BOC公式アドバイザリ＋公式RSSで裏取り済み）",
+      "registered_at": "2026-09-19"
+    },
+    {
+      "id": "rba-speech-bullock-2026-09-22",
+      "date": "2026-09-22",
+      "local_time": "13:00",
+      "tz": "Australia/Sydney",
+      "country": "AU",
+      "kind": "official_speech",
+      "display_name": "ブロックRBA総裁の発言",
+      "importance": 3,
+      "source_note": "9/21週監査（しょうさん指摘）を受け、公式情報で裏取りのうえ登録（2026-09-19、task #94フォローアップ）。一次ソース rba.gov.au/coming-up/index.html および rba.gov.au/schedules-events/calendar/ に構造化データ（itemprop=datePublished, datetime属性）で『Fireside Chat with Michele Bullock, Governor, at the Committee for Economic Development of Australia (CEDA), Sydney』『datetime=\"2026-09-22T13:00+10:00\"』と明記。形式はCEDA主催のFireside Chat（モデレーター付き対談形式）でありRBA総裁本人の発言という点で他のofficial_speechと同種と判断した。しょうさん申告時刻（9/22 12:10 JST=13:10 AEST）は公式ページの13:00 AESTと10分の誤差があったため、正しい時刻13:00 AEST（=12:00 JST）で登録する。申告にあった会場情報『Fullerton Hotel』はRBA公式ページに記載が無くWebSearch経由でも確認できなかったため未採用（RBA公式は会場を『Sydney』としか明記していない）",
+      "registered_by": "Claude Code（RBA公式ページで裏取り済み）",
+      "registered_at": "2026-09-19"
+    },
+    {
+      "id": "frb-speech-jefferson-2026-09-22",
+      "date": "2026-09-22",
+      "local_time": "10:20",
+      "tz": "America/New_York",
+      "country": "US",
+      "kind": "official_speech",
+      "display_name": "ジェファーソンFRB副議長の発言",
+      "importance": 3,
+      "source_note": "task #94フォローアップ（FRB講演RSS[us_frb_speeches]の検出漏れ調査、2026-09-19）で発覚: federalreserve.gov/newsevents/2026-september.htm（公式カレンダー）に『10:20 a.m.』『Speech - Vice Chair Philip N. Jefferson』『Discount Window Modernization and Treasury Market Functioning』『At the 2026 Treasury Market Conference, Federal Reserve Bank of New York, New York, N.Y.』と明記。us_frb_speeches（feeds/speeches.xml）は講演実施後に原稿掲載された時点で初めて追加される設計のため、講演前のこの時点では検出できない（フィード自体の不具合ではなく、事前検出用の情報源として使えないという構造的な限界。恒久対応は別途検討）。role_rankをdeputy_governor（★★★）へ修正した副議長講演のため重要度3で登録する",
+      "registered_by": "Claude Code（federalreserve.gov公式カレンダーで裏取り済み）",
+      "registered_at": "2026-09-19"
     }
   ]
 }
