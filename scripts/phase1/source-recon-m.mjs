@@ -31,6 +31,14 @@ const section = (title) => log(`\n##### ${title} #####`);
 // 一次情報源での確認）。「(schedule)」リンクの実際のURL（祝日シフト時の詳細日程表）を
 // 特定するため、タグを保持したまま該当箇所付近のhrefを抽出する。米フラッシュPMI・NY連銀は
 // ラウンド1/2で十分な証拠（構造的アクセス不能・更新遅延）が得られたため対象外とする
+//
+// ラウンド4（2026-09-19、しょうさん指摘への差し戻し対応）: ラウンド1/2のNY連銀調査結果
+// （speeches索引ページが7/15止まり・RSS未発見）はセッション圧縮前の会話サマリーにのみ残り、
+// リポジトリにコミットされた一次記録（このファイル自体）には数値の裏付けが無かった。
+// 「実際に確認してから報告する」という運用方針上、記憶ベースの数値を未検証のまま再報告するのは
+// 不適切なため、同じ内容を再実測して一次記録として残す。併せてus_frb_calendar
+// （FRB本体で成功した、月別カレンダーページによる事前検出方式）と同型のページが
+// newyorkfed.org側にも存在するかを確認する
 const SOURCES = [
   {
     id: 'us_eia_wpsr_schedule_link', name: 'EIA WPSR「(schedule)」リンクの実際のURL特定',
@@ -50,6 +58,19 @@ const SOURCES = [
       { label: 'supply_weekly_schedule_guess2', url: 'https://www.eia.gov/petroleum/supply/weekly/schedule.php' },
     ],
     keywords: ['2026', 'wednesday', 'thursday', 'holiday'],
+  },
+  {
+    id: 'us_nyfed_speeches_reverify', name: 'NY連銀総裁講演の事前検出経路を再実測',
+    robotsHost: 'https://www.newyorkfed.org',
+    dumpTop: 4000,
+    targets: [
+      { label: 'speeches_index', url: 'https://www.newyorkfed.org/newsevents/speeches/index.html' },
+      { label: 'speeches_2026', url: 'https://www.newyorkfed.org/newsevents/speeches/2026' },
+      { label: 'newsevents_calendar', url: 'https://www.newyorkfed.org/newsevents/calendar/index.html' },
+      { label: 'rss_speeches_guess1', url: 'https://www.newyorkfed.org/rss/speeches.xml' },
+      { label: 'rss_speeches_guess2', url: 'https://www.newyorkfed.org/medialibrary/rss/speeches.xml' },
+    ],
+    keywords: ['2026', 'september', 'october', 'williams', 'rss'],
   },
 ];
 

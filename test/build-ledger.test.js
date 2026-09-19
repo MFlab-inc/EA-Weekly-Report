@@ -47,6 +47,7 @@ test('candidateToLedgerEvent: displayName未解決・officials未指定はFALLBA
   const ev = candidateToLedgerEvent(candidate, used);
   assert.equal(ev.name_ja, '記者会見');
   assert.equal(ev.name_resolution, 'rule_generated');
+  assert.equal(ev.speaker_named, false, 'officials未指定で解決不能な場合はspeaker_named=false');
 });
 
 test('candidateToLedgerEvent: displayName未解決・officials指定時はnaming.jsの規則生成命名を使う（SPEC §4.2）', () => {
@@ -58,6 +59,7 @@ test('candidateToLedgerEvent: displayName未解決・officials指定時はnaming
   const rateEv = candidateToLedgerEvent(rateCandidate, used, officials);
   assert.equal(rateEv.name_ja, 'SNB政策金利＆声明発表');
   assert.equal(rateEv.name_resolution, 'rule_generated');
+  assert.equal(rateEv.speaker_named, false, 'policy_rateはspeaker_named判定の対象外（常にfalse）');
 
   const pressCandidate = {
     date: '2026-08-18', time: '10:00', kind: 'press_conference', country: 'CH', importance: 3,
@@ -66,6 +68,9 @@ test('candidateToLedgerEvent: displayName未解決・officials指定時はnaming
   const pressEv = candidateToLedgerEvent(pressCandidate, used, officials);
   assert.equal(pressEv.name_ja, 'シュレーゲルSNB総裁の記者会見');
   assert.equal(pressEv.name_resolution, 'rule_generated');
+  // しょうさん指摘（2026-09-19）: 既に人名（シュレーゲル）から始まる表示名のため、ヒーロー文言の
+  // 国名前置省略の判断材料としてspeaker_named=trueになることを確認する（scripts/render.mjs参照）
+  assert.equal(pressEv.speaker_named, true, 'officials.json解決済みの人名で始まる場合はspeaker_named=true');
 });
 
 // task #84（2026-08-30、しょうさん指摘: 8/31週監査でRBNZ・BOC総裁記者会見★★★の不検出を発見）。
@@ -80,6 +85,7 @@ test('candidateToLedgerEvent: press_conference（NZ・CA）もofficials.json登�
   const nzEv = candidateToLedgerEvent(nzCandidate, used, officials);
   assert.equal(nzEv.name_ja, 'ブレマンRBNZ総裁の記者会見');
   assert.equal(nzEv.name_resolution, 'rule_generated');
+  assert.equal(nzEv.speaker_named, true);
 
   const caCandidate = {
     date: '2026-09-02', time: '23:30', kind: 'press_conference', country: 'CA', importance: 3,
@@ -88,6 +94,38 @@ test('candidateToLedgerEvent: press_conference（NZ・CA）もofficials.json登�
   const caEv = candidateToLedgerEvent(caCandidate, used, officials);
   assert.equal(caEv.name_ja, 'マックレムBOC総裁の記者会見');
   assert.equal(caEv.name_resolution, 'rule_generated');
+  assert.equal(caEv.speaker_named, true);
+});
+
+// しょうさん指摘（2026-09-19）: official_speechは話者が実際に解決できたか（officials.json
+// verified:trueの人物名がname_jaに含まれるか）でspeaker_namedが決まることを確認する。
+// manual-events.json由来（candidate.displayNameが運用者の直接指定）の場合は、その文言の人名有無を
+// 機械的に判定できないため常にfalse（安全側）になることもあわせて確認する
+test('candidateToLedgerEvent: official_speechのspeaker_named — 話者解決済みはtrue、役職名のみ・displayName直接指定はfalse', () => {
+  const used = new Set();
+  const namedCandidate = {
+    date: '2026-08-06', time: '05:05', kind: 'official_speech', country: 'US', importance: 2,
+    displayName: null, speakerLastName: 'Cook', sourceId: 'us_frb_speeches', sourceEvidence: 'test',
+  };
+  const namedEv = candidateToLedgerEvent(namedCandidate, used, officials);
+  assert.equal(namedEv.name_ja, 'クックFRB理事の発言');
+  assert.equal(namedEv.speaker_named, true);
+
+  const unresolvedCandidate = {
+    date: '2026-08-07', time: '05:05', kind: 'official_speech', country: 'US', importance: 2,
+    displayName: null, speakerLastName: 'NonexistentSurname', sourceId: 'us_frb_speeches', sourceEvidence: 'test',
+  };
+  const unresolvedEv = candidateToLedgerEvent(unresolvedCandidate, used, officials);
+  assert.equal(unresolvedEv.name_ja, 'FRB理事の発言');
+  assert.equal(unresolvedEv.speaker_named, false, '役職名のみにフォールバックした場合はfalse');
+
+  const manualCandidate = {
+    date: '2026-09-22', time: '00:20', kind: 'official_speech', country: 'CA', importance: 3,
+    displayName: 'マックレムBOC総裁の発言', sourceId: 'manual', sourceEvidence: 'test',
+  };
+  const manualEv = candidateToLedgerEvent(manualCandidate, used, officials);
+  assert.equal(manualEv.name_ja, 'マックレムBOC総裁の発言');
+  assert.equal(manualEv.speaker_named, false, 'displayName直接指定（manual等）は常にfalse（安全側）');
 });
 
 test('resolveRuleGeneratedName: bond_auction（tenorJa無し）・official_speech（US以外）は未対応でnullを返す', () => {
