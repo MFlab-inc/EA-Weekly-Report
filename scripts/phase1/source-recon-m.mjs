@@ -26,49 +26,30 @@ const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const log = (...a) => console.log(...a);
 const section = (title) => log(`\n##### ${title} #####`);
 
-// ラウンド2（2026-09-19、しょうさん指摘: ラウンド1でpmi.spglobal.comがrobots.txt自体HTTP 403で
-// 到達不可・EIA該当ページはプレビュー切り詰めで2026年分未確認・NY連銀は588KBの全文中どこに
-// 直近/将来分があるか未特定だったため、UA変更・全文ダンプ・上位抜粋で再調査する）
+// ラウンド3（2026-09-19）: ラウンド2でreports/upcoming.phpに『Weekly Petroleum Status Report
+// Wednesday at 10:30 a.m. ( schedule )』という直接記載を発見した（EIA公式ページ自身による
+// 一次情報源での確認）。「(schedule)」リンクの実際のURL（祝日シフト時の詳細日程表）を
+// 特定するため、タグを保持したまま該当箇所付近のhrefを抽出する。米フラッシュPMI・NY連銀は
+// ラウンド1/2で十分な証拠（構造的アクセス不能・更新遅延）が得られたため対象外とする
 const SOURCES = [
   {
-    id: 'us_flash_pmi', name: '米フラッシュPMI（S&P Global）日程・時刻実測',
-    robotsHost: 'https://www.pmi.spglobal.com',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+    id: 'us_eia_wpsr_schedule_link', name: 'EIA WPSR「(schedule)」リンクの実際のURL特定',
+    robotsHost: 'https://www.eia.gov',
+    findLinksNear: ['Weekly Petroleum Status Report', 'Weekly Natural Gas Storage Report'],
     targets: [
-      { label: 'press_release_hub', url: 'https://www.pmi.spglobal.com/Public/Home/PressRelease' },
-      { label: 'us_rel_dates_pdf', url: 'https://www.pmi.spglobal.com/Public/Home/PDF/US_Rel_Dates' },
+      { label: 'reports_upcoming_raw', url: 'https://www.eia.gov/reports/upcoming.php' },
     ],
-    keywords: ['september', 'flash', 'u.s.', 'united states', 'composite', 'manufacturing', 'embargo'],
+    keywords: [],
   },
   {
-    id: 'us_flash_pmi_altcalendars', name: '米フラッシュPMI 代替経路（経済指標カレンダーサイト）実測',
-    robotsHost: 'https://www.investing.com',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-    skipRobotsGate: true,
-    targets: [
-      { label: 'investing_economic_calendar', url: 'https://www.investing.com/economic-calendar/s-p-global-composite-pmi-1637' },
-      { label: 'dailyfx_calendar', url: 'https://www.dailyfx.com/economic-calendar' },
-    ],
-    keywords: ['september', 'flash', 'composite', 'manufacturing', 'sep 23', 'sep 24'],
-  },
-  {
-    id: 'us_eia_weekly_petroleum', name: 'EIA週間石油在庫統計 発表スケジュール実測（全文ダンプ）',
+    id: 'us_eia_wpsr_schedule_guess', name: 'EIA WPSR祝日シフト表の推測URLを試行',
     robotsHost: 'https://www.eia.gov',
     dumpFull: true,
     targets: [
-      { label: 'wpsr_includes_schedule_full', url: 'https://www.eia.gov/petroleum/weekly/includes/schedule.php' },
-      { label: 'reports_upcoming', url: 'https://www.eia.gov/reports/upcoming.php' },
+      { label: 'supply_weekly_schedule_guess1', url: 'https://www.eia.gov/petroleum/supply/weekly/includes/schedule.php' },
+      { label: 'supply_weekly_schedule_guess2', url: 'https://www.eia.gov/petroleum/supply/weekly/schedule.php' },
     ],
-    keywords: ['2026', '10:30', 'wednesday', 'thursday', 'holiday'],
-  },
-  {
-    id: 'us_nyfed_speeches_round2', name: 'NY連銀総裁講演 一覧ページ 上位抜粋・RSS実在確認',
-    robotsHost: 'https://www.newyorkfed.org',
-    dumpTop: 15000,
-    targets: [
-      { label: 'speeches_index_top', url: 'https://www.newyorkfed.org/newsevents/speeches/index' },
-    ],
-    keywords: ['rss', 'application/rss', 'sep', '2026', 'williams'],
+    keywords: ['2026', 'wednesday', 'thursday', 'holiday'],
   },
 ];
 
@@ -180,6 +161,19 @@ function excerptsNear(text, keywords, radius = 250, maxPerKeyword = 2) {
           }
           const hasRssLink = /<link[^>]+type=["']application\/rss\+xml["'][^>]*>/i.exec(bodyText);
           if (hasRssLink) log(`  [RSS-LINK-FOUND] ${hasRssLink[0]}`);
+          if (src.findLinksNear) {
+            for (const anchorText of src.findLinksNear) {
+              const idx = bodyText.indexOf(anchorText);
+              if (idx === -1) {
+                log(`  [LINK-NEAR] "${anchorText}" が本文中に見つからない`);
+                continue;
+              }
+              const windowText = bodyText.slice(Math.max(0, idx - 400), idx + 400);
+              const hrefs = [...windowText.matchAll(/href=["']([^"']+)["']/gi)].map((m) => m[1]);
+              log(`  [LINK-NEAR] "${anchorText}" 近傍のhref候補: ${JSON.stringify(hrefs)}`);
+              log(`    生HTML抜粋: ${windowText.replace(/\s+/g, ' ')}`);
+            }
+          }
           const hits = excerptsNear(bodyText.replace(/<[^>]+>/g, ' '), src.keywords, 250, 5);
           if (hits.length) {
             log(`  [KEYWORD-HITS] ${hits.length}件`);
