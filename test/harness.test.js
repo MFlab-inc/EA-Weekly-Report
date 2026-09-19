@@ -783,6 +783,70 @@ test('runChecks: au_absが対象月・対象日範囲でGDPを検出できた週
   assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
 });
 
+// 2026-09-19追加（しょうさん指摘: PR #28マージ後のフォローアップ確認事項2）。task #87の
+// 2つのend-to-endテスト（756行目・784行目）は9月週のみを対象としていたため、次回の豪州GDP本体
+// 発表（2026年12月）でも同じ経路が機能するかは「9月で動くなら12月も動くはず」という推測に
+// 留まっていた。matchキーワード自体は月に依存しない文字列一致のため理屈上は問題ないはずだが、
+// 実際に12月の日付・実タイトルで動作確認する（推測ではなく実測に置き換える）
+test('runChecks: 12月週でも「Australian National Accounts: National Income, Expenditure and Product」がGDPとして検出できWARNが出ない（次回発表・2026年12月分の先取り確認）', async () => {
+  const { runChecks } = await loadHarness();
+  const html = `<div><strong class="event-name">Australian National Accounts: National Income, Expenditure and Product</strong><time datetime="2026-12-02T01:30:00Z"></time></div>`;
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'au_abs', status: 'active', country: 'AU', kinds: ['gdp'], type: 'weekly_scrape',
+        access: { targets: [{ label: 'future_releases_calendar', url: 'https://example.invalid/abs' }] },
+        recurring_check_refs: [],
+      },
+    ],
+  };
+  const importanceRules = {
+    recurring_checks: [{ name: '豪州GDP（ABS）', rule: '3月・6月・9月・12月の1日〜5日ごろ', action: 'WARN' }],
+  };
+  const targetWeek = {
+    collectionDate: '2026-11-28', targetWeekStart: '2026-11-30', targetWeekEnd: '2026-12-04',
+    dates: [
+      { date: '2026-11-30', md: '11/30', weekday: '月' }, { date: '2026-12-01', md: '12/1', weekday: '火' },
+      { date: '2026-12-02', md: '12/2', weekday: '水' }, { date: '2026-12-03', md: '12/3', weekday: '木' },
+      { date: '2026-12-04', md: '12/4', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
+});
+
+// 12月週でau_absがGDPを検出できなかった場合（horizon外・サイト構造変化等）は、9月週と同じく
+// recurring_checks経由でWARNが引き続き発火することを確認する（取りこぼし時のフェールセーフ）
+test('runChecks: 12月週でau_absがGDPを検出できない場合はrecurring_checks経由でWARNが引き続き発火する', async () => {
+  const { runChecks } = await loadHarness();
+  const html = `<div><strong class="event-name">Consumer Price Index, Australia</strong><time datetime="2026-11-25T01:30:00Z"></time></div>`;
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'au_abs', status: 'active', country: 'AU', kinds: ['cpi', 'gdp'], type: 'weekly_scrape',
+        access: { targets: [{ label: 'future_releases_calendar', url: 'https://example.invalid/abs' }] },
+        recurring_check_refs: [],
+      },
+    ],
+  };
+  const importanceRules = {
+    recurring_checks: [{ name: '豪州GDP（ABS）', rule: '3月・6月・9月・12月の1日〜5日ごろ', action: 'WARN' }],
+  };
+  const targetWeek = {
+    collectionDate: '2026-11-28', targetWeekStart: '2026-11-30', targetWeekEnd: '2026-12-04',
+    dates: [
+      { date: '2026-11-30', md: '11/30', weekday: '月' }, { date: '2026-12-01', md: '12/1', weekday: '火' },
+      { date: '2026-12-02', md: '12/2', weekday: '水' }, { date: '2026-12-03', md: '12/3', weekday: '木' },
+      { date: '2026-12-04', md: '12/4', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.recurringMissingWarnings.length, 1);
+  assert.ok(report.recurringMissingWarnings.some((w) => w.includes('豪州GDP（ABS）')));
+});
+
 // 2026-09-19追加（しょうさん指摘、9/21週監査で発覚した実バグの回帰テスト）: au_absの
 // future-releases-calendarに「Australian National Accounts: Finance and Wealth」
 // （家計・法人の資産・負債＝国富統計。GDPとは別のABSリリース）が掲載されている場合、
@@ -810,4 +874,9 @@ test('checkWeeklyScrapeSource: 「Australian National Accounts: Finance and Weal
   assert.equal(result.ok, true);
   assert.deepEqual(result.thisWeek, [], 'Finance and WealthがGDP候補として抽出されてはならない');
   assert.deepEqual(result.foundKinds, []);
+  // しょうさん指摘（PR #28マージ後のフォローアップ確認事項1）: 未分類（掲載対象外）のFinance and
+  // Wealthが、resolveCandidateEvent失敗によるunregisteredWARN等の形で別途ノイズを出さないことも
+  // 確認する。classifyRowKindがnullを返した行はresolveCandidateEventに到達する前にスキップされる
+  // 設計（harness.mjsのcheckWeeklyScrapeSource参照）のため、unregisteredは空のままになるはず
+  assert.deepEqual(result.unregistered, [], 'kind不一致の行はunregistered等のWARN経路にも一切乗らないはず');
 });

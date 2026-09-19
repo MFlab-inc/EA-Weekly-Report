@@ -92,6 +92,11 @@ test('実config — 「豪州GDP（ABS）」「豪州貿易収支（ABS）」ル
   assert.equal(matchesRecurringRule(gdpRule, ['2026-08-31', '2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04']), true);
   assert.equal(matchesRecurringRule(gdpRule, ['2026-09-07', '2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11']), false);
   assert.equal(matchesRecurringRule(gdpRule, ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07']), false);
+  // 2026-09-19追加（しょうさん指摘: PR #28マージ後のフォローアップ確認事項2）。月列挙+日範囲の
+  // AND判定はmonthMatches配列に12も含むため12月にも同じロジックがそのまま適用されることを、
+  // 実際に12月の日付で確認する（9月のみのテストでは「12月も動くはず」という推測に留まっていた）
+  assert.equal(matchesRecurringRule(gdpRule, ['2026-11-30', '2026-12-01', '2026-12-02', '2026-12-03', '2026-12-04']), true);
+  assert.equal(matchesRecurringRule(gdpRule, ['2026-12-07', '2026-12-08', '2026-12-09', '2026-12-10', '2026-12-11']), false);
 
   // 貿易収支: 月に関係なく1〜10日を含む週はtrue（説明文中の「発表分」等が誤って月条件化していないこと）
   assert.equal(matchesRecurringRule(tradeBalanceRule, ['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04', '2026-09-05']), true);
