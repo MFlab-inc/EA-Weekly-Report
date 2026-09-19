@@ -74,7 +74,7 @@ test('normalizeFrbSpeakerName: 役職タイトル・ミドルイニシャルを�
 
 test('resolveOfficialBySurname: 正規化後の話者名がofficials.jsonの各FRB理事と正しく一致する', () => {
   assert.equal(resolveOfficialBySurname(officials, 'Philip Jefferson', 'US').role_rank, 'deputy_governor');
-  assert.equal(resolveOfficialBySurname(officials, 'Michelle Bowman', 'US').role_rank, 'deputy_governor');
+  assert.equal(resolveOfficialBySurname(officials, 'Michelle Bowman', 'US').role_rank, 'board_member');
   assert.equal(resolveOfficialBySurname(officials, 'Michael Barr', 'US').role_rank, 'board_member');
   assert.equal(resolveOfficialBySurname(officials, 'Christopher Waller', 'US').role_rank, 'board_member');
 });

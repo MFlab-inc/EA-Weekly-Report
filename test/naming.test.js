@@ -151,7 +151,7 @@ test('resolveOfficialBySurname: FRB理事個人（議長以外）が登録済み
 
   const bowman = naming.resolveOfficialBySurname(officials, 'Bowman', 'US');
   assert.ok(bowman, 'Bowmanが解決できない');
-  assert.equal(bowman.role_ja, 'FRB副議長（金融監督担当）');
+  assert.equal(bowman.role_ja, 'FRB理事（金融監督担当副議長）');
 
   const barr = naming.resolveOfficialBySurname(officials, 'Barr', 'US');
   assert.ok(barr, 'Barrが解決できない');
