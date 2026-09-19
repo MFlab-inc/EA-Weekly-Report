@@ -488,6 +488,22 @@ test('classifyRowKind経由: GDP（AU gdp）がau_absの新規kindsエントリ�
   assert.ok(auAbsSource.kinds.includes('gdp'), 'au_abs.kindsにgdpが登録されていない');
 });
 
+// 2026-09-19追加（しょうさん指摘、9/21週監査で発覚した実バグの回帰テスト）: 従来のmatch
+// ["australian national accounts"]は、ABS公式の別リリース「Australian National Accounts:
+// Finance and Wealth」（家計・法人の資産・負債＝国富統計。GDPとは別物）まで同じ接頭辞を持つため
+// 誤ってgdp kindに分類してしまっていた（au-gdp-2026-09-24として誤登録された実例）。
+// GitHub Actions実ネットワーク経由の再実測（source-recon-n.mjs、Actions run 35434060896）で
+// 2026年通期はこの2リリースしか「national accounts」を含まないことを確認済み。
+// matchをGDP本体固有の部分文字列へ絞り込み、Finance and Wealthは誤って一致しないことを確認する
+test('classifyRowKind経由: AU gdpのmatchは「Australian National Accounts: Finance and Wealth」（別リリース）には一致しない', () => {
+  const auGdpEntry = realEventNames.find((e) => e.country === 'AU' && e.kind === 'gdp');
+  const financeAndWealthTitle = 'australian national accounts: finance and wealth';
+  assert.ok(
+    !auGdpEntry.match.some((k) => financeAndWealthTitle.includes(k.toLowerCase())),
+    'Finance and Wealth（GDPとは別のABSリリース）がgdpのmatchキーワードに誤って一致してしまう'
+  );
+});
+
 test('annualEntryToCandidate: 鉱工業生産指数・小売売上高・GDP（CN）が実configから名称解決できる', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
   const source = realSourcesConfig.sources.find((s) => s.id === 'cn_nbs_data');

@@ -782,3 +782,32 @@ test('runChecks: au_absが対象月・対象日範囲でGDPを検出できた週
   const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
   assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
 });
+
+// 2026-09-19追加（しょうさん指摘、9/21週監査で発覚した実バグの回帰テスト）: au_absの
+// future-releases-calendarに「Australian National Accounts: Finance and Wealth」
+// （家計・法人の資産・負債＝国富統計。GDPとは別のABSリリース）が掲載されている場合、
+// classifyRowKind経由でgdp kindに誤分類されないことをcheckWeeklyScrapeSource（実データ経路）で
+// 確認する。event-names.jsonのAU/gdp matchを修正するまでは、この行もgdp候補として
+// 誤って抽出されていた（au-gdp-2026-09-24として実際に発生した事例）
+test('checkWeeklyScrapeSource: 「Australian National Accounts: Finance and Wealth」（別リリース）はgdpに誤分類されない（9/21週監査の回帰テスト）', async () => {
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  const html = `<div><strong class="event-name">Australian National Accounts: Finance and Wealth</strong><time datetime="2026-09-24T01:30:00Z"></time></div>`;
+  const source = {
+    id: 'au_abs', status: 'active', country: 'AU', kinds: ['gdp'], type: 'weekly_scrape',
+    access: { targets: [{ label: 'future_releases_calendar', url: 'https://example.invalid/abs' }] },
+    announce_time_by_kind: { gdp: { local_time: '11:30', tz: 'Australia/Sydney' } },
+  };
+  const targetWeek = {
+    collectionDate: '2026-09-19', targetWeekStart: '2026-09-21', targetWeekEnd: '2026-09-25',
+    dates: [
+      { date: '2026-09-21', md: '9/21', weekday: '月' }, { date: '2026-09-22', md: '9/22', weekday: '火' },
+      { date: '2026-09-23', md: '9/23', weekday: '水' }, { date: '2026-09-24', md: '9/24', weekday: '木' },
+      { date: '2026-09-25', md: '9/25', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const result = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.thisWeek, [], 'Finance and WealthがGDP候補として抽出されてはならない');
+  assert.deepEqual(result.foundKinds, []);
+});
