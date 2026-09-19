@@ -1,0 +1,18 @@
+# 一時ワークフロー（2026-09-19）: NY連銀総裁講演の事前検出経路をGitHub Actions実ネットワーク
+# 経由で再実測する（scripts/phase1/source-recon-m.mjsラウンド4）。しょうさん指摘への差し戻し
+# 対応（米フラッシュPMI・EIA・NY連銀の3件をサンドボックス制約を理由に先送りしない）。
+# 確認完了後、このファイルと.nyfed-recon-triggerは削除する（scripts/phase1/source-recon-m.mjs
+# 自体は監査記録として残す）。
+name: nyfed-recon
+on:
+  push:
+    paths:
+      - '.nyfed-recon-trigger'
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - run: node scripts/phase1/source-recon-m.mjs
