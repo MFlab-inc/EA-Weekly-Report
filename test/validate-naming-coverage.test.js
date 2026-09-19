@@ -43,14 +43,16 @@ test('実config — minutes_summaryソース登録国（JP=BOJ専用テンプレ
   assert.deepEqual(missing, [], `MINUTES_SUMMARY_NAME_BY_COUNTRYに未登録の国がある（議事要旨が汎用ラベルへ劣化する）: ${missing}`);
 });
 
-// JP・GBは除外: BOJは副総裁・審議委員・理事等、BOE（2026-08-30、task #72・gb_boe_speeches新設）も
-// 総裁・副総裁・Executive Director等で話者ごとに役職が異なるため、US（FRB理事で統一）のような
-// 国単位の固定ラベルが成立しない。resolveRuleGeneratedNameはofficials.jsonで話者本人が特定できれば
-// その人物自身のrole_jaを使う設計のため、国単位辞書（OFFICIAL_SPEECH_ROLE_BY_COUNTRY）への登録は
-// 不要（未登録話者はFALLBACK_KIND_LABEL『要人発言』へ）
-test('実config — official_speechソース登録国（JP・GB=話者個別role_ja方式のため除く）が全てbuild-ledger.OFFICIAL_SPEECH_ROLE_BY_COUNTRYに登録されている', () => {
+// JP・GB・CA・AU・EU・CHは除外: BOJは副総裁・審議委員・理事等、BOE（2026-08-30、task #72・
+// gb_boe_speeches新設）も総裁・副総裁・Executive Director等、BOC/RBA/ECB/SNB（2026-09-19、
+// task #72・ca_boc_speeches/au_rba_speeches/ecb_speeches/snb_speeches新設）も総裁・副総裁級・
+// 理事等で話者ごとに役職が異なるため、US（FRB理事で統一）のような国単位の固定ラベルが成立しない。
+// resolveRuleGeneratedNameはofficials.jsonで話者本人が特定できればその人物自身のrole_jaを使う
+// 設計のため、国単位辞書（OFFICIAL_SPEECH_ROLE_BY_COUNTRY）への登録は不要（未登録話者は
+// FALLBACK_KIND_LABEL『要人発言』へ）
+test('実config — official_speechソース登録国（JP・GB・CA・AU・EU・CH=話者個別role_ja方式のため除く）が全てbuild-ledger.OFFICIAL_SPEECH_ROLE_BY_COUNTRYに登録されている', () => {
   const { OFFICIAL_SPEECH_ROLE_BY_COUNTRY } = require('../scripts/lib/build-ledger');
   const required = countriesWithKind(sourcesConfig, 'official_speech');
-  const missing = missingCountriesInDict(required, OFFICIAL_SPEECH_ROLE_BY_COUNTRY, { excludeCountries: ['JP', 'GB'] });
+  const missing = missingCountriesInDict(required, OFFICIAL_SPEECH_ROLE_BY_COUNTRY, { excludeCountries: ['JP', 'GB', 'CA', 'AU', 'EU', 'CH'] });
   assert.deepEqual(missing, [], `OFFICIAL_SPEECH_ROLE_BY_COUNTRYに未登録の国がある（要人発言が汎用ラベルへ劣化する）: ${missing}`);
 });

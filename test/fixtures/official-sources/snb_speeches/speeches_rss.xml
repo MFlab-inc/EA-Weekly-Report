@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:cb="http://www.cbwiki.net/wiki/index.php/Specification_1.2/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+<title>SNB Speeches</title>
+<link>https://www.snb.ch/en/news-publications/speeches</link>
+<item>
+  <title>2026-08-26 - Antoine Martin: Monetary policy and financial stability at the SNB: the role of macroprudential tools</title>
+  <link>https://www.snb.ch/en/publications/communication/speeches/2026/ref_20260826_anmar</link>
+  <guid>https://www.snb.ch/en/publications/communication/speeches/2026/ref_20260826_anmar</guid>
+  <cb:speech rdf:parseType="Resource">
+    <cb:simpleTitle>Monetary policy and financial stability at the SNB: the role of macroprudential tools</cb:simpleTitle>
+    <cb:occurrenceDate>2026-08-26T16:15:00Z</cb:occurrenceDate>
+    <cb:person rdf:parseType="Resource">
+      <cb:nameAsWritten>Antoine Martin</cb:nameAsWritten>
+      <cb:role><cb:jobTitle>Vice Chairman of the Governing Board</cb:jobTitle></cb:role>
+    </cb:person>
+    <cb:venue>University of Basel, Basel</cb:venue>
+  </cb:speech>
+  <dc:date>2026-08-26T16:15:00Z</dc:date>
+</item>
+<item>
+  <title>2026-07-02 - Martin Schlegel / Antoine Martin / Petra Tschudin: Introductory remarks by the Governing Board</title>
+  <link>https://www.snb.ch/en/publications/communication/speeches/2026/ref_20260702_gb</link>
+  <guid>https://www.snb.ch/en/publications/communication/speeches/2026/ref_20260702_gb</guid>
+  <cb:speech rdf:parseType="Resource">
+    <cb:simpleTitle>Introductory remarks by the Governing Board</cb:simpleTitle>
+    <cb:occurrenceDate>2026-07-02T08:30:00Z</cb:occurrenceDate>
+    <cb:person rdf:parseType="Resource">
+      <cb:nameAsWritten>Martin Schlegel / Antoine Martin / Petra Tschudin</cb:nameAsWritten>
+      <cb:role><cb:jobTitle>Chairman of the Governing Board / Vice Chairman of the Governing Board / Member of the Governing Board</cb:jobTitle></cb:role>
+    </cb:person>
+  </cb:speech>
+  <dc:date>2026-07-02T08:30:00Z</dc:date>
+</item>
+<item>
+  <title>2026-06-10 - Barbara Janom Steiner: Remarks by the President of the Bank Council</title>
+  <link>https://www.snb.ch/en/publications/communication/speeches/2026/ref_20260610_bjs</link>
+  <guid>https://www.snb.ch/en/publications/communication/speeches/2026/ref_20260610_bjs</guid>
+  <cb:speech rdf:parseType="Resource">
+    <cb:simpleTitle>Remarks by the President of the Bank Council</cb:simpleTitle>
+    <cb:occurrenceDate>2026-06-10T09:00:00Z</cb:occurrenceDate>
+    <cb:person rdf:parseType="Resource">
+      <cb:nameAsWritten>Barbara Janom Steiner</cb:nameAsWritten>
+      <cb:role><cb:jobTitle>President of the Bank Council</cb:jobTitle></cb:role>
+    </cb:person>
+  </cb:speech>
+  <dc:date>2026-06-10T09:00:00Z</dc:date>
+</item>
+</channel>
+</rss>

@@ -31,6 +31,10 @@ import { extractMofAuctions } from './extractors/mof.js';
 import { extractUsTreasuryAuctions } from './extractors/us-treasury.js';
 import { extractFrbSpeeches } from './extractors/frb-speeches.js';
 import { extractBoeSpeeches } from './extractors/boe-speeches.js';
+import { extractBocSpeeches } from './extractors/boc-speeches.js';
+import { extractRbaSpeeches } from './extractors/rba-speeches.js';
+import { extractEcbSpeeches } from './extractors/ecb-speeches.js';
+import { extractSnbSpeeches } from './extractors/snb-speeches.js';
 import { extractSnbEvents } from './extractors/snb-policy-rate.js';
 import { extractBojSpeeches } from './extractors/boj-speeches.js';
 import { extractNzStatsCalendar } from './extractors/nz-stats-calendar.js';
@@ -180,6 +184,30 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
   gb_boe_speeches: {
     primaryLabel: 'speeches_rss',
     parseFn: extractBoeSpeeches,
+    toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
+  },
+  // BOC/RBA/ECB/SNB講演: task #72（2026-09-19）で新設。いずれもpubDate/dc:date/cb:occurrenceDateが
+  // 絶対時刻（明示的UTCオフセットまたはZ固定）のためutcInstantとして渡す（BOE/FRBと同じ設計）。
+  // row.kind='official_speech'はここで付与する。speakerLastNameには各抽出器が返す話者フルネームを
+  // そのまま渡す（naming.resolveOfficialBySurnameがofficials.jsonのfull_name部分一致で照合する）
+  ca_boc_speeches: {
+    primaryLabel: 'speeches_feed',
+    parseFn: extractBocSpeeches,
+    toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
+  },
+  au_rba_speeches: {
+    primaryLabel: 'speeches_rss',
+    parseFn: extractRbaSpeeches,
+    toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
+  },
+  ecb_speeches: {
+    primaryLabel: 'press_rss',
+    parseFn: extractEcbSpeeches,
+    toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
+  },
+  snb_speeches: {
+    primaryLabel: 'speeches_rss',
+    parseFn: extractSnbSpeeches,
     toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
   },
   // SNB: row.kindが抽出側で確定済み（policy_rate / press_conference / opinions_summary）。
