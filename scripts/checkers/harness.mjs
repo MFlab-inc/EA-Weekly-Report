@@ -30,6 +30,7 @@ import { extractBocPolicyRateSchedule } from './extractors/boc-policy-rate.js';
 import { extractMofAuctions } from './extractors/mof.js';
 import { extractUsTreasuryAuctions } from './extractors/us-treasury.js';
 import { extractFrbSpeeches } from './extractors/frb-speeches.js';
+import { extractFrbCalendar } from './extractors/frb-calendar.js';
 import { extractBoeSpeeches } from './extractors/boe-speeches.js';
 import { extractBocSpeeches } from './extractors/boc-speeches.js';
 import { extractRbaSpeeches } from './extractors/rba-speeches.js';
@@ -100,6 +101,30 @@ function buildNzCalendarMonthTargets(source, targetWeek) {
   return months.map((ym) => {
     const [y, m] = ym.split('-');
     return { label: `calendar_export_${y}${m}`, url: `${base}?month=${Number(m)}&year=${y}` };
+  });
+}
+
+const FRB_CALENDAR_MONTH_NAMES = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+];
+
+// us_frb_calendar向け: newsevents/{年}-{月名}.htmは月別ページのため、対象週が月をまたぐ場合は
+// 両月とも対象にする（jp_mofと同じ月別ローリング取得パターン）。加えて、講演は数日〜1週間程度
+// 前から事前公表される（実測確認済み。task #94フォローアップ）ため、対象週を含む月の翌月分も
+// 常にfetch対象へ含め、月末近くの対象週で翌月分の講演がまだ翌月ページにしか載っていないケースに
+// 備える（2026-09-19新設）
+function buildFrbCalendarMonthTargets(source, targetWeek) {
+  const pattern = source.access?.month_url_pattern;
+  if (!pattern) return source.access?.targets || [];
+  const weekMonths = [targetWeek.targetWeekStart.slice(0, 7), targetWeek.targetWeekEnd.slice(0, 7)];
+  const [lastY, lastM] = weekMonths[weekMonths.length - 1].split('-').map(Number);
+  const nextYm = lastM === 12 ? `${lastY + 1}-01` : `${lastY}-${String(lastM + 1).padStart(2, '0')}`;
+  const months = [...new Set([...weekMonths, nextYm])].sort();
+  return months.map((ym) => {
+    const [y, m] = ym.split('-');
+    const monthName = FRB_CALENDAR_MONTH_NAMES[Number(m) - 1];
+    return { label: `calendar_${y}${m}`, url: pattern.replace('{YEAR}', y).replace('{MONTH_NAME}', monthName) };
   });
 }
 
@@ -175,6 +200,16 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     primaryLabel: 'speeches_rss',
     parseFn: extractFrbSpeeches,
     toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
+  },
+  // FRB事前公表カレンダー: us_frb_speeches（講演実施後にしか追加されない）を補う事前検出用
+  // （task #94フォローアップ、2026-09-19新設）。row.date/localTimeは抽出側で確定済み（月別ページの
+  // "H:MM a.m./p.m."形式を24時間制へ変換済み）のためtz指定のみでresolveCandidateEventが解決する。
+  // speakerLastNameは役職タイトル・ミドルイニシャルを除去済みのフルネーム（scripts/checkers/
+  // extractors/frb-calendar.js参照）
+  us_frb_calendar: {
+    buildTargets: buildFrbCalendarMonthTargets,
+    parseFn: extractFrbCalendar,
+    toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime, kind: 'official_speech', speakerLastName: r.speakerLastName }),
   },
   // BOE理事講演: pubDateが絶対時刻（明示的UTCオフセット付き）のためutcInstantとして渡す
   // （us_frb_speechesと同じ設計）。row.kind='official_speech'はここで付与する。speakerLastNameには

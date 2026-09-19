@@ -1434,7 +1434,34 @@
         ]
       },
       "announce_time_by_kind": {},
-      "notes": "優先度B2。2026-08-14実測: 標準的なRSS 2.0フィード（/feeds/speeches.xml）から、ground truth（Cook理事講演、UTC 2026-08-05T20:05:00Z=JST 2026-08-06 05:05）と完全一致するpubDateを抽出確認済み（scripts/checkers/extractors/frb-speeches.js）。pubDateは絶対UTC値のためconfig固定時刻は不要（access.provides_exact_time:true）。**未解決**: config/officials.jsonにFRB理事個人（Cook・Waller・Jefferson・Barr・Bowman等、議長ではなく理事）が未登録のため、姓（例:\"Cook\"）から正式な人名・役職を解決してSPEC §4.2命名テンプレート「{人名}{役職}の発言」を適用する処理は未実装。Phase 0のofficials.json調査と同じ方式（公式サイト＋日本語金融メディア2ソース以上のクロスチェック）での追加調査が必要（推測での登録は不可）。証言（testimony.xml）・理事別個別フィードも同様に未実装 | 2026-08-15（task #19付随の配線ギャップ修正）: harness.mjsのWEEKLY_SCRAPE_EXTRACTORSへ登録完了。pubDateRawをutcInstantとして渡しrow.kind='official_speech'を付与（SPEC §4.2の規則生成命名kind、event-names.json辞書照合はスキップ）。話者の人名・役職解決（task #17でofficials.jsonにFRB理事を追加後に対応）は引き続き未実装だが、フェールクローズ判定・候補検出自体は機能する。観測モード実測（job 94843102819）で確認された「抽出ルール未実装」失敗はこれで解消"
+      "notes": "優先度B2。2026-08-14実測: 標準的なRSS 2.0フィード（/feeds/speeches.xml）から、ground truth（Cook理事講演、UTC 2026-08-05T20:05:00Z=JST 2026-08-06 05:05）と完全一致するpubDateを抽出確認済み（scripts/checkers/extractors/frb-speeches.js）。pubDateは絶対UTC値のためconfig固定時刻は不要（access.provides_exact_time:true）。**未解決**: config/officials.jsonにFRB理事個人（Cook・Waller・Jefferson・Barr・Bowman等、議長ではなく理事）が未登録のため、姓（例:\"Cook\"）から正式な人名・役職を解決してSPEC §4.2命名テンプレート「{人名}{役職}の発言」を適用する処理は未実装。Phase 0のofficials.json調査と同じ方式（公式サイト＋日本語金融メディア2ソース以上のクロスチェック）での追加調査が必要（推測での登録は不可）。証言（testimony.xml）・理事別個別フィードも同様に未実装 | 2026-08-15（task #19付随の配線ギャップ修正）: harness.mjsのWEEKLY_SCRAPE_EXTRACTORSへ登録完了。pubDateRawをutcInstantとして渡しrow.kind='official_speech'を付与（SPEC §4.2の規則生成命名kind、event-names.json辞書照合はスキップ）。話者の人名・役職解決（task #17でofficials.jsonにFRB理事を追加後に対応）は引き続き未実装だが、フェールクローズ判定・候補検出自体は機能する。観測モード実測（job 94843102819）で確認された「抽出ルール未実装」失敗はこれで解消 | 2026-09-19（task #94フォローアップ）: 本フィードは講演実施後に原稿が掲載された時点で初めて追加される設計のため、講演前の事前検出ができない構造的限界があると判明（ジェファーソン副議長の2026-09-22講演が講演当日までフィードに一切現れなかった実例）。事前検出はus_frb_calendar（新設）が担う。本ソースは実施済み講演の裏取り・二次確認用として引き続き有効"
+    },
+    {
+      "id": "us_frb_calendar",
+      "name_ja": "FRB（事前公表カレンダー）",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          { "label": "calendar_202609", "url": "https://www.federalreserve.gov/newsevents/2026-september.htm" }
+        ],
+        "month_url_pattern": "https://www.federalreserve.gov/newsevents/{YEAR}-{MONTH_NAME}.htm",
+        "note": "対象週の月（＋クロスマンス先読みの翌月）に応じてmonth_url_patternのYEAR/MONTH_NAMEを差し替えて動的にfetchする（buildFrbCalendarMonthTargets、jp_mofと同じ設計）。targetsの固定値は2026年9月固定のfixture確認用"
+      },
+      "announce_time_by_kind": {
+        "official_speech": {
+          "tz": "America/New_York",
+          "note": "抽出行ごとにlocalTimeを個別に持つ（このtz値のみをresolveCandidateEventのゾーン変換に使う）。access.provides_exact_time:trueのためconfig固定のlocal_timeは不要（jp_boj_speechesと同じ設計）。FRBカレンダーページの時刻表記は講演会場の現地時刻ではなく常にEastern Time（本部所在地）で統一されていることを実測サンプル（シカゴ会場のバー理事講演も含む）で確認済み"
+        }
+      },
+      "notes": "task #94フォローアップ（2026-09-19、しょうさん指摘: us_frb_speeches[feeds/speeches.xml]は講演実施後にしか追加されない設計のため、ジェファーソン副議長の2026-09-22講演が講演当日まで検出できなかった実例を受け、事前検出用に新設）。ライブ実測（2026-09-19）: newsevents/{年}-{月名小文字}.htmは静的サーバーレンダリングHTML（JS描画不要、cal-nojs）で、カテゴリ別セクション（Speeches/FOMC Meetings/Beige Book/Statistical Releases/Other等、該当イベントがある月のみそのカテゴリが表示される）構成。各行はcol-xs-2（時刻、\"H:MM a.m./p.m.\"形式）・col-xs-7（種別＋話者等）・col-xs-3（日）の3列構造。ジェファーソン副議長（9/22, 10:20 a.m., 'Speech - Vice Chair Philip N. Jefferson'）・バー理事（9/1, 9/23）・ボウマン副議長（9/18, 'Vice Chair for Supervision'）・ウォラー理事（9/3）の計5件を実データで確認済み。話者名は役職タイトル＋ミドルイニシャル付き表記（例:\"Vice Chair Philip N. Jefferson\"）のため、officials.jsonのfull_name（ミドルイニシャル無し）と部分一致させるべく抽出時に正規化する（scripts/checkers/extractors/frb-calendar.js）。月をまたぐ週の対応、および講演の事前掲載に対する保険として翌月分も常にfetch対象に含める（buildFrbCalendarMonthTargets、jp_mofと同じ月別ローリング取得パターン）。当該月にSpeechカテゴリの行が無いこと自体は正当な結果（構造的失敗ではない）と判定する設計とした（FOMCブラックアウト期間等、講演が0件の月は普通にあり得るため）。us_frb_speechesは実施済み講演の裏取り用として併存させる（重複検出時は同一講演でも別ソース由来の別candidateとして扱われるが、resolveOfficialSpeechImportanceは話者の格で決まるため実害は無い）"
     },
     {
       "id": "cn_pmi",
