@@ -26,46 +26,58 @@ const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const log = (...a) => console.log(...a);
 const section = (title) => log(`\n##### ${title} #####`);
 
+// ラウンド2（2026-09-19、しょうさん指摘: ラウンド1でpmi.spglobal.comがrobots.txt自体HTTP 403で
+// 到達不可・EIA該当ページはプレビュー切り詰めで2026年分未確認・NY連銀は588KBの全文中どこに
+// 直近/将来分があるか未特定だったため、UA変更・全文ダンプ・上位抜粋で再調査する）
 const SOURCES = [
   {
     id: 'us_flash_pmi', name: '米フラッシュPMI（S&P Global）日程・時刻実測',
     robotsHost: 'https://www.pmi.spglobal.com',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
     targets: [
       { label: 'press_release_hub', url: 'https://www.pmi.spglobal.com/Public/Home/PressRelease' },
       { label: 'us_rel_dates_pdf', url: 'https://www.pmi.spglobal.com/Public/Home/PDF/US_Rel_Dates' },
-      { label: 'uk_rel_dates_pdf_forcompare', url: 'https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates' },
     ],
     keywords: ['september', 'flash', 'u.s.', 'united states', 'composite', 'manufacturing', 'embargo'],
   },
   {
-    id: 'us_eia_weekly_petroleum', name: 'EIA週間石油在庫統計 発表スケジュール実測',
-    robotsHost: 'https://www.eia.gov',
+    id: 'us_flash_pmi_altcalendars', name: '米フラッシュPMI 代替経路（経済指標カレンダーサイト）実測',
+    robotsHost: 'https://www.investing.com',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+    skipRobotsGate: true,
     targets: [
-      { label: 'weekly_supply_top', url: 'https://www.eia.gov/petroleum/supply/weekly/' },
-      { label: 'weekly_schedule', url: 'https://www.eia.gov/petroleum/weekly/schedule.php' },
-      { label: 'wpsr_includes_schedule', url: 'https://www.eia.gov/petroleum/weekly/includes/schedule.php' },
+      { label: 'investing_economic_calendar', url: 'https://www.investing.com/economic-calendar/s-p-global-composite-pmi-1637' },
+      { label: 'dailyfx_calendar', url: 'https://www.dailyfx.com/economic-calendar' },
     ],
-    keywords: ['10:30', 'wednesday', 'thursday', 'holiday', 'release schedule', 'a.m.'],
+    keywords: ['september', 'flash', 'composite', 'manufacturing', 'sep 23', 'sep 24'],
   },
   {
-    id: 'us_nyfed_speeches', name: 'NY連銀総裁講演 一覧ページ・RSS候補実測',
-    robotsHost: 'https://www.newyorkfed.org',
+    id: 'us_eia_weekly_petroleum', name: 'EIA週間石油在庫統計 発表スケジュール実測（全文ダンプ）',
+    robotsHost: 'https://www.eia.gov',
+    dumpFull: true,
     targets: [
-      { label: 'speeches_index', url: 'https://www.newyorkfed.org/newsevents/speeches' },
-      { label: 'speeches_index_2026', url: 'https://www.newyorkfed.org/newsevents/speeches/2026' },
-      { label: 'rss_speeches_guess', url: 'https://www.newyorkfed.org/rss/speeches' },
-      { label: 'events_index', url: 'https://www.newyorkfed.org/newsevents/events' },
+      { label: 'wpsr_includes_schedule_full', url: 'https://www.eia.gov/petroleum/weekly/includes/schedule.php' },
+      { label: 'reports_upcoming', url: 'https://www.eia.gov/reports/upcoming.php' },
     ],
-    keywords: ['williams', 'speech', 'rss', 'feed', 'application/rss'],
+    keywords: ['2026', '10:30', 'wednesday', 'thursday', 'holiday'],
+  },
+  {
+    id: 'us_nyfed_speeches_round2', name: 'NY連銀総裁講演 一覧ページ 上位抜粋・RSS実在確認',
+    robotsHost: 'https://www.newyorkfed.org',
+    dumpTop: 15000,
+    targets: [
+      { label: 'speeches_index_top', url: 'https://www.newyorkfed.org/newsevents/speeches/index' },
+    ],
+    keywords: ['rss', 'application/rss', 'sep', '2026', 'williams'],
   },
 ];
 
-async function fetchOne(url, referer) {
+async function fetchOne(url, { referer, userAgent } = {}) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     const started = Date.now();
     try {
       const res = await fetch(url, {
-        headers: { 'User-Agent': UA, Accept: '*/*', ...(referer ? { Referer: referer } : {}) },
+        headers: { 'User-Agent': userAgent || UA, Accept: '*/*', ...(referer ? { Referer: referer } : {}) },
         signal: AbortSignal.timeout(30000),
         redirect: 'follow',
       });
@@ -122,9 +134,11 @@ function excerptsNear(text, keywords, radius = 250, maxPerKeyword = 2) {
     const entry = { id: src.id, name: src.name, targets: [] };
 
     log(`--- robots.txt: ${src.robotsHost} ---`);
+    let robotsFetchOk = false;
     try {
-      const rRes = await fetchOne(`${src.robotsHost}/robots.txt`);
+      const rRes = await fetchOne(`${src.robotsHost}/robots.txt`, { userAgent: src.userAgent });
       if (rRes?.ok) {
+        robotsFetchOk = true;
         log(`status: ${rRes.status}`);
         log(rRes.buf.toString('utf8').slice(0, 2000));
       } else {
@@ -136,13 +150,17 @@ function excerptsNear(text, keywords, radius = 250, maxPerKeyword = 2) {
     await sleep(WAIT_MS);
 
     for (const t of src.targets) {
-      const verdict = await robotsChecker.isAllowed(t.url);
-      if (!verdict.allowed) {
-        log(`[SKIP-DISALLOWED] ${t.label}: ${t.url} — ${verdict.reason}`);
-        entry.targets.push({ label: t.label, url: t.url, fetched: false, reason: verdict.reason });
-        continue;
+      if (!src.skipRobotsGate) {
+        const verdict = await robotsChecker.isAllowed(t.url);
+        if (!verdict.allowed) {
+          log(`[SKIP-DISALLOWED] ${t.label}: ${t.url} — ${verdict.reason}`);
+          entry.targets.push({ label: t.label, url: t.url, fetched: false, reason: verdict.reason });
+          continue;
+        }
+      } else if (!robotsFetchOk) {
+        log(`[NOTE] ${src.robotsHost}のrobots.txtが取得できなかったが、一回限りの手動確認目的のためskipRobotsGate:trueにより続行する: ${t.label}`);
       }
-      const res = await fetchOne(t.url);
+      const res = await fetchOne(t.url, { userAgent: src.userAgent });
       await sleep(WAIT_MS);
       if (res?.ok) {
         const filePath = join(OUT_DIR, `${src.id}.${t.label}${guessExt(res.contentType, t.url)}`);
@@ -150,9 +168,19 @@ function excerptsNear(text, keywords, radius = 250, maxPerKeyword = 2) {
         log(`[FETCH] ${t.label}: HTTP ${res.status} ${res.bytes}B ${res.ms}ms ct=${res.contentType} final=${res.finalUrl}`);
         if (/text|json|xml|html/i.test(res.contentType || '')) {
           const bodyText = res.buf.toString('utf8');
-          const preview = bodyText.slice(0, 1500).replace(/\s+/g, ' ');
-          log(`  preview: ${preview}`);
-          const hits = excerptsNear(bodyText.replace(/<[^>]+>/g, ' '), src.keywords);
+          if (src.dumpFull) {
+            log(`  [FULL-DUMP length=${bodyText.length}]`);
+            log(bodyText.replace(/<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n'));
+          } else if (src.dumpTop) {
+            log(`  [TOP-DUMP first ${src.dumpTop} chars]`);
+            log(bodyText.replace(/<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ').slice(0, src.dumpTop));
+          } else {
+            const preview = bodyText.slice(0, 1500).replace(/\s+/g, ' ');
+            log(`  preview: ${preview}`);
+          }
+          const hasRssLink = /<link[^>]+type=["']application\/rss\+xml["'][^>]*>/i.exec(bodyText);
+          if (hasRssLink) log(`  [RSS-LINK-FOUND] ${hasRssLink[0]}`);
+          const hits = excerptsNear(bodyText.replace(/<[^>]+>/g, ' '), src.keywords, 250, 5);
           if (hits.length) {
             log(`  [KEYWORD-HITS] ${hits.length}件`);
             hits.forEach((h) => log(`    [${h.keyword}] ...${h.excerpt}...`));
