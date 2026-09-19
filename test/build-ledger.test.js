@@ -240,6 +240,24 @@ test('resolveOfficialSpeechImportance: 話者未指定（speakerLastName null）
   assert.ok(r.warning && r.warning.includes('話者不明'));
 });
 
+// 2026-09-19修正（task #94フォローアップ、しょうさん指摘: 9/22週のジェファーソン副議長講演
+// 漏れ調査を機に「議長=★★★／副議長=★★★／理事・地区連銀総裁=★★」の整理へ変更）。
+// ジェファーソン（一般の副議長）・ボウマン（金融監督担当副議長）はdeputy_governorへ格上げ、
+// バー・クック・ウォラー（いずれも役職は「理事」でVice Chairの肩書なし）はboard_member（★★）のまま
+test('resolveOfficialSpeechImportance: FRB副議長（ジェファーソン・ボウマン）はdeputy_governor扱いで★★★、warningは無い', () => {
+  for (const speakerLastName of ['Jefferson', 'Bowman']) {
+    const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'US', speakerLastName, date: '2026-09-22' }, officials);
+    assert.deepEqual(r, { importance: 3, warning: null }, `speakerLastName=${speakerLastName}`);
+  }
+});
+
+test('resolveOfficialSpeechImportance: FRB理事（バー・クック・ウォラー、副議長の肩書なし）はboard_memberのまま★★、warningは無い', () => {
+  for (const speakerLastName of ['Barr', 'Cook', 'Waller']) {
+    const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'US', speakerLastName, date: '2026-09-22' }, officials);
+    assert.deepEqual(r, { importance: 2, warning: null }, `speakerLastName=${speakerLastName}`);
+  }
+});
+
 test('resolveOfficialSpeechImportance: FRB議長（governor・Warsh、RSSタイトルは英語姓）は★★★', () => {
   const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'US', speakerLastName: 'Warsh', date: '2026-08-06' }, officials);
   assert.deepEqual(r, { importance: 3, warning: null });
