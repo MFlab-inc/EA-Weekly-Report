@@ -1,0 +1,16 @@
+# 一時ワークフロー（2026-09-19）: au-gdp-2026-09-24の誤マッピング疑い調査
+# （scripts/phase1/source-recon-n.mjs）。確認完了後、このファイルと
+# .au-gdp-mapping-recon-triggerは削除する（source-recon-n.mjs自体は監査記録として残す）。
+name: au-gdp-mapping-recon
+on:
+  push:
+    paths:
+      - '.au-gdp-mapping-recon-trigger'
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - run: node scripts/phase1/source-recon-n.mjs
