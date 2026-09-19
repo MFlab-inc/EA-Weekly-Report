@@ -8,6 +8,27 @@ const { findEventName } = require('./match-event-name');
 const { resolveImportance } = require('./importance');
 const { TIME_EXEMPT_KINDS } = require('./validate-official-sources');
 
+// AU四半期GDP（Australian National Accounts: National Income, Expenditure and Product）の
+// 表示名を発表月から「第N四半期GDP」へ機械的に決定する（しょうさん指示2026-09-19、PR #28/#29
+// フォローアップ確認事項3）。ABS公式メソドロジー
+// （https://www.abs.gov.au/methodologies/australian-national-accounts-national-income-expenditure-and-product-methodology/jun-2026）
+// に、この四半期GDPは単一発表のみで以降の発表で改定される方式と明記されており、米国の速報/改定/
+// 確定や日本の1次/2次速報のような段階分けが無いリリースのため、「【速報値】」等の修飾語は付けない
+// （しょうさん指示）。発表月は3/6/9/12月に固定され、発表月→対象四半期の対応も一意に決まる
+// （3月→前年第4四半期、6月→第1四半期、9月→第2四半期、12月→第3四半期）ため、推測ではなく
+// 確定ルールとして機械的に付与する。年号は既刊表記慣行（例:「第2四半期GDP」）に無いため付与しない
+const AU_GDP_QUARTER_BY_ANNOUNCE_MONTH = { 3: 4, 6: 1, 9: 2, 12: 3 };
+
+// announceMonth: 発表時刻のJST暦月（1-12）。ABSの標準発表時刻11:30 Sydney（AEST/AEDTいずれも）は
+// JST変換しても同一暦日に収まるため、現地（Sydney）月とJST月は実質的に一致する。
+// 想定外の月（発表日程が3/6/9/12月から外れた場合。例: 祝日等でのイレギュラーな月ずれ）はnullを
+// 返し、呼び出し側でevent-names.jsonの既定表示名（「GDP」）へフォールバックする
+// （掲載自体を止めない安全側の設計）
+function auGdpQuarterDisplayName(announceMonth) {
+  const quarter = AU_GDP_QUARTER_BY_ANNOUNCE_MONTH[announceMonth];
+  return quarter ? `第${quarter}四半期GDP` : null;
+}
+
 // row: { title, date？, localTime？, utcInstant？, kind？ }
 // ctx: { country, kind, tz, eventNames(config/event-names.json.entries), importanceRules, ruleGenerated？ }
 // ctx.ruleGenerated=true（またはrow.kindが抽出側で既に確定している場合）は、SPEC §4.2の
@@ -49,6 +70,14 @@ function resolveCandidateEvent(row, ctx) {
     const zoned = utcToZonedParts(new Date(row.utcInstant), ctx.tz);
     localDate = zoned.date;
     localTime = zoned.time;
+  }
+  // jst.date（発表時刻のJST暦日）を使う。ABSの発表時刻11:30 Sydney（AEST/AEDTいずれも）は
+  // JST変換しても同一暦日に収まるため月がずれる心配が無く、ctx.tz省略時でも常に算出できる
+  // localDateより堅牢（ctx.tzはau_absのconfig上は常に設定されるが、テスト等でtz省略時にも
+  // 正しく動くようにするため）
+  if (ctx.country === 'AU' && ctx.kind === 'gdp') {
+    const auLabel = auGdpQuarterDisplayName(Number(jst.date.slice(5, 7)));
+    if (auLabel) displayName = auLabel;
   }
   return {
     ok: true,
@@ -120,4 +149,4 @@ function resolveKindCandidates(dateStr, ctx) {
   }));
 }
 
-module.exports = { resolveCandidateEvent, resolveKindCandidates };
+module.exports = { resolveCandidateEvent, resolveKindCandidates, auGdpQuarterDisplayName };

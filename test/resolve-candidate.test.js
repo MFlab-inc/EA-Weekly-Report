@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { resolveCandidateEvent } = require('../scripts/lib/resolve-candidate');
+const { resolveCandidateEvent, auGdpQuarterDisplayName } = require('../scripts/lib/resolve-candidate');
 const { findEventName } = require('../scripts/lib/match-event-name');
 const { resolveImportance } = require('../scripts/lib/importance');
 
@@ -9,9 +9,10 @@ const EVENT_NAMES = [
   { country: 'US', kind: 'trade_balance', match: ['international trade in goods and services'], display_name: '貿易収支' },
   { country: 'US', kind: 'retail_sales', match: ['advance monthly sales for retail'], display_name: '小売売上高＆【除自動車】' },
   { country: 'AU', kind: 'trade_balance', match: ['international trade in goods'], display_name: '貿易収支' },
+  { country: 'AU', kind: 'gdp', match: ['national income, expenditure and product'], display_name: 'GDP' },
 ];
 const IMPORTANCE_RULES = {
-  importance_by_kind: { trade_balance: 2, retail_sales: 3 },
+  importance_by_kind: { trade_balance: 2, retail_sales: 3, gdp: 3 },
   country_overrides: [{ kind: 'trade_balance', country: 'AU', importance: 3 }],
 };
 
@@ -114,4 +115,43 @@ test('resolveCandidateEvent: time-exempt対象外のkindはlocalTime無しだと
   const row = { title: 'International Trade in Goods', date: '2026-08-06' };
   const r = resolveCandidateEvent(row, { country: 'AU', kind: 'trade_balance', eventNames: EVENT_NAMES, importanceRules: IMPORTANCE_RULES, ruleGenerated: true });
   assert.equal(r.ok, false);
+});
+
+// 2026-09-19新設（しょうさん指示、PR #28/#29フォローアップ確認事項3）: AU四半期GDPの表示名を
+// 発表月から「第N四半期GDP」へ機械的に決定する。ABS公式メソドロジーで単一発表・段階分けなしと
+// 確認済みのため「【速報値】」は付けない。発表月→対象四半期: 3月→前年第4四半期・6月→第1四半期・
+// 9月→第2四半期・12月→第3四半期（3月は年をまたいで前年の第4四半期を指す点に注意）
+test('auGdpQuarterDisplayName: 発表月3/6/9/12月をそれぞれ正しい四半期へ変換する（3月は年をまたいで前年第4四半期）', () => {
+  assert.equal(auGdpQuarterDisplayName(3), '第4四半期GDP');
+  assert.equal(auGdpQuarterDisplayName(6), '第1四半期GDP');
+  assert.equal(auGdpQuarterDisplayName(9), '第2四半期GDP');
+  assert.equal(auGdpQuarterDisplayName(12), '第3四半期GDP');
+});
+
+test('auGdpQuarterDisplayName: 3/6/9/12月以外（想定外の発表月）はnullを返す（呼び出し側は既定表示名「GDP」へフォールバック）', () => {
+  assert.equal(auGdpQuarterDisplayName(7), null);
+  assert.equal(auGdpQuarterDisplayName(1), null);
+});
+
+test('resolveCandidateEvent: AU×gdpは発表月から「第N四半期GDP」へ表示名を上書きする（【速報値】は付けない）', () => {
+  const cases = [
+    { utcInstant: '2026-03-04T00:30:00Z', expected: '第4四半期GDP' }, // 3月発表＝前年第4四半期
+    { utcInstant: '2026-06-03T01:30:00Z', expected: '第1四半期GDP' },
+    { utcInstant: '2026-09-02T01:30:00Z', expected: '第2四半期GDP' },
+    { utcInstant: '2026-12-02T00:30:00Z', expected: '第3四半期GDP' },
+  ];
+  for (const { utcInstant, expected } of cases) {
+    const row = { title: 'Australian National Accounts: National Income, Expenditure and Product', utcInstant };
+    const r = resolveCandidateEvent(row, { country: 'AU', kind: 'gdp', eventNames: EVENT_NAMES, importanceRules: IMPORTANCE_RULES });
+    assert.equal(r.ok, true);
+    assert.equal(r.displayName, expected, `utcInstant=${utcInstant}`);
+    assert.doesNotMatch(r.displayName, /速報値/, 'ABS四半期GDPは単一発表・段階分けなしのため【速報値】を付けない');
+  }
+});
+
+test('resolveCandidateEvent: AU×gdpが想定外の月に発表された場合はevent-names.jsonの既定表示名「GDP」へフォールバックする', () => {
+  const row = { title: 'Australian National Accounts: National Income, Expenditure and Product', utcInstant: '2026-07-15T01:30:00Z' };
+  const r = resolveCandidateEvent(row, { country: 'AU', kind: 'gdp', eventNames: EVENT_NAMES, importanceRules: IMPORTANCE_RULES });
+  assert.equal(r.ok, true);
+  assert.equal(r.displayName, 'GDP');
 });
