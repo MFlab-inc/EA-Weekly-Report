@@ -149,3 +149,12 @@ O6・8/22・9/5と、冪等ガードは実は3回目の是正である（task #9
 2. **公表リリース全量の差分監査**（`scripts/checkers/harness.mjs`の`checkFredCatalogAudit`）: 個々のrelease_idの日程ではなく、発表元（FRED上のsource_id）が現在公表している全リリース一覧そのものを取得し、config/official-sources.jsonに未登録のrelease_idが無いか照合する。このプロジェクトで実際に発生した欠落（CPI/PPI/雇用統計/GDP/PCE/新規失業保険申請件数）は全てFRED経由（BLS=source_id 22、BEA=source_id 18）だったため、まずこの2元をスコープとした。ミシガン大学消費者信頼感指数（University of Michigan、別の発表元）や、ONS・ABS・BOJ等の非FREDソースへの拡張は、発表元ごとに同等の「全量一覧」APIの有無・形式が異なるため今回は対象外（将来必要になれば個別に設計する）。run自体は失敗させない情報提供のみのWARNとした（fetch失敗等はこの監査自体を静かに諦め、本編のパイプラインを巻き込まない設計）
 3. **掲載件数の推移監視**（`scripts/lib/event-volume-history.js`・`scripts/lib/validate-event-volume-trend.js`）: 2026-08-15の設計メモ（config/volume-check-policy.jsonのhistorical_median_check、当時はenabled:false）を実装・有効化した。既存の絶対下限チェック（min_displayed_events等）は固定基準のため「通常10件前後の週が急に5件になった」という相対的な劣化を捉えられない。新しい履歴ファイルは持たず、既存のdata/ledger/配下の過去台帳そのものを実績データソースとして中央値を計算し、当該週の件数が中央値の50%未満ならREVIEW_REQUIRED対象に加える。実績データが少ないうち（min_history_weeks=4未満）は誤検知を避けるため自動的にスキップする（2026-09-06時点の実績は3週分のため、9/14週生成時点ではまだ発動せず9/21週から発動する見込み）
 - **反映**: `gate.mjs`のdecideGateOutcomeにtrendCheckパラメータを追加（volumeCheckとOR条件でREVIEW_REQUIRED判定、acknowledgeLowVolumeで両方まとめてオーバーライド可能）。関連する全モジュールに単体テストを追加
+
+### O11. NY連銀総裁講演の事前検出経路 → 調査済み・実装見送り（2026-09-19）
+
+しょうさん指摘（2026-09-19、task #94フォローアップ完了報告への差し戻し）: 米フラッシュPMI・EIA週間石油在庫と同じ優先度で、NY連銀総裁（ウィリアムズ総裁）講演の事前検出経路もGitHub Actions実ネットワーク経由で実測してほしいとの指示を受け、`scripts/phase1/source-recon-m.mjs`ラウンド4で実測した（一時ワークフロー`nyfed-recon.yml`、Actions run 35426248071）。
+
+- **speeches索引ページ（`newyorkfed.org/newsevents/speeches/index.html`）**: HTTP 200・588,397B取得成功。ただし実測日（2026-09-19）時点で掲載されている最新の講演は「Jul 15, 2026」（Cetorelli・Williams）・「Jul 9, 2026」（Perli）で、**2ヶ月以上の掲載遅延**がある。O8で確認済みのFRB理事講演RSS（`us_frb_speeches`）と同種の「実施後に原稿掲載された時点で初めて追加される」設計と判断される
+- **RSS/カレンダー代替経路**: `us_frb_calendar`（FRB本体の月別カレンダーページによる事前検出、task #94フォローアップで新設）と同型のページがnewyorkfed.org側にも無いか確認したが、`/newsevents/calendar/index.html`は404、RSS候補2パス（`/rss/speeches.xml`は403、`/medialibrary/rss/speeches.xml`は404）ともに存在しなかった
+- **結論**: O8で「地区連銀総裁は今後、実際に講演が検出される経路ができた時点で追加する」としていた前提条件（事前検出経路の存在）が今回も満たされないと確認できた。したがって現時点ではNY連銀総裁講演の自動登録は実装見送りとし、O8の登録除外方針を維持する。今後、これまでの緊急事例（BOC・RBA）と同様に、しょうさんの申告や既刊突合で該当講演の実施が判明した場合は`config/manual-events.json`への個別手動登録で対応する
+- **反映**: `scripts/phase1/source-recon-m.mjs`に調査記録として残す（一時ワークフロー・トリガーファイルは確認完了に伴い削除）
