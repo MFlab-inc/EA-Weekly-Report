@@ -1,12 +1,12 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "generated_at": "2026-09-19T13:19:14+09:00",
+    "generated_at": "2026-09-19T13:24:50+09:00",
     "target_week_start": "2026-09-21",
     "target_week_end": "2026-09-25",
     "pipeline_version": "ea-weekly-report@0.1.0",
-    "generated_from_commit": "145f66915049452e353b4906ed7881913e19d1df",
-    "generated_from_code_hash": "fcc8efb429c2a1844397da88b933cf5e225f6ab28186d765f53dbf5ca9fec011",
+    "generated_from_commit": "2099f6c1be128a4553fbe6d044ed206a1518825f",
+    "generated_from_code_hash": "00f222b61dc17722fe0fc40cac43f7883787a617506767a8438ddde89580fa94",
     "outcome": "PUBLISH_READY",
     "warnings": [
       "残量監視WARN: nz_stats_cpi — 年次スケジュールconfigに対象週(2026-09-21)から4週先(2026-10-19)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
@@ -17,10 +17,7 @@
       "残量監視WARN: ecb_policy_rate — 年次スケジュールconfigに対象週(2026-09-21)から4週先(2026-10-19)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
       "残量監視WARN: de_zew — 年次スケジュールconfigに対象週(2026-09-21)から4週先(2026-10-19)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
       "残量監視WARN: boc_policy_rate — 年次スケジュールconfigに対象週(2026-09-21)から4週先(2026-10-19)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
-      "残量監視WARN: rbnz_policy_rate — 年次スケジュールconfigに対象週(2026-09-21)から4週先(2026-10-19)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
-      "official_speechの話者の格を判定できず★★（安全側）とした: country=CA speaker=\"(話者不明)\" date=2026-09-22（officials.json未登録、またはrole_rank未設定）",
-      "official_speechの話者の格を判定できず★★（安全側）とした: country=AU speaker=\"(話者不明)\" date=2026-09-22（officials.json未登録、またはrole_rank未設定）",
-      "official_speechの話者の格を判定できず★★（安全側）とした: country=US speaker=\"(話者不明)\" date=2026-09-22（officials.json未登録、またはrole_rank未設定）"
+      "残量監視WARN: rbnz_policy_rate — 年次スケジュールconfigに対象週(2026-09-21)から4週先(2026-10-19)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）"
     ],
     "holds": []
   },
@@ -28,7 +25,7 @@
     {
       "source_id": "us_bls_fred",
       "type": "date_api_fred",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://api.stlouisfed.org/fred/release/dates",
       "ok": true,
       "http_status": null,
@@ -39,7 +36,7 @@
     {
       "source_id": "au_rba",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.rba.gov.au/schedules-events/board-meeting-schedules.html",
       "ok": true,
       "http_status": null,
@@ -50,7 +47,7 @@
     {
       "source_id": "us_census",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.census.gov/economic-indicators/calendar-listview.html",
       "ok": true,
       "http_status": null,
@@ -61,7 +58,7 @@
     {
       "source_id": "gb_ons",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP",
       "ok": true,
       "http_status": null,
@@ -72,7 +69,7 @@
     {
       "source_id": "nz_statsnz",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
       "ok": true,
       "http_status": null,
@@ -83,7 +80,7 @@
     {
       "source_id": "nz_stats_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/calendar-export?month=8&year=2026",
       "ok": true,
       "http_status": null,
@@ -94,7 +91,7 @@
     {
       "source_id": "nz_stats_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -105,7 +102,7 @@
     {
       "source_id": "nz_stats_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -116,7 +113,7 @@
     {
       "source_id": "ca_statcan",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
       "ok": true,
       "http_status": null,
@@ -127,7 +124,7 @@
     {
       "source_id": "au_abs",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.abs.gov.au/release-calendar/future-releases-calendar",
       "ok": true,
       "http_status": null,
@@ -138,7 +135,7 @@
     {
       "source_id": "us_ism",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/",
       "ok": true,
       "http_status": null,
@@ -149,7 +146,7 @@
     {
       "source_id": "jp_boj",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm",
       "ok": true,
       "http_status": null,
@@ -160,7 +157,7 @@
     {
       "source_id": "jp_boj_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.boj.or.jp/about/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -171,7 +168,7 @@
     {
       "source_id": "us_treasury",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions",
       "ok": true,
       "http_status": null,
@@ -182,7 +179,7 @@
     {
       "source_id": "jp_mof",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -193,7 +190,7 @@
     {
       "source_id": "jp_stat_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.stat.go.jp/data/cpi/4-1.html",
       "ok": true,
       "http_status": null,
@@ -204,7 +201,7 @@
     {
       "source_id": "jp_esri_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html",
       "ok": true,
       "http_status": null,
@@ -215,7 +212,7 @@
     {
       "source_id": "jp_customs_trade",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.customs.go.jp/toukei/calendar/calend.htm",
       "ok": true,
       "http_status": null,
@@ -226,7 +223,7 @@
     {
       "source_id": "us_frb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.federalreserve.gov/feeds/speeches.xml",
       "ok": true,
       "http_status": null,
@@ -237,7 +234,7 @@
     {
       "source_id": "cn_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -248,7 +245,7 @@
     {
       "source_id": "cn_nbs_data",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/",
       "ok": true,
       "http_status": null,
@@ -259,7 +256,7 @@
     {
       "source_id": "gb_construction_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -270,7 +267,7 @@
     {
       "source_id": "us_adp",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://adpemploymentreport.com/",
       "ok": true,
       "http_status": null,
@@ -281,7 +278,7 @@
     {
       "source_id": "ca_ivey",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://iveypmi.uwo.ca/faq/",
       "ok": true,
       "http_status": null,
@@ -292,7 +289,7 @@
     {
       "source_id": "us_frb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
       "ok": true,
       "http_status": null,
@@ -303,7 +300,7 @@
     {
       "source_id": "ecb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
       "ok": true,
       "http_status": null,
@@ -314,7 +311,7 @@
     {
       "source_id": "eurostat_hicp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -325,7 +322,7 @@
     {
       "source_id": "eurostat_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -336,7 +333,7 @@
     {
       "source_id": "de_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -347,7 +344,7 @@
     {
       "source_id": "eu_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -358,7 +355,7 @@
     {
       "source_id": "gb_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -369,7 +366,7 @@
     {
       "source_id": "de_zew",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.zew.de/en/press/latest-press-releases/2026-release-dates-for-zew-indicator-of-economic-sentiment-fixed",
       "ok": true,
       "http_status": null,
@@ -380,7 +377,7 @@
     {
       "source_id": "boe_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates",
       "ok": true,
       "http_status": null,
@@ -391,7 +388,7 @@
     {
       "source_id": "gb_boe_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.bankofengland.co.uk/rss/speeches",
       "ok": true,
       "http_status": null,
@@ -402,7 +399,7 @@
     {
       "source_id": "boc_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.bankofcanada.ca/press/upcoming-events/",
       "ok": true,
       "http_status": null,
@@ -413,7 +410,7 @@
     {
       "source_id": "rbnz_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028",
       "ok": true,
       "http_status": null,
@@ -424,7 +421,7 @@
     {
       "source_id": "snb_policy_rate",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
       "ok": true,
       "http_status": null,
@@ -435,7 +432,7 @@
     {
       "source_id": "manual",
       "type": "manual",
-      "fetched_at": "2026-09-19T13:19:14+09:00",
+      "fetched_at": "2026-09-19T13:24:50+09:00",
       "url": "config/manual-events.json",
       "ok": true,
       "http_status": null,
@@ -477,12 +474,12 @@
       "currency": "CAD",
       "kind": "official_speech",
       "name_ja": "マックレムBOC総裁の発言",
-      "importance": 2,
+      "importance": 3,
       "source_id": "manual",
       "source_evidence": "9/21週監査（しょうさん指摘: 9/21-23の3日連続★★★なしは実態と不一致）を受け、公式情報で裏取りのうえ登録（2026-09-19、task #94フォローアップ）。一次ソース bankofcanada.ca/2026/09/speech-tiff-macklem-governor-bank-canada-2026-09-21/ に『On Monday, September 21, 2026, Tiff Macklem, Governor of the Bank of Canada, will speak before the Halifax Partnership. ... Time: 11:20 (Eastern Time)』と明記。BOC公式speechesフィード（bankofcanada.ca/content_type/speeches/feed/）の該当item（dc:date=2026-09-21T11:20:45+00:00相当）でも裏取り。しょうさん申告時刻（9/22 00:05 JST=11:05 ET）は、実際の講演開始時刻ではなく『エンバーゴ解除・原稿掲載時刻』（同アドバイザリに『The embargo will be lifted at 11:05 (ET)』『available on the Bank's website at 11:05 (ET)』と別途明記）だったための誤差と判明。正しい講演開始時刻11:20 ET（=2026-09-22 00:20 JST）で登録する",
       "name_resolution": "dictionary",
-      "halt_window_start_jst": null,
-      "halt_window_end_jst": null,
+      "halt_window_start_jst": "2026-09-21T12:20:00+09:00",
+      "halt_window_end_jst": "2026-09-21T20:20:00+09:00",
       "bundle_id": null
     },
     {
@@ -497,12 +494,12 @@
       "currency": "AUD",
       "kind": "official_speech",
       "name_ja": "ブロックRBA総裁の発言",
-      "importance": 2,
+      "importance": 3,
       "source_id": "manual",
       "source_evidence": "9/21週監査（しょうさん指摘）を受け、公式情報で裏取りのうえ登録（2026-09-19、task #94フォローアップ）。一次ソース rba.gov.au/coming-up/index.html および rba.gov.au/schedules-events/calendar/ に構造化データ（itemprop=datePublished, datetime属性）で『Fireside Chat with Michele Bullock, Governor, at the Committee for Economic Development of Australia (CEDA), Sydney』『datetime=\"2026-09-22T13:00+10:00\"』と明記。形式はCEDA主催のFireside Chat（モデレーター付き対談形式）でありRBA総裁本人の発言という点で他のofficial_speechと同種と判断した。しょうさん申告時刻（9/22 12:10 JST=13:10 AEST）は公式ページの13:00 AESTと10分の誤差があったため、正しい時刻13:00 AEST（=12:00 JST）で登録する。申告にあった会場情報『Fullerton Hotel』はRBA公式ページに記載が無くWebSearch経由でも確認できなかったため未採用（RBA公式は会場を『Sydney』としか明記していない）",
       "name_resolution": "dictionary",
-      "halt_window_start_jst": null,
-      "halt_window_end_jst": null,
+      "halt_window_start_jst": "2026-09-22T00:00:00+09:00",
+      "halt_window_end_jst": "2026-09-22T08:00:00+09:00",
       "bundle_id": null
     },
     {
@@ -517,12 +514,12 @@
       "currency": "USD",
       "kind": "official_speech",
       "name_ja": "ジェファーソンFRB副議長の発言",
-      "importance": 2,
+      "importance": 3,
       "source_id": "manual",
       "source_evidence": "task #94フォローアップ（FRB講演RSS[us_frb_speeches]の検出漏れ調査、2026-09-19）で発覚: federalreserve.gov/newsevents/2026-september.htm（公式カレンダー）に『10:20 a.m.』『Speech - Vice Chair Philip N. Jefferson』『Discount Window Modernization and Treasury Market Functioning』『At the 2026 Treasury Market Conference, Federal Reserve Bank of New York, New York, N.Y.』と明記。us_frb_speeches（feeds/speeches.xml）は講演実施後に原稿掲載された時点で初めて追加される設計のため、講演前のこの時点では検出できない（フィード自体の不具合ではなく、事前検出用の情報源として使えないという構造的な限界。恒久対応は別途検討）。role_rankをdeputy_governor（★★★）へ修正した副議長講演のため重要度3で登録する",
       "name_resolution": "dictionary",
-      "halt_window_start_jst": null,
-      "halt_window_end_jst": null,
+      "halt_window_start_jst": "2026-09-22T11:20:00+09:00",
+      "halt_window_end_jst": "2026-09-22T19:20:00+09:00",
       "bundle_id": null
     },
     {
