@@ -68,9 +68,19 @@ const OFFICIAL_SPEECH_IMPORTANCE_BY_RANK = {
 };
 
 // candidate.kind !== 'official_speech' はcandidate.importanceをそのまま素通しする（他kindには無関係）。
-// official_speechはimportance_by_kindの既定値（★★）を無視し、話者のrole_rankから動的に決め直す
+// official_speechはimportance_by_kindの既定値（★★）を無視し、話者のrole_rankから動的に決め直す。
+// ただしsourceId === 'manual'（config/manual-events.jsonからの候補）は対象外とし、
+// 運用者が直接指定したimportanceをそのまま素通しする（2026-09-19、task #94フォローアップで発覚した
+// 実バグの修正: マックレムBOC総裁・ブロックRBA総裁・ジェファーソンFRB副議長の3件を
+// importance:3で手動登録したところ、speakerLastName未設定のためofficials.json照合が必ず失敗し、
+// 安全側の★★[board_member相当]へ黙って格下げされていた。manual-events.jsonのスキーマは
+// 「importanceは運用者が直接指定」と明記しており[config/manual-events.jsonのschema_note参照]、
+// resolveRuleGeneratedNameの表示名解決が既にmanual候補のdisplayNameを最優先する設計
+// [candidateToLedgerEventのcandidate.displayName||...]になっているのと同じ原則を、
+// importance解決にも揃える必要があった）
 function resolveOfficialSpeechImportance(candidate, officials) {
   if (candidate.kind !== 'official_speech') return { importance: candidate.importance, warning: null };
+  if (candidate.sourceId === 'manual') return { importance: candidate.importance, warning: null };
   const official = naming.resolveOfficialBySurname(officials, candidate.speakerLastName, candidate.country);
   const rank = official && official.verified ? official.role_rank : null;
   if (rank && OFFICIAL_SPEECH_IMPORTANCE_BY_RANK[rank] != null) {

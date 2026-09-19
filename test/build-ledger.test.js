@@ -180,6 +180,26 @@ test('resolveOfficialSpeechImportance: official_speech以外はcandidate.importa
   assert.deepEqual(resolveOfficialSpeechImportance({ kind: 'policy_rate', importance: 3 }, officials), { importance: 3, warning: null });
 });
 
+// 2026-09-19発見の実バグの回帰テスト（task #94フォローアップ）: manual-events.json由来の
+// official_speech候補（sourceId:'manual'）はspeakerLastNameを持たないため、話者照合が必ず失敗し
+// 安全側の★★へ黙って格下げされていた（マックレムBOC総裁・ブロックRBA総裁・ジェファーソンFRB副議長を
+// importance:3で手動登録したのに実際の生成結果が★★になっていたことで発覚）。
+// sourceId:'manual'は話者照合をスキップし、運用者が指定したimportanceをそのまま使うことを確認する
+test('resolveOfficialSpeechImportance: sourceId=manualの候補は話者照合をスキップし、指定importanceをそのまま使う（warningも出さない）', () => {
+  const r3 = resolveOfficialSpeechImportance(
+    { kind: 'official_speech', country: 'CA', importance: 3, sourceId: 'manual', speakerLastName: null, date: '2026-09-22' },
+    officials
+  );
+  assert.deepEqual(r3, { importance: 3, warning: null });
+
+  // speakerLastNameが未登録話者に一致してしまうケースでも、manualの指定が優先されることを確認
+  const r2 = resolveOfficialSpeechImportance(
+    { kind: 'official_speech', country: 'JP', importance: 2, sourceId: 'manual', speakerLastName: '神山', date: '2026-09-22' },
+    officials
+  );
+  assert.deepEqual(r2, { importance: 2, warning: null });
+});
+
 test('resolveOfficialSpeechImportance: governor（日銀総裁・植田）は★★★、warningは無い', () => {
   const r = resolveOfficialSpeechImportance({ kind: 'official_speech', country: 'JP', speakerLastName: '植田', date: '2026-08-27' }, officials);
   assert.deepEqual(r, { importance: 3, warning: null });
