@@ -66,19 +66,6 @@
       "source_note": "9/21週監査（しょうさん指摘）を受け、公式情報で裏取りのうえ登録（2026-09-19、task #94フォローアップ）。一次ソース rba.gov.au/coming-up/index.html および rba.gov.au/schedules-events/calendar/ に構造化データ（itemprop=datePublished, datetime属性）で『Fireside Chat with Michele Bullock, Governor, at the Committee for Economic Development of Australia (CEDA), Sydney』『datetime=\"2026-09-22T13:00+10:00\"』と明記。形式はCEDA主催のFireside Chat（モデレーター付き対談形式）でありRBA総裁本人の発言という点で他のofficial_speechと同種と判断した。しょうさん申告時刻（9/22 12:10 JST=13:10 AEST）は公式ページの13:00 AESTと10分の誤差があったため、正しい時刻13:00 AEST（=12:00 JST）で登録する。申告にあった会場情報『Fullerton Hotel』はRBA公式ページに記載が無くWebSearch経由でも確認できなかったため未採用（RBA公式は会場を『Sydney』としか明記していない）",
       "registered_by": "Claude Code（RBA公式ページで裏取り済み）",
       "registered_at": "2026-09-19"
-    },
-    {
-      "id": "frb-speech-jefferson-2026-09-22",
-      "date": "2026-09-22",
-      "local_time": "10:20",
-      "tz": "America/New_York",
-      "country": "US",
-      "kind": "official_speech",
-      "display_name": "ジェファーソンFRB副議長の発言",
-      "importance": 3,
-      "source_note": "task #94フォローアップ（FRB講演RSS[us_frb_speeches]の検出漏れ調査、2026-09-19）で発覚: federalreserve.gov/newsevents/2026-september.htm（公式カレンダー）に『10:20 a.m.』『Speech - Vice Chair Philip N. Jefferson』『Discount Window Modernization and Treasury Market Functioning』『At the 2026 Treasury Market Conference, Federal Reserve Bank of New York, New York, N.Y.』と明記。us_frb_speeches（feeds/speeches.xml）は講演実施後に原稿掲載された時点で初めて追加される設計のため、講演前のこの時点では検出できない（フィード自体の不具合ではなく、事前検出用の情報源として使えないという構造的な限界。恒久対応は別途検討）。role_rankをdeputy_governor（★★★）へ修正した副議長講演のため重要度3で登録する",
-      "registered_by": "Claude Code（federalreserve.gov公式カレンダーで裏取り済み）",
-      "registered_at": "2026-09-19"
     }
   ]
 }
