@@ -23,6 +23,7 @@
     "sentiment": 2,
     "capex": 2,
     "jobless_claims": 2,
+    "oil_inventories": 2,
     "holiday": 0
   },
   "kind_definitions": {
@@ -38,7 +39,8 @@
     "jobless_claims": "米新規失業保険申請件数（毎週木曜発表、Initial Jobless Claims）。2026-09-06新設（task #89、しょうさん指摘: 毎週発生する定例統計が恒常的に欠落していたと発覚。★★（雇用統計本体[employment_situation]より軽い扱い、既存の各国雇用統計との整合を優先し既定値どおり据え置き）",
     "industrial_production": "鉱工業生産指数。2026-08-15新設（しょうさん承認・国×kind必須マトリクス、CN=NBS担当）",
     "pce": "個人消費支出（PCE）物価指数（総合・コア）。米国のみ（BEA発表、FRED release_id=54）。2026-08-22新設（しょうさん指摘、Manus版8/24週突合）: FRBが政策目標（2%物価目標）の算出に用いる公式の物価指標であり、CPIと同格の★★★とした。GDP kind（release_id=53）とは別リリースだが同時期に発表されることがあるため、同日の場合はbundling_ruleにより1発表枠へ束ねられる",
-    "capex": "民間設備投資（豪州ABS『Private New Capital Expenditure and Expected Expenditure, Australia』）。2026-08-22新設（しょうさん指摘、Manus版8/24週突合で発見した未追跡リリース）。GDP先行指標としてAUD系ペアに影響するため掲載するが、Manus版も★★掲載のため既定値どおり★★とする（country_overrides不要）"
+    "capex": "民間設備投資（豪州ABS『Private New Capital Expenditure and Expected Expenditure, Australia』）。2026-08-22新設（しょうさん指摘、Manus版8/24週突合で発見した未追跡リリース）。GDP先行指標としてAUD系ペアに影響するため掲載するが、Manus版も★★掲載のため既定値どおり★★とする（country_overrides不要）",
+    "oil_inventories": "米EIA週間石油在庫統計（Weekly Petroleum Status Report）。2026-09-19新設（しょうさん指摘: USDCADなど原油連動ペアに効くため追加）。毎週水曜10:30 ET発表（祝日週は木曜へシフト）の定例統計で、フラッシュPMI・国債入札と同様、月末や週次で必ず発生する定例イベントを★★★にすると停止スケジュールの帯が過密になり政策金利・要人発言との区別が失われるため、意図的に★★据え置きとした（フラッシュPMIと同じ判断根拠）"
   },
   "country_overrides": [
     { "kind": "pmi_ism", "country": "US", "importance": 3, "reason": "ISM製造業/非製造業景況指数。既刊2週で★★★（Phase 0実測）", "downgrade_ok": true },
@@ -47,7 +49,8 @@
     { "kind": "minutes_summary", "country": "AU", "importance": 3, "reason": "2026-08-22しょうさん指摘（Manus版8/24週突合）: RBA議事要旨（Minutes of the Monetary Policy Meeting）はManus版★★★・自動版★★で相違。FOMC議事録と同格に扱うべきとの判断で引き上げ。JPと異なりRBAには『主な意見』相当の先出し文書が無い", "downgrade_ok": true },
     { "kind": "minutes_summary", "country": "EU", "importance": 3, "reason": "2026-08-22しょうさん決定: ECB Accounts of the monetary policy meetingをFOMC議事録・RBA議事要旨と同格の★★★に統一", "downgrade_ok": true },
     { "kind": "minutes_summary", "country": "CA", "importance": 3, "reason": "2026-08-22しょうさん決定: BOC Summary of Governing Council DeliberationsをFOMC議事録・RBA議事要旨と同格の★★★に統一", "downgrade_ok": true },
-    { "kind": "sentiment", "country": "DE", "importance": 3, "reason": "2026-08-15しょうさん指摘（Manus突合）: ZEW景況感指数はEURペアで★★★級の反応がある。sentiment kindの既定値（★★）から引き上げ", "downgrade_ok": true }
+    { "kind": "sentiment", "country": "DE", "importance": 3, "reason": "2026-08-15しょうさん指摘（Manus突合）: ZEW景況感指数はEURペアで★★★級の反応がある。sentiment kindの既定値（★★）から引き上げ", "downgrade_ok": true },
+    { "kind": "pmi_ism", "country": "US", "subtype": "flash", "importance": 2, "reason": "2026-09-19新設（task #94フォローアップ、us_flash_pmi）。US×pmi_ismは上記の一般エントリ（ISM向け）で★★★昇格済みだが、S&P Globalフラッシュ米国PMIはDE/EU/GBフラッシュPMIと同じ理由（月末に必ず発生する定例イベントを★★★にすると停止スケジュールが過密になる）で★★据え置きとする。subtypeフィールドにより上記の一般エントリより優先してこちらが適用される（scripts/lib/importance.jsのresolveImportance参照）", "downgrade_ok": false }
   ],
   "bundling_rule": "同一発表元・同一発表枠（同日・同時刻・同一指標の系列: 前月比/前年比/コア等）は1つの発表枠に束ね、枠の重要度は構成イベントの重要度の最大値を採る（例: 米雇用統計＝非農業部門雇用者数【★★★】＋平均時給【★★】→枠は★★★）",
   "recurring_checks": [

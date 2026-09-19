@@ -9,6 +9,7 @@ const { join } = require('node:path');
 
 const realEventNames = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'event-names.json'), 'utf8')).entries;
 const realSourcesConfig = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
+const realImportanceRules = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'importance-rules.json'), 'utf8'));
 
 test('annualEntryToCandidate: announce_time_by_kindのlocal_time+tzからJST時刻を正しく変換する', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
@@ -525,4 +526,49 @@ test('renderText: outcome・候補一覧・停止目安を含むテキストを�
   assert.match(text, /テストWARN/);
   assert.match(text, /定例欠落テスト/);
   assert.match(text, /対象週に時刻判明済みの★★★候補なし/);
+});
+
+// task #94フォローアップ（2026-09-19、us_flash_pmi新設）: US×pmi_ismは既にISM向けに
+// country_overridesで★★★昇格済みだが、米フラッシュPMI（subtype:flash）はDE/EU/GBと同じ
+// 理由で★★据え置きが必要（scripts/lib/importance.jsのsubtype優先ロジック回帰テスト）。
+// 実configを使い、ISM（subtype:manufacturing）は従来どおり★★★、米フラッシュPMI
+// （subtype:flash）は★★になることを確認する
+test('annualEntryToCandidate: 実configで米フラッシュPMI（subtype:flash）はISMの★★★昇格に巻き込まれず★★のまま', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const flashSource = realSourcesConfig.sources.find((s) => s.id === 'us_flash_pmi');
+  const ismSource = realSourcesConfig.sources.find((s) => s.id === 'us_ism');
+  assert.ok(flashSource.schedule.some((e) => e.date === '2026-09-23'), '2026-09-23がus_flash_pmi.scheduleに存在するはず');
+
+  const flashCandidate = annualEntryToCandidate({ date: '2026-09-23', kind: 'pmi_ism', subtype: 'flash' }, flashSource, realImportanceRules, realEventNames);
+  assert.equal(flashCandidate.importance, 2, '米フラッシュPMIはISMの★★★昇格に巻き込まれず★★のはず');
+  assert.equal(flashCandidate.displayName, '米フラッシュPMI（製造業＆サービス業）');
+
+  const ismCandidate = annualEntryToCandidate({ date: '2026-09-01', kind: 'pmi_ism', subtype: 'manufacturing' }, ismSource, realImportanceRules, realEventNames);
+  assert.equal(ismCandidate.importance, 3, 'ISM製造業PMIは従来どおり★★★のはず');
+  assert.equal(ismCandidate.displayName, 'ISM製造業景況指数');
+});
+
+// task #94フォローアップ（2026-09-19、us_eia_petroleum新設）: 実configから名称・重要度・
+// 祝日シフト日程が正しく解決されることを確認する
+test('annualEntryToCandidate: 実configで米EIA週間石油在庫統計の名称・重要度・祝日シフトが正しく解決される', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = realSourcesConfig.sources.find((s) => s.id === 'us_eia_petroleum');
+  assert.ok(source, 'us_eia_petroleumがconfig/official-sources.jsonに存在するはず');
+
+  // 通常週（今週、9/23水曜）。source.scheduleの実エントリを使う（entry.local_time上書きが
+  // 無い通常週はsource.announce_time_by_kind側の10:30を使うはず）
+  const normalEntry = source.schedule.find((e) => e.date === '2026-09-23');
+  assert.ok(normalEntry, '2026-09-23がscheduleに存在するはず');
+  const normalCandidate = annualEntryToCandidate(normalEntry, source, realImportanceRules, realEventNames);
+  assert.equal(normalCandidate.displayName, '米EIA週間石油在庫統計');
+  assert.equal(normalCandidate.importance, 2);
+  assert.equal(normalCandidate.time, '23:30'); // 10:30 America/New_York(EDT, UTC-4) → JST
+
+  // レイバーデー週（木曜9/10へシフト、entry.local_time:"12:00"で上書きされるはず）
+  const holidayEntry = source.schedule.find((e) => e.date === '2026-09-10');
+  assert.ok(holidayEntry, '2026-09-10（レイバーデー週シフト分）がscheduleに存在するはず');
+  assert.equal(holidayEntry.local_time, '12:00', 'schedule側でlocal_timeが上書きされているはず');
+  const holidayCandidate = annualEntryToCandidate(holidayEntry, source, realImportanceRules, realEventNames);
+  assert.equal(holidayCandidate.date, '2026-09-11'); // 12:00 EDT(UTC-4)=16:00 UTC→翌日01:00 JST
+  assert.equal(holidayCandidate.time, '01:00');
 });

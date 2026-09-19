@@ -29,6 +29,23 @@ test('resolveImportance: country_overridesがimportance_by_kindより優先す�
   assert.equal(resolveImportance('trade_balance', 'US', IMPORTANCE_RULES), 2);
 });
 
+// 2026-09-19新設（task #94フォローアップ、米フラッシュPMI追加に伴う衝突回避）: US×pmi_ismは
+// ISM向けに country_overrides で★★★昇格済みだが、同じUS×pmi_ism kindを使う米フラッシュPMI
+// （subtype:flash）はDE/EU/GBフラッシュPMIと同じ理由で★★据え置きが必要。subtype付きの
+// エントリがsubtype無しの一般エントリより優先されることを確認する
+test('resolveImportance: 同一country×kindでもsubtype付きのcountry_overridesが優先される（米フラッシュPMI vs ISM）', () => {
+  const rules = {
+    importance_by_kind: { pmi_ism: 2 },
+    country_overrides: [
+      { kind: 'pmi_ism', country: 'US', importance: 3 },
+      { kind: 'pmi_ism', country: 'US', subtype: 'flash', importance: 2 },
+    ],
+  };
+  assert.equal(resolveImportance('pmi_ism', 'US', rules, 'manufacturing'), 3, 'ISM製造業はsubtype無しの一般エントリ（★★★）を使うはず');
+  assert.equal(resolveImportance('pmi_ism', 'US', rules), 3, 'subtype省略時も従来どおり一般エントリ（★★★）を使うはず');
+  assert.equal(resolveImportance('pmi_ism', 'US', rules, 'flash'), 2, '米フラッシュPMIはsubtype:flash専用エントリ（★★）を優先して使うはず');
+});
+
 test('resolveCandidateEvent: utcInstant（ABS想定）からJST日時を正しく導出する', () => {
   const row = { title: 'International Trade in Goods', utcInstant: '2026-08-06T01:30:00Z' };
   const r = resolveCandidateEvent(row, { country: 'AU', kind: 'trade_balance', eventNames: EVENT_NAMES, importanceRules: IMPORTANCE_RULES });

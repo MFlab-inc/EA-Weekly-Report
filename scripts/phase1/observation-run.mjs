@@ -80,13 +80,20 @@ function resolveAnnualDictionaryName(entry, source, eventNames) {
 // SPEC §4.2の規則生成命名kind（policy_rate等）は解決しない（scripts/lib/build-ledger.jsの
 // resolveRuleGeneratedName()がnaming.js経由で解決する。displayName:nullのままにしておくことで
 // そちらへ処理を委ねる）。辞書照合kindはresolveAnnualDictionaryName（上記）で解決する
+// entry.local_time（＋entry.tz、省略時はsource.announce_time_by_kind側のtzを流用）が
+// 設定されている場合はそちらを優先する（2026-09-19新設、task #94フォローアップ:
+// us_eia_petroleumの祝日シフト週は発表時刻自体が変わる[10:30→12:00 ET]ため、
+// source単位で固定のannounce_time_by_kindだけでは表現できない。個別のscheduleエントリで
+// 時刻を上書きできるようにした。他の既存ソース[schedule側でlocal_time未設定]は
+// 従来どおりsource.announce_time_by_kindのみを使うため後方互換）
 export function annualEntryToCandidate(entry, source, importanceRules, eventNames) {
-  const at = source.announce_time_by_kind?.[entry.kind];
+  const sourceAt = source.announce_time_by_kind?.[entry.kind];
+  const at = entry.local_time ? { local_time: entry.local_time, tz: entry.tz || sourceAt?.tz } : sourceAt;
   const base = {
     date: entry.date,
     kind: entry.kind,
     country: source.country,
-    importance: resolveImportance(entry.kind, source.country, importanceRules),
+    importance: resolveImportance(entry.kind, source.country, importanceRules, entry.subtype),
     displayName: resolveAnnualDictionaryName(entry, source, eventNames),
     periodJa: resolveBojPeriodJa(entry, source),
     sourceId: source.id,
