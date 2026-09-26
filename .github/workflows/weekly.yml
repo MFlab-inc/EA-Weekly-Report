@@ -158,10 +158,19 @@ jobs:
   # 指す。docs/phase0-findings.md 項目2の実測で確認済み）と土曜配信済みの台帳
   # （data/ledger/<この週の月曜>.json）を突合する。相違ゼロなら静かに成功、相違があれば
   # discrepancy-report.jsonを出力してジョブを失敗させる（失敗＝GitHub Actionsの標準通知で
-  # しょうさんへ届く。ジョブ失敗は自動配信のstatusには影響しない=別ジョブのため）
+  # しょうさんへ届く。ジョブ失敗は自動配信のstatusには影響しない=別ジョブのため）。
+  # 2026-09-26追加（しょうさん指示: 9/21週の突合失敗が「ジョブ失敗」としてしか気づけず、
+  # 中身を見るには手動でActionsログを掘る必要があったための対策）: 相違・欠落があった場合、
+  # 内容をそのままGitHub Issueとして自動作成する（create-discrepancy-issue.mjs、同一週の
+  # 重複作成なし）。issues: write が必要なため、ワークフロー全体のpermissions（contents: write
+  # のみ）とは別にこのジョブだけpermissionsを上書きする（job-level permissionsは
+  # workflow-levelとマージではなく置き換えのため、contents: readも明示する）
   monday-ff-cross-check:
     if: github.event.schedule == '23 23 * * 0'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -180,3 +189,8 @@ jobs:
           path: discrepancy-report.json
           retention-days: 14
           if-no-files-found: ignore
+      - name: 相違・欠落をGitHub Issueとして自動作成（相違があった場合のみ）
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check/create-discrepancy-issue.mjs discrepancy-report.json
