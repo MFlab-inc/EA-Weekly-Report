@@ -32,6 +32,7 @@ import { extractUsTreasuryAuctions } from './extractors/us-treasury.js';
 import { extractFrbSpeeches } from './extractors/frb-speeches.js';
 import { extractFrbCalendar } from './extractors/frb-calendar.js';
 import { extractBoeSpeeches } from './extractors/boe-speeches.js';
+import { extractBoeCalendar } from './extractors/boe-calendar.js';
 import { extractBocSpeeches } from './extractors/boc-speeches.js';
 import { extractRbaSpeeches } from './extractors/rba-speeches.js';
 import { extractEcbSpeeches } from './extractors/ecb-speeches.js';
@@ -220,6 +221,15 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     primaryLabel: 'speeches_rss',
     parseFn: extractBoeSpeeches,
     toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
+  },
+  // BOE事前公表カレンダー: しょうさん指示（2026-09-26、gb_boe_speeches[RSS]は講演実施後にしか
+  // 追加されない設計のため事前検出できない構造的限界への対策。us_frb_calendarと同じ位置づけ）。
+  // events/upcoming-eventsは固定1URL（月別ページ分割が無い）のためbuildTargets不要
+  // （gb_boe_speechesと同じ「primaryLabelのみ」の単一URLパターン）
+  gb_boe_calendar: {
+    primaryLabel: 'upcoming_events',
+    parseFn: extractBoeCalendar,
+    toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime, kind: 'official_speech', speakerLastName: r.speakerLastName }),
   },
   // BOC/RBA/ECB/SNB講演: task #72（2026-09-19）で新設。いずれもpubDate/dc:date/cb:occurrenceDateが
   // 絶対時刻（明示的UTCオフセットまたはZ固定）のためutcInstantとして渡す（BOE/FRBと同じ設計）。
