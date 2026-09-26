@@ -2747,6 +2747,31 @@
       "notes": "task #72（2026-08-30、しょうさん指摘: 8/31週Manus突合で9/4ベイリー総裁の基調講演★★★が実際に不検出となり優先度引き上げ）。boe-speeches-recon一時ワークフローでライブ実測（GitHub Actions実ネットワーク）: robots.txtは/rss配下を許可（Disallowは/boeapps・/error・/forms・/mfsd・/search等のみ）。https://www.bankofengland.co.uk/rss/speechesはHTTP 200・content-type text/xmlの標準的なRSS 2.0フィードで、実データ（2026-08-29実測）は<item><title>{講演タイトル} {区切り文字} speech by {話者フルネーム}</title><pubDate>RFC822形式・明示的UTCオフセット付き（例: Tue, 21 Jul 2026 11:00:00 +0100）</pubDate>...</item>形式。pubDateは絶対時刻のためDST判定不要でJST直接換算できる（us_frb_speechesと同じ設計、access.provides_exact_time:true）。話者名は『speech by 』以降を姓のみではなくフルネームで抽出する必要がある: 同一フィード内に『Andrew Bailey』（総裁）と『David Bailey』（総裁とは別人のExecutive Director）が混在することを実測で確認しており（2026-08-29実測サンプルで両者が実在）、姓のみ[Bailey]で抽出するとofficials.jsonのfull_name部分一致[naming.resolveOfficialBySurname]で両者を区別できず、David Baileyの講演が誤って総裁級★★★に昇格してしまう。フルネーム抽出（scripts/checkers/extractors/boe-speeches.js）により、officials.json記載の『アンドリュー・ベイリー（Andrew Bailey）』とAndrew Baileyのみが一致し、David Baileyは未登録話者（★★安全側+WARN、task #68のrole_rank方式）として正しく扱われる。話者の役職は国単位の固定ラベル（US=FRB理事のような一律運用）ではなく個別役職を使う設計とした（BOEも総裁・副総裁・Executive Director等が混在するためJP[jp_boj_speeches]と同じ方式。scripts/lib/build-ledger.js resolveRuleGeneratedName参照。build-ledger.jsのOFFICIAL_SPEECH_ROLE_BY_COUNTRYへGBは追加しない）。総裁ベイリーはconfig/officials.jsonに既に登録済み（role_rank:governor）のため、本ソース追加のみで即座に★★★解決が機能する"
     },
     {
+      "id": "gb_boe_calendar",
+      "name_ja": "BOE（事前公表カレンダー）",
+      "status": "active",
+      "country": "GB",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          { "label": "upcoming_events", "url": "https://www.bankofengland.co.uk/events/upcoming-events" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "official_speech": {
+          "tz": "Europe/London",
+          "note": "抽出行ごとにlocalTimeを個別に持つ（このtz値のみをresolveCandidateEventのゾーン変換に使う）。access.provides_exact_time:trueのためconfig固定のlocal_timeは不要（us_frb_calendarと同じ設計）"
+        }
+      },
+      "notes": "しょうさん指示（2026-09-26、gb_boe_speeches[RSS]は講演実施後にしか追加されない設計のため、土曜生成のこのレポートでは事前にBOE要人発言を載せられない構造的限界への対策。us_frb_calendarの英国版として新設）。ライブ実測（2026-09-26、GitHub Actions実ネットワーク経由）: events/upcoming-eventsは常に「今週＋翌週」のローリング2週間を表示する静的サーバーレンダリングHTML（JS描画不要）で、<title>が『Upcoming events - w/b {月曜A} and {月曜B}』の形式で表示中の2週の開始日を宣言する。実データ（w/b 2026-09-28 and 2026-10-05）で13件の予定を確認、うち1件（Sasha Millsの10/7分、1つの告知に『Speech at 9.40am, Panel at 10am』と時刻が2つ併記され一意に決まらない）は推測で補わず掲載しない設計とした（scripts/checkers/extractors/boe-calendar.js）。日付見出しはほぼ<h3>{曜日} {日} {月}</h3>だが実測で1件だけ<p><span style=\"font-size:...; font-weight:700...\">{曜日} {日} {月}</span></p>という装飾段落形式の見出し（CMS入力時のヒューマンエラーの疑い）も確認したため、タグ種別を問わず「内容が曜日+日+月のみで完全一致するか」で見出し判定する。1つの<p>に複数人の予定が<br /><br />で同居する実例（Catherine L Mann・Alan Taylor）にも対応済み。対象週が表示ウィンドウ（今週+翌週）に含まれているかを毎回確認し、含まれていなければ構造的失敗として扱う（前提が崩れたときに気づける仕組み、しょうさん指示）。話者フィルタ: このページはBOE以外の登壇者（実測例: ISDAフォーラムのPhil Evans）も含むが、抽出時点で「BOE公式かどうか」を判定できる信頼できる構造的手がかり（リンク先ドメイン等）が実測上存在しなかった（総裁ベイリー自身も外部の登録ページへリンクする例がある）ため、gb_boe_speeches等の既存講演系抽出器と同じ方針で全行を機械的に抽出し、officials.json未登録の話者は既存の安全側フォールバック（★★+WARN+「要人発言」表記）に委ねる設計とした。gb_boe_speeches（実施後掲載RSS）との重複について: 対象週は常に生成日（土曜）より後の週のため、生成時点でgb_boe_speechesが対象週の講演をまだ収録し得ない（us_frb_calendarのnotesと同じ理由）。理論上の重複が起きても両ソースとも同一話者に解決され重要度・表示名は変わらないため実害は無いという判断もFRB precedentを踏襲する（重複排除の新規実装はしていない）"
+    },
+    {
       "id": "boc_policy_rate",
       "name_ja": "BOC（政策金利発表カレンダー）",
       "status": "active",
