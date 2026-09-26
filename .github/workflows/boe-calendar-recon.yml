@@ -16,3 +16,4 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: '20' }
       - run: node scripts/phase1/source-recon-q.mjs
+      - run: node scripts/phase1/source-recon-r.mjs
