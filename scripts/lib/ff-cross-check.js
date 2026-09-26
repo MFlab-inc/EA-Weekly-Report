@@ -40,7 +40,7 @@ const KIND_KEYWORDS = {
   minutes_summary: ['Minutes'],
   opinions_summary: ['Summary of Opinions', 'Opinions'],
   bond_auction: ['Bond Auction'],
-  policy_rate: ['Rate Statement', 'Cash Rate', 'Official Bank Rate', 'Interest Rate Decision', 'Overnight Rate', 'Policy Rate'],
+  policy_rate: ['Rate Statement', 'Cash Rate', 'Official Bank Rate', 'Interest Rate Decision', 'Overnight Rate', 'Policy Rate', 'Monetary Policy Assessment'],
   press_conference: ['Press Conference'],
   official_speech: ['Speaks'],
   testimony: ['Testimony', 'Hearing'],

@@ -10,6 +10,15 @@ test('titleMatchesKind: kind別キーワードで大小無視の部分一致判�
   assert.equal(titleMatchesKind('GDP q/q', 'trade_balance'), false);
 });
 
+// 2026-09-26追加（しょうさん指摘、9/21週の月曜事後突合runでの実例回帰テスト）: FFの
+// 「SNB Monetary Policy Assessment」というタイトルがpolicy_rateのKIND_KEYWORDSのどれとも
+// 一致せず、台帳には正しくch-policy_rate-2026-09-24が登録済みだったにもかかわらず
+// unrecognizedKind（欠落疑いの参考情報）へ誤って分類されていた。台帳側の欠落ではなく
+// 逆突合ツール側のキーワード網羅漏れだったため、'Monetary Policy Assessment'を追加した
+test('titleMatchesKind: SNBの実際のFFタイトル「SNB Monetary Policy Assessment」もpolicy_rateに一致する（9/21週の実例回帰）', () => {
+  assert.equal(titleMatchesKind('SNB Monetary Policy Assessment', 'policy_rate'), true);
+});
+
 test('matchesCountryQualifier: DEは国名接頭辞ありのみ、EUは接頭辞無しのみ、他国は常にtrue', () => {
   assert.equal(matchesCountryQualifier('German Flash Manufacturing PMI', 'DE'), true);
   assert.equal(matchesCountryQualifier('Flash Manufacturing PMI', 'DE'), false);
@@ -169,6 +178,20 @@ test('findMissingHighImpactFfEvents: KIND_KEYWORDSのどれにも一致しない
   assert.equal(result.missingRecognizedKind.length, 0);
   assert.equal(result.unrecognizedKind.length, 1);
   assert.equal(result.unrecognizedKind[0].title, 'Some Brand New Indicator Nobody Has Modeled');
+});
+
+// 2026-09-26追加（しょうさん指摘、9/21週の月曜事後突合run 35550182769の実例回帰テスト）:
+// 台帳にはch-policy_rate-2026-09-24（SNB政策金利＆声明発表）が正しく登録済みだったのに、
+// FF側タイトル「SNB Monetary Policy Assessment」がKIND_KEYWORDSのどれとも一致せず
+// unrecognizedKindへ落ちていた（台帳の欠落ではなくツール側のキーワード網羅漏れ）。
+// 'Monetary Policy Assessment'追加後はmissingRecognizedKind・unrecognizedKindとも
+// 0件になる（台帳に対応イベントがあると正しく認識される）ことを確認する
+test('findMissingHighImpactFfEvents: 「SNB Monetary Policy Assessment」は台帳にpolicy_rateがあれば検出されない（9/21週の実例回帰）', () => {
+  const ledgerEvents = [{ country: 'CH', kind: 'policy_rate', dateJst: '2026-09-24' }];
+  const ffEvents = [{ jstDate: '2026-09-24', jstTime: '16:30', currency: 'CHF', title: 'SNB Monetary Policy Assessment', impact: 'High' }];
+  const result = findMissingHighImpactFfEvents(ledgerEvents, ffEvents);
+  assert.equal(result.missingRecognizedKind.length, 0);
+  assert.equal(result.unrecognizedKind.length, 0);
 });
 
 // EUR通貨はEU（ユーロ圏集計）・DE（ドイツ単独）の両方に対応しうるため、逆方向でも
