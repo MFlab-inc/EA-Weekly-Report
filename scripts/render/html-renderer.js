@@ -95,10 +95,13 @@ function haltDayCard(day, reportPolicy) {
   // 翌日の発表時刻・停止終了時刻を明示する注記のみを1行として追加する。
   // 2026-09-27是正（しょうさん指摘）: ▲は凡例どおり発表予定時刻に付ける（停止開始時刻[n.start]に
   // 付けていた初版は凡例「▲＝発表予定時刻」・既存のborrowedLineHtml（▲翌日{発表時刻}）と食い違って
-  // いたため、▲翌{曜日}曜{発表時刻}へ修正した）
+  // いたため、▲翌{曜日}曜{発表時刻}へ修正した）。
+  // 2026-09-27再是正（しょうさん指摘: 「▲翌日02:30」[borrowedLineHtml]と「▲翌火曜10:30」
+  // [本行]の表記が2種類混在していた）: borrowedLineHtmlの既存表記（▲翌日{発表時刻}）に統一する。
+  // 曜日情報はhalt_spillover_noteの注記文言側でのみ使う
   function spilloverLineHtml(n) {
     const pillHtml = `${countryPill(n.countryJa)}${currencyPill(n.currency)}`;
-    const labelHtml = `▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">翌${esc(n.weekday)}曜${esc(n.time)}</span>　${esc(n.label)}`;
+    const labelHtml = `▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">翌日${esc(n.time)}</span>　${esc(n.label)}`;
     const rangeHtml = `<span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">${n.start}–24:00</span></span>`;
     const note = reportPolicy.halt_spillover_note
       .replace('{WEEKDAY}', n.weekday)

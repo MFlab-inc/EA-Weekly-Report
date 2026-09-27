@@ -129,8 +129,11 @@ test('renderer: 自前の★★★は無いが翌日発表分の部分跨ぎ帯�
   assert.ok(!block.includes(reportPolicy.halt_no_star3_note), '矛盾する旧文言（halt_no_star3_note）が出てはならない');
   // 2026-09-27是正（しょうさん指摘）: ▲は凡例どおり発表予定時刻（07:45）に付ける。
   // 停止開始時刻（19:45）に付けていた初版は凡例「▲＝発表予定時刻」・既存のborrowedLineHtml
-  // （▲翌日{発表時刻}）と食い違っていたため修正した
-  assert.match(block, /▲<span[^>]*>翌水曜07:45<\/span>/, 'spillover行の▲時刻（翌日の発表予定時刻07:45）が無い');
+  // （▲翌日{発表時刻}）と食い違っていたため修正した。
+  // 2026-09-27再是正（しょうさん指摘）: 一旦「▲翌水曜07:45」としたが、borrowedLineHtmlの
+  // 既存表記「▲翌日{発表時刻}」と2種類混在してしまうため「▲翌日07:45」へ統一した
+  // （曜日情報は注記文言側[136行目]でのみ使う）
+  assert.match(block, /▲<span[^>]*>翌日07:45<\/span>/, 'spillover行の▲時刻（翌日の発表予定時刻07:45）が無い');
   assert.ok(block.includes('雇用統計'), 'spillover行にイベント名が無い');
   assert.ok(block.includes('19:45–24:00'), 'spillover行のレンジ（19:45–24:00）が無い');
   assert.ok(block.includes('翌水曜07:45発表分。停止目安は日付をまたぎ、翌日03:45まで続きます'), 'spillover注記の文言（曜日・発表時刻・終了時刻）が正しくない');
