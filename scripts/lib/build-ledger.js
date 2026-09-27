@@ -330,15 +330,41 @@ function buildSourcesSection(report, sourcesConfig, generatedAt) {
   return sources;
 }
 
+// gb_boe_calendar固有の設計（しょうさん指示、2026-09-27）: BOE事前公表カレンダー
+// （events/upcoming-events）はBOE主催イベント全般の告知ページであり、外部主催イベントの
+// 共同パネリスト等、BOE以外の登壇者も混在する（実測例: ISDAフォーラムのPhil Evans）。
+// gb_boe_speeches（実施後掲載RSS）は未登録話者を安全側★★+WARNで掲載する設計だが、この
+// カレンダーソースについては同じ扱いにすると「英国要人発言★★」という表示で誤解を与える
+// （読者からはBOE公式発言に見えてしまう）。よって、officials.jsonで解決できない話者は
+// 掲載対象外とし、氏名を含むWARNのみ出す（未登録のBOE新任者を取りこぼすリスクはWARNで検知し
+// officials.jsonへ登録して回復する運用とする）。gb_boe_speeches側は現状維持（対象外）
+const SOURCES_REQUIRING_REGISTERED_SPEAKER = new Set(['gb_boe_calendar']);
+
+function filterUnregisteredSpeakers(candidates, officials) {
+  const warnings = [];
+  const kept = candidates.filter((c) => {
+    if (c.kind !== 'official_speech' || !SOURCES_REQUIRING_REGISTERED_SPEAKER.has(c.sourceId)) return true;
+    const official = naming.resolveOfficialBySurname(officials, c.speakerLastName, c.country);
+    if (official && official.verified) return true;
+    const speaker = c.speakerLastName || '(話者不明)';
+    warnings.push(`${c.sourceId}: officials.json未登録の話者のため掲載対象外とした: speaker="${speaker}" date=${c.date}`);
+    return false;
+  });
+  return { kept, warnings };
+}
+
 // candidates: buildObservationSummary()と同じ形の候補配列（manual含む）。importance 0/nullは
 // 呼び出し側で除外済みの前提（0=非掲載は台帳に載せない、というスキーマ規約のため）。
 // official_speechはresolveOfficialSpeechImportanceで話者のrole_rankから重要度を決め直してから
 // candidateToLedgerEventへ渡す（2026-08-22、task #68）。話者未登録等で安全側判定になった場合の
-// warningsも合わせて返す（呼び出し側[buildLedger]がmeta.warningsへ合流させる）
+// warningsも合わせて返す（呼び出し側[buildLedger]がmeta.warningsへ合流させる）。
+// filterUnregisteredSpeakers（上記）はSOURCES_REQUIRING_REGISTERED_SPEAKER対象ソースの
+// 未登録話者を先に除外する（resolveOfficialSpeechImportanceより前段の処理）
 function buildEventsSection(candidates, officials) {
   const usedIds = new Set();
-  const warnings = [];
-  const adjusted = candidates.map((c) => {
+  const { kept, warnings: filterWarnings } = filterUnregisteredSpeakers(candidates, officials);
+  const warnings = [...filterWarnings];
+  const adjusted = kept.map((c) => {
     const { importance, warning } = resolveOfficialSpeechImportance(c, officials);
     if (warning) warnings.push(warning);
     return importance === c.importance ? c : { ...c, importance };
@@ -445,6 +471,7 @@ module.exports = {
   candidateToLedgerEvent,
   resolveRuleGeneratedName,
   resolveOfficialSpeechImportance,
+  filterUnregisteredSpeakers,
   computeBundleIds,
   makeEventId,
   minutesToJstIso,
