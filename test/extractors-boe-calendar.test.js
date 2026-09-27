@@ -153,6 +153,6 @@ test('resolveOfficialBySurname: フルネーム抽出によりAndrew Baileyがof
   assert.equal(bailey.role_rank, 'governor');
 });
 
-test('resolveOfficialBySurname: officials.json未登録の話者（Catherine L Mann等）はnullを返す（安全側フォールバックの対象）', () => {
-  assert.equal(resolveOfficialBySurname(officials, 'Catherine L Mann', 'GB'), null);
+test('resolveOfficialBySurname: officials.json未登録の話者（Executive Director級のNathanael Benjamin等）はnullを返す（安全側フォールバックの対象）', () => {
+  assert.equal(resolveOfficialBySurname(officials, 'Nathanael Benjamin', 'GB'), null);
 });
