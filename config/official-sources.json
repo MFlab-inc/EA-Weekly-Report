@@ -309,6 +309,31 @@
       "notes": "task #72（2026-09-19、しょうさん指摘: 9/21週にマックレムBOC総裁・ブロックRBA総裁の講演★★★が2件とも未検出だったことを機にBOC/RBA/ECB/SNBの講演ソースを新設。RBNZは事前調査でサイトアクセス不可のため対象外）。ライブ実測（2026-09-19、GitHub Actions相当の実ネットワーク経由）: robots.txtは/rss/・/speeches/とも許可（Disallowは/assets/・特定PDF1件・/media/senior-rba-executives.html・/media/image-library/・/search/・/s/のみ）。https://www.rba.gov.au/rss/rss-cb-speeches.xmlはHTTP 200のRDF/RSS 1.0（BOE/FRBのRSS 2.0とは異なる、BOCと同じCentral Bank Wiki拡張cb:名前空間）。話者名・役職はcb:person/cb:nameAsWritten・cb:jobTitleという構造化フィールドで明示され、BOEのようなタイトル文字列パースは不要（scripts/checkers/extractors/rba-speeches.js）。dc:date/cb:occurrenceDateはISO8601の明示的UTCオフセット付き（実測+10:00=AEST。豪東部の夏時間+11:00=AEDTへの遷移も各itemが個別に明示オフセットを持つためDST判定不要）。実測で判明した制約: フィードは常に直近1件のみを掲載する設計（BOE/BOCのような複数件のローリング履歴ではない）ため、同一週内に複数講演があった場合は先の講演が既に上書きされて消えているリスクがある（実運用で漏れが観測されたら別ソース[rba.gov.au/coming-up・schedules-events/calendar等]の追加を検討する）。総裁ブロックはconfig/officials.jsonに既に登録済み（role_rank:governor）のため、本ソース追加のみで即座に★★★解決が機能する"
     },
     {
+      "id": "au_rba_calendar",
+      "name_ja": "RBA（事前公表予定表）",
+      "status": "active",
+      "country": "AU",
+      "kinds": [
+        "official_speech"
+      ],
+      "type": "weekly_scrape",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "provides_exact_time": true,
+        "targets": [
+          { "label": "coming_up", "url": "https://www.rba.gov.au/coming-up/index.html" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "official_speech": {
+          "tz": "Australia/Sydney",
+          "note": "抽出行は<time datetime=\"...\">の明示的UTCオフセットからutcInstantとして渡すためこのtz自体はJST変換には使わない（au_rba_speeches等と同じ設計）。台帳のsource_evidence用local_date/local_time復元（resolveCandidateEventのutcInstant→utcToZonedParts分岐）にのみ使う"
+        }
+      },
+      "notes": "しょうさん指摘（2026-09-27、9/28週対応の中で発覚: au_rba_speeches[RSS]は常に最新1件のみ掲載する設計のため、同一週内に複数講演があると先の講演が上書きされて消え、総裁・副総裁級の★★★を無警告で取りこぼす経路になっている）。coming-up/index.htmlをgb_boe_calendar・us_frb_calendarと同じ位置づけの事前告知ソースとして追加した。ライブ実測（2026-09-27、実ネットワーク経由）: robots.txtは/coming-up/index.htmlを許可。1ページに1年以上先（実測時点で2027年12月分）までの全予定がページ分割無しで掲載され、<article class=\"item event-category-speeches event-type-{speech|fireside-chat|panel-participation|media-conference} ...\">という構造を持つ（scripts/checkers/extractors/rba-calendar.js）。政策金利決定後の記者会見（event-type-media-conference、実測は常にブロック総裁）は既存au_rba（年次確定schedule）が別途担当するため対象外とし、要人が登壇するそれ以外の全type（speech/fireside-chat/panel-participation、実測ではAppearance/Panel Participation等の見出しも含む）を対象とする。各<article>の<time datetime=\"...\">は明示的UTCオフセット（+10:00=AEST/+11:00=AEDT）付きのためDST判定不要でutcInstantとしてそのまま使えるが、しょうさん指摘の「AEST/AEDTの別を正しく判定して」に応えるため、抽出器内で(a)datetime属性のオフセットとテキスト表記の略称[AEST/AEDT]の整合性、(b)そのオフセットがscripts/lib/tz-convert.js[Node組み込みIANAタイムゾーンデータ]で計算したAustralia/Sydneyの実際のオフセットと一致するか、の2点をクロスチェックし、不一致なら構造的失敗として扱う。実測データ自体が2026年のAEST→AEDT切替日（10/4、ページ内コメント`<!-- AEDT starts 4 October 2026 -->`で確認）をまたいでおり、切替前後とも整合していることをtest/extractors-rba-calendar.test.jsで確認済み。話者フィルタについて: gb_boe_calendarと異なり本ページはRBA自身の行事予定であり外部登壇者は基本的に混ざらないため、未登録話者フィルタは適用せず全行を機械的に抽出し、officials.json未登録の話者は既存の安全側フォールバック（★★+WARN）に委ねる設計とした。au_rba_speeches（実施後掲載RSS）との重複について: gb_boe_calendar・us_frb_calendarの既存notesと同じ理由（生成日[土曜]時点で対象週=翌週の講演をau_rba_speechesがまだ収録し得ない）により、重複排除の新規実装はしていない"
+    },
+    {
       "id": "us_census",
       "name_ja": "米国勢調査局（Census Bureau）",
       "status": "active",

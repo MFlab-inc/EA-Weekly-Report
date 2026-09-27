@@ -35,6 +35,7 @@ import { extractBoeSpeeches } from './extractors/boe-speeches.js';
 import { extractBoeCalendar } from './extractors/boe-calendar.js';
 import { extractBocSpeeches } from './extractors/boc-speeches.js';
 import { extractRbaSpeeches } from './extractors/rba-speeches.js';
+import { extractRbaCalendar } from './extractors/rba-calendar.js';
 import { extractEcbSpeeches } from './extractors/ecb-speeches.js';
 import { extractSnbSpeeches } from './extractors/snb-speeches.js';
 import { extractSnbEvents } from './extractors/snb-policy-rate.js';
@@ -244,6 +245,19 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     primaryLabel: 'speeches_rss',
     parseFn: extractRbaSpeeches,
     toRow: (r) => ({ title: r.title, utcInstant: r.pubDateRaw, kind: 'official_speech', speakerLastName: r.speakerLastName }),
+  },
+  // RBA事前公表予定表: au_rba_speeches（実施後にしか追加されないRSS、かつ常に最新1件のみ掲載）を
+  // 補う事前検出用（2026-09-27新設、しょうさん指摘）。row.utcInstantは抽出側で確定済み
+  // （<time datetime="...">の明示的UTCオフセットをそのまま使う。DST判定はページ側で解決済みの
+  // 値を使い、抽出器内でAustralia/Sydneyの実際のDST規則とのクロスチェックも行う。
+  // scripts/checkers/extractors/rba-calendar.js参照）。speakerLastNameは抽出側が返す話者フルネーム
+  // をそのまま渡す（このページはRBA自身の行事予定であり外部登壇者が基本的に混ざらないため、
+  // gb_boe_calendarのような未登録話者フィルタは適用しない。未登録の場合は既存の安全側
+  // フォールバック[★★+WARN]に委ねる）
+  au_rba_calendar: {
+    primaryLabel: 'coming_up',
+    parseFn: extractRbaCalendar,
+    toRow: (r) => ({ title: r.title, utcInstant: r.utcInstant, kind: 'official_speech', speakerLastName: r.speakerLastName }),
   },
   ecb_speeches: {
     primaryLabel: 'press_rss',
