@@ -38,13 +38,13 @@ const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const log = (...a) => console.log(...a);
 const section = (title) => log(`\n##### ${title} #####`);
 
-async function fetchOne(url) {
-  for (let attempt = 1; attempt <= 3; attempt++) {
+async function fetchOne(url, { attempts = 3, timeoutMs = 30000 } = {}) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
     const started = Date.now();
     try {
       const res = await fetch(url, {
         headers: { 'User-Agent': UA, Accept: 'application/json,*/*' },
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(timeoutMs),
         redirect: 'follow',
       });
       const buf = Buffer.from(await res.arrayBuffer());
@@ -54,7 +54,7 @@ async function fetchOne(url) {
         sha256: sha256(buf), buf, attempt,
       };
     } catch (e) {
-      if (attempt === 3) return { error: String(e.message), attempt };
+      if (attempt === attempts) return { error: String(e.message), attempt };
       await sleep(2000 * attempt);
     }
   }
@@ -177,8 +177,14 @@ function findDateFields(obj, path = '', out = []) {
     qs.set('skip', '0');
     qs.set('take', '50');
     for (const p of committeeDateParams) {
-      const isEnd = /end|to$/i.test(p.name);
-      const d = isEnd ? FUTURE_90D : TODAY;
+      // 「...To」は上限（未来側90日）、「...From」は下限（今日）に対応させる。
+      // 例: StartDateFrom=今日・StartDateTo=+90日 で「今日〜90日後に開始するイベント」を問い合わせる。
+      // 注意: EndDateFromは名前に"End"を含むが接尾辞は"From"＝下限パラメータなので、
+      // 単純に/end/iだけで判定すると誤って上限（未来日）を割り当ててしまうバグになる
+      // （実際に最初の実行でこの誤りがあり、StartDateTo=+90日 かつ EndDateFrom=+90日という
+      // 自己矛盾したフィルタになり0件しか返らなかった）。接尾辞（To$/From$）で判定する。
+      const isTo = /to$/i.test(p.name);
+      const d = isTo ? FUTURE_90D : TODAY;
       qs.set(p.name, formatForParam(p, d));
     }
     const pathFilled = committeeEventsKey.replace('{id}', '158');
@@ -240,8 +246,18 @@ function findDateFields(obj, path = '', out = []) {
           const futures = found.filter((f) => new Date(f.value).getTime() > TODAY.getTime());
           log(`  検出された日付フィールド総数=${found.length} / うち未来日付=${futures.length}`);
           futures.forEach((f) => log(`  [FUTURE] ${f.path} = ${f.value}`));
+          // items配下のトップレベル（ネストしていない）日付フィールドだけを別途確認する
+          // （committeeBusinesses[].closeDateのような関連ビジネスの締切日ではなく、
+          // イベント自体の開始/終了日そのものが未来かどうかを見るため）。
+          const topLevel = found.filter((f) => /^\.items\[\d+\]\.[a-zA-Z]+$/.test(f.path));
+          section('items[]直下（イベント自体）の日付フィールドのみ・未来判定');
+          if (!topLevel.length) log('  items直下に日付フィールドが見つからなかった');
+          topLevel.forEach((f) => {
+            const isFuture = new Date(f.value).getTime() > TODAY.getTime();
+            log(`  ${f.path} = ${f.value}  ${isFuture ? '<<< FUTURE' : ''}`);
+          });
           if (!futures.length) {
-            section('take=100件中の日付フィールド一覧（全件・未来判定なし＝すべて過去/本日以前だった場合の内訳）');
+            section('take=100件中の日付フィールド一覧（先頭40件・参考）');
             found.slice(0, 40).forEach((f) => log(`  ${f.path} = ${f.value}`));
           }
         } catch (e) {
@@ -270,6 +286,14 @@ function findDateFields(obj, path = '', out = []) {
         const idParam = params.find((p) => /^id$/i.test(p.name) || /committeeid/i.test(p.name));
         if (idParam) qs.set(idParam.name, '158');
       }
+      // このエンドポイントの実パラメータにはCommitteeId相当が存在しない（全委員会横断で
+      // 「次のイベント」を返す設計と見られる）。EventFromDate（発見済みパラメータ）を
+      // 今日の日付で指定し、Takeを絞って応答を軽くする（1回目の実行では無条件呼び出しが
+      // 3回リトライ×30秒タイムアウトで約98秒かかったため、ここでは1回・15秒タイムアウトに縮小）。
+      const eventFromDateParam = params.find((p) => /eventfromdate/i.test(p.name));
+      if (eventFromDateParam) qs.set(eventFromDateParam.name, formatForParam(eventFromDateParam, TODAY));
+      const takeParam = params.find((p) => /^take$/i.test(p.name));
+      if (takeParam) qs.set(takeParam.name, '10');
       const url = `${HOST}${pathFilled}${qs.toString() ? '?' + qs.toString() : ''}`;
       log(`[QUERY] NextEvent: ${url}`);
       const verdict = await robotsChecker.isAllowed(url);
@@ -277,7 +301,7 @@ function findDateFields(obj, path = '', out = []) {
         log(`[SKIP-DISALLOWED] ${url} — ${verdict.reason}`);
         continue;
       }
-      const res = await fetchOne(url);
+      const res = await fetchOne(url, { attempts: 1, timeoutMs: 15000 });
       await sleep(WAIT_MS);
       if (res?.ok) {
         const safeName = k.replace(/[^a-zA-Z0-9]+/g, '_');
