@@ -65,8 +65,9 @@ function computeHaltWindow({ date, firstTime, lastTime }) {
   let rawPreviousDayEnd = null;
   let isMondayWeekendCross = false;
   let annotation = null;
-  // entirelyPreviousDayの場合のみ設定。前日の0時起点（0〜1440分）で表した窓の範囲。
-  // 呼び出し側（build-report-data.js）がこの窓の帯を前日のバーへ描画する際に使う
+  // crossesPreviousDayの場合のみ設定。前日の0時起点（0〜1440分）で表した窓の範囲
+  // （部分跨ぎの場合は前日24時＝当日0時で打ち切った範囲）。呼び出し側（build-report-data.js）が
+  // この窓の帯を前日のバーへ描画する際に使う
   let previousDayBarStartMin = null;
   let previousDayBarEndMin = null;
 
@@ -76,11 +77,16 @@ function computeHaltWindow({ date, firstTime, lastTime }) {
     previousDayLabel = weekdayJa(prevDate);
     rawPreviousDayStart = formatMinutes(startMin);
     isMondayWeekendCross = previousDayLabel === '日';
+    // 2026-09-27追記（しょうさん指摘: AU小売売上高等、窓の一部だけが前日にはみ出すケースの
+    // 前日カード表示対応）。previousDayBarStartMin/EndMinはentirelyPreviousDay限定だったが、
+    // 部分跨ぎ（endMin>0）にも一般化した。Math.min(endMin,0)は「前日側に属する範囲は
+    // 当日0時（=前日24時）で打ち切る」という意味で、entirelyPreviousDay（endMin<=0）の場合は
+    // 従来どおりendMinそのものになり後方互換（既存テスト・既存挙動に影響なし）
+    previousDayBarStartMin = startMin + 1440;
+    previousDayBarEndMin = Math.min(endMin, 0) + 1440;
 
     if (entirelyPreviousDay) {
       rawPreviousDayEnd = formatMinutes(endMin);
-      previousDayBarStartMin = startMin + 1440;
-      previousDayBarEndMin = endMin + 1440;
       annotation = isMondayWeekendCross
         ? `前日 ${previousDayLabel}曜${rawPreviousDayStart}〜${rawPreviousDayEnd}（週をまたぐため、週明けの取引開始時点からの停止が目安）`
         : `前日 ${previousDayLabel}曜${rawPreviousDayStart}〜${rawPreviousDayEnd}`;

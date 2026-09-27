@@ -14,11 +14,12 @@ function pct(min) {
 // day: { date, md, weekday, events: [{id,time,importance,countryJa,currency,displayName,comment,kind}],
 //        windowGroups: [{ firstTime, lastTime, labelItems:[{time,text}] }] }
 // extraBarIntervals: 翌日の発表枠のうち停止窓が丸ごと前日（＝この日）に収まるもの（task #47実バグ
-// 修正）を、この日のバーへ追加描画するための{start,end}区間（前日0時起点の分）。borrowedNotesは
-// その由来を独立した1行として描画するための構造化情報（{time,label,start,end,countryJa,currency}。
-// html-renderer.js側でwindowLinesと同じ見た目の行として合成する。task #49でしょうさん指摘の
-// 読みやすさ改善に伴い、単純な注記文字列からこの形へ変更した）
-function buildDayHaltCard(day, extraBarIntervals = [], borrowedNotes = []) {
+// 修正）、および窓の一部だけが前日にはみ出すもの（2026-09-27追記、しょうさん指摘のAU小売売上高等）を、
+// この日のバーへ追加描画するための{start,end}区間（前日0時起点の分）。borrowedNotesは前者（丸ごと
+// 前日）の由来を、spilloverNotesは後者（部分はみ出し）の由来を、それぞれ独立した1行として描画する
+// ための構造化情報。html-renderer.js側でwindowLinesと同じ見た目の行として合成する（task #49で
+// しょうさん指摘の読みやすさ改善に伴い、単純な注記文字列からこの形へ変更した）
+function buildDayHaltCard(day, extraBarIntervals = [], borrowedNotes = [], spilloverNotes = []) {
   const windows = (day.windowGroups || []).map((g) =>
     computeHaltWindow({ date: day.date, firstTime: g.firstTime, lastTime: g.lastTime })
   );
@@ -37,7 +38,7 @@ function buildDayHaltCard(day, extraBarIntervals = [], borrowedNotes = []) {
   const triangles = rawTriangles.filter((t) => (seenLeftPct.has(t.leftPct) ? false : (seenLeftPct.add(t.leftPct), true)));
 
   const star3Count = day.events.filter((e) => e.importance === 3).length;
-  return { date: day.date, md: day.md, weekday: day.weekday, star3Count, windows, bars, triangles, borrowedNotes };
+  return { date: day.date, md: day.md, weekday: day.weekday, star3Count, windows, bars, triangles, borrowedNotes, spilloverNotes };
 }
 
 function buildReportData(weekInput) {
@@ -52,21 +53,39 @@ function buildReportData(weekInput) {
 
   const extraBarsByIndex = rawDays.map(() => []);
   const borrowedNotesByIndex = rawDays.map(() => []);
+  // 窓の一部だけが前日にはみ出すケース（2026-09-27追記、しょうさん指摘のAU小売売上高等）の
+  // 由来を独立した1行として前日カードへ描画するための構造化情報
+  const spilloverNotesByIndex = rawDays.map(() => []);
   rawDays.forEach((rd, idx) => {
     rd.windows.forEach((w, wi) => {
-      if (!w.entirelyPreviousDay) return;
+      if (!w.crossesPreviousDay) return;
       if (idx === 0) return; // 月曜の前日は日曜（対象週外）のため描画対象日が無い。注記のみで表現する
       const group = rd.windowGroups[wi];
       extraBarsByIndex[idx - 1].push({ start: w.previousDayBarStartMin, end: w.previousDayBarEndMin });
       const label = (group?.labelItems || []).map((li) => li.text).join('・') || '';
-      borrowedNotesByIndex[idx - 1].push({
-        time: w.resumeAfter,
-        label,
-        start: w.rawPreviousDayStart,
-        end: w.rawPreviousDayEnd,
-        countryJa: group?.countryJa || '',
-        currency: group?.currency || '',
-      });
+      if (w.entirelyPreviousDay) {
+        borrowedNotesByIndex[idx - 1].push({
+          time: w.resumeAfter,
+          label,
+          start: w.rawPreviousDayStart,
+          end: w.rawPreviousDayEnd,
+          countryJa: group?.countryJa || '',
+          currency: group?.currency || '',
+        });
+      } else {
+        // 部分はみ出し: この窓自体は発表日（rd）自身のバー・行にも表示され続ける（ownIntervalsの
+        // フィルタ対象外のため）。前日側にはstart(前日基準)〜24時までの帯と、翌日の発表時刻・
+        // 停止終了時刻を含む注記1行のみを追加する
+        spilloverNotesByIndex[idx - 1].push({
+          weekday: rd.weekday,
+          time: group?.firstTime || w.resumeAfter,
+          endTime: w.displayEnd,
+          label,
+          start: w.rawPreviousDayStart,
+          countryJa: group?.countryJa || '',
+          currency: group?.currency || '',
+        });
+      }
     });
   });
 
@@ -75,7 +94,7 @@ function buildReportData(weekInput) {
     md: day.md,
     weekday: day.weekday,
     windowGroups: day.windowGroups,
-    halt: buildDayHaltCard(day, extraBarsByIndex[idx], borrowedNotesByIndex[idx]),
+    halt: buildDayHaltCard(day, extraBarsByIndex[idx], borrowedNotesByIndex[idx], spilloverNotesByIndex[idx]),
     events: day.events,
   }));
   const star3Total = days.reduce((sum, d) => sum + d.events.filter((e) => e.importance === 3).length, 0);

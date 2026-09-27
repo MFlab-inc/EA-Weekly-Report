@@ -167,6 +167,26 @@ test('entirelyPreviousDay: 境界値04:01は窓が1分だけ当日にかかる�
   assert.equal(w.displayEnd, '00:01');
 });
 
+// 2026-09-27追記（しょうさん指摘: AU小売売上高のように窓の一部だけが前日にはみ出すケースを
+// 前日カードにも表示する対応）。previousDayBarStartMin/EndMinをentirelyPreviousDay限定から
+// crossesPreviousDay全体（部分跨ぎを含む）へ一般化したことを検証する
+test('crossesPreviousDay（部分跨ぎ）: 火10:30発表（AU小売売上高の実例）— previousDayBarStart/EndMinが前日24時打ち切りで計算される', () => {
+  const w = computeHaltWindow({ date: '2026-09-29', firstTime: '10:30' });
+  assert.equal(w.crossesPreviousDay, true);
+  assert.equal(w.entirelyPreviousDay, false);
+  assert.equal(w.previousDayLabel, '月');
+  assert.equal(w.rawPreviousDayStart, '22:30');
+  assert.equal(w.displayEnd, '06:30');
+  assert.equal(w.previousDayBarStartMin, 1350); // 22:30
+  assert.equal(w.previousDayBarEndMin, 1440); // 前日24時（=当日0時）で打ち切り
+});
+
+test('entirelyPreviousDay（既存ケースの回帰確認）: 一般化後もprevious DayBarStart/EndMinが従来と同じ値になる', () => {
+  const w = computeHaltWindow({ date: '2026-08-20', firstTime: '03:00' });
+  assert.equal(w.previousDayBarStartMin, 900); // 15:00
+  assert.equal(w.previousDayBarEndMin, 1380); // 23:00（endMin<=0のためMath.min(endMin,0)=endMinのまま）
+});
+
 test('formatMinutes: 負数・24時超のラップ', () => {
   assert.equal(formatMinutes(-190), '20:50');
   assert.equal(formatMinutes(-1), '23:59');

@@ -89,6 +89,22 @@ function haltDayCard(day, reportPolicy) {
     return { labelHtml, lineHtml: `${pillHtml}　${labelHtml}　${rangeHtml}${annotationHtml}` };
   }
 
+  // 2026-09-27追記（しょうさん指摘: AU小売売上高等、窓の一部だけが前日にはみ出すケースを
+  // 前日カードにも表示する対応）。borrowedLineHtmlの「丸ごと前日」ケースとは異なり、この窓は
+  // 発表日自身のカードにも表示され続けるため、ここでは前日側の帯（前日基準の開始時刻〜24時）と、
+  // 翌日の発表時刻・停止終了時刻を明示する注記のみを1行として追加する
+  function spilloverLineHtml(n) {
+    const pillHtml = `${countryPill(n.countryJa)}${currencyPill(n.currency)}`;
+    const labelHtml = `▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">${esc(n.start)}〜</span>　${esc(n.label)}`;
+    const rangeHtml = `<span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">${n.start}–24:00</span></span>`;
+    const note = reportPolicy.halt_spillover_note
+      .replace('{WEEKDAY}', n.weekday)
+      .replace('{TIME}', n.time)
+      .replace('{END_TIME}', n.endTime);
+    const annotationHtml = `<span style="font-size:11.5px;color:#5b6f66;">（${esc(note)}）</span>`;
+    return { labelHtml, lineHtml: `${pillHtml}　${labelHtml}　${rangeHtml}${annotationHtml}` };
+  }
+
   const ownLines = day.halt.windows.map((w, wi) => {
     const group = day.windowGroups ? day.windowGroups[wi] : null;
     const pillHtml = `${countryPill(group?.countryJa || '')}${currencyPill(group?.currency || '')}`;
@@ -98,15 +114,25 @@ function haltDayCard(day, reportPolicy) {
     return { pillHtml, labelHtml, rangeHtml, annotationHtml };
   });
   const borrowedLines = (day.halt.borrowedNotes || []).map(borrowedLineHtml);
-  // 発表枠（own）と翌日発表分（borrowed）を合わせた総行数が1行だけの場合のみ、ラベルと範囲を
-  // 改行して見せる既存のコンパクト表示を使う。2行以上ある場合は枠ごとに1行へまとめる
-  const totalLineCount = ownLines.length + borrowedLines.length;
+  const spilloverLines = (day.halt.spilloverNotes || []).map(spilloverLineHtml);
+  // 発表枠（own）と翌日発表分（borrowed・spillover）を合わせた総行数が1行だけの場合のみ、
+  // ラベルと範囲を改行して見せる既存のコンパクト表示を使う。2行以上ある場合は枠ごとに1行へまとめる
+  const totalLineCount = ownLines.length + borrowedLines.length + spilloverLines.length;
   const windowLines = ownLines.map(({ pillHtml, labelHtml, rangeHtml, annotationHtml }) =>
     totalLineCount === 1 ? `${pillHtml}　${labelHtml}<br>${rangeHtml}${annotationHtml}` : `${pillHtml}　${labelHtml}　${rangeHtml}${annotationHtml}`
   );
   const borrowedWindowLines = borrowedLines.map(({ lineHtml }) => lineHtml);
-  const allLines = [...windowLines, ...borrowedWindowLines];
-  const bodyHtml = allLines.length > 0 ? allLines.join('<br>') : esc(reportPolicy.halt_no_star3_note);
+  const spilloverWindowLines = spilloverLines.map(({ lineHtml }) => lineHtml);
+  const allLines = [...windowLines, ...borrowedWindowLines, ...spilloverWindowLines];
+  // 2026-09-27追記（しょうさん指摘）: 自前の★★★が無く、翌日発表分の部分はみ出し帯のみがある日は
+  // 「この日は最重要（★★★）イベントはありません」だと帯の存在と矛盾するため、専用の文言を
+  // 冒頭に付けた上で実際のspillover行を続ける（borrowed＝丸ごと前日の既存ケースは、その行自体が
+  // 「翌日発表分」である旨を含むため従来どおり据え置く）
+  const bodyHtml = allLines.length === 0
+    ? esc(reportPolicy.halt_no_star3_note)
+    : (ownLines.length === 0 && borrowedLines.length === 0 && spilloverLines.length > 0
+      ? [esc(reportPolicy.halt_no_star3_spillover_note), ...allLines].join('<br>')
+      : allLines.join('<br>'));
 
   return `    <div class="ea-halt-day" data-ea-date="${day.date}" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;padding:13px 14px 11px;margin-bottom:10px;">
       <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;">
