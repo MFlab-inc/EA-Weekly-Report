@@ -1,0 +1,17 @@
+# 一時ワークフロー（2026-09-27）: BOE要人（総裁・副総裁4職・チーフエコノミスト・MPC外部委員）の
+# officials.json登録に向けた一次情報確認（scripts/phase1/source-recon-u.mjs）。
+# 確認完了後、このファイルと.boe-officials-recon-triggerは削除する
+# （source-recon-u.mjs自体は監査記録として残す）。
+name: boe-officials-recon
+on:
+  push:
+    paths:
+      - '.boe-officials-recon-trigger'
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - run: node scripts/phase1/source-recon-u.mjs
