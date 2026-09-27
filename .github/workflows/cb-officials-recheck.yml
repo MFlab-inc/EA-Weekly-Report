@@ -1,0 +1,17 @@
+# 一時ワークフロー（2026-09-27）: RBAハウザー副総裁の就任日食い違い確認・ECBシュナーベルの
+# 個人bioページ確認（scripts/phase1/source-recon-x.mjs）。
+# 確認完了後、このファイルと.cb-officials-recheck-triggerは削除する
+# （source-recon-x.mjs自体は監査記録として残す）。
+name: cb-officials-recheck
+on:
+  push:
+    paths:
+      - '.cb-officials-recheck-trigger'
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - run: node scripts/phase1/source-recon-x.mjs
