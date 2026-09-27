@@ -46,26 +46,39 @@ function cleanText(html) {
   return html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
 }
 
+// ナビゲーションのメガメニュー（全ページ共通・長大）を読み飛ばし、実コンテンツの直前に
+//必ず現れる検索ウィジェットの定型文以降を抜き出す（前ラウンドで固定4000文字窓が
+// ナビ分に消費され実コンテンツへ届かないケースがあったため、マーカー基準に変更）
+const CONTENT_MARKER = 'Please enter a search term.';
+function contentExcerpt(text, maxLen = 6000) {
+  const idx = text.lastIndexOf(CONTENT_MARKER);
+  const start = idx >= 0 ? idx + CONTENT_MARKER.length : 0;
+  return text.slice(start, start + maxLen).trim();
+}
+
 const ROSTER_TARGETS = [
   { label: 'governors', url: 'https://www.bankofengland.co.uk/about/people/governors' },
   { label: 'monetary_policy_committee', url: 'https://www.bankofengland.co.uk/about/people/monetary-policy-committee' },
   { label: 'financial_policy_committee', url: 'https://www.bankofengland.co.uk/about/people/financial-policy-committee' },
 ];
 
-// 個人bioページ。スラッグは実測で確定させる（404なら別表記の可能性ありとしてSKIP扱いにする）
+// 個人bioページ。スラッグは実測で確定させる（404なら別表記の可能性ありとしてSKIP扱いにする）。
+// 前ラウンド（2026-09-27）実測: dave-ramsdenは404、david-ramsden（しょうさん提供URL）で確認要。
+// catherine-l-mann/alan-m-taylorも404だったため別表記を試す
 const BIO_TARGETS = [
-  { label: 'dave-ramsden', url: 'https://www.bankofengland.co.uk/about/people/dave-ramsden/biography' },
+  { label: 'david-ramsden', url: 'https://www.bankofengland.co.uk/about/people/david-ramsden/biography' },
   { label: 'clare-lombardelli', url: 'https://www.bankofengland.co.uk/about/people/clare-lombardelli/biography' },
   { label: 'sarah-breeden', url: 'https://www.bankofengland.co.uk/about/people/sarah-breeden/biography' },
   { label: 'katharine-braddick', url: 'https://www.bankofengland.co.uk/about/people/katharine-braddick/biography' },
   { label: 'huw-pill', url: 'https://www.bankofengland.co.uk/about/people/huw-pill/biography' },
+  { label: 'catherine-mann', url: 'https://www.bankofengland.co.uk/about/people/catherine-mann/biography' },
   { label: 'catherine-l-mann', url: 'https://www.bankofengland.co.uk/about/people/catherine-l-mann/biography' },
   { label: 'alan-taylor', url: 'https://www.bankofengland.co.uk/about/people/alan-taylor/biography' },
-  { label: 'alan-m-taylor', url: 'https://www.bankofengland.co.uk/about/people/alan-m-taylor/biography' },
   { label: 'nathanael-benjamin', url: 'https://www.bankofengland.co.uk/about/people/nathanael-benjamin/biography' },
   { label: 'sasha-mills', url: 'https://www.bankofengland.co.uk/about/people/sasha-mills/biography' },
   { label: 'victoria-saporta', url: 'https://www.bankofengland.co.uk/about/people/victoria-saporta/biography' },
   { label: 'phil-evans', url: 'https://www.bankofengland.co.uk/about/people/phil-evans/biography' },
+  { label: 'philip-evans', url: 'https://www.bankofengland.co.uk/about/people/philip-evans/biography' },
 ];
 
 (async () => {
@@ -88,9 +101,7 @@ const BIO_TARGETS = [
       const text = cleanText(res.buf.toString('utf8'));
       log(`[FETCH] ${t.label}: HTTP ${res.status} ${res.bytes}B final=${res.finalUrl}`);
       // ページタイトル直後〜3000文字（役職一覧が載る本文冒頭部分）を抜粋
-      const bodyIdx = text.indexOf('Skip to main content');
-      const excerpt = bodyIdx >= 0 ? text.slice(bodyIdx, bodyIdx + 4000) : text.slice(0, 4000);
-      log(`  [EXCERPT]\n${excerpt}`);
+      log(`  [EXCERPT]\n${contentExcerpt(text, 6000)}`);
     } else {
       log(`[FETCH-ERR] ${t.label}: HTTP ${res?.status ?? 'ERR'} ${res?.error || ''}`);
     }
@@ -110,9 +121,7 @@ const BIO_TARGETS = [
       writeFileSync(filePath, res.buf);
       const text = cleanText(res.buf.toString('utf8'));
       log(`[FETCH] ${t.label}: HTTP ${res.status} ${res.bytes}B final=${res.finalUrl}`);
-      const bodyIdx = text.indexOf('Skip to main content');
-      const excerpt = bodyIdx >= 0 ? text.slice(bodyIdx, bodyIdx + 2500) : text.slice(0, 2500);
-      log(`  [EXCERPT]\n${excerpt}`);
+      log(`  [EXCERPT]\n${contentExcerpt(text, 3000)}`);
     } else {
       log(`[FETCH-ERR] ${t.label}: HTTP ${res?.status ?? 'ERR'} ${res?.error || ''}`);
     }
