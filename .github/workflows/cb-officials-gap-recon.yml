@@ -1,8 +1,8 @@
 # 一時ワークフロー（2026-09-27）: 主要7中銀（FRB/ECB/BOJ/RBA/RBNZ/BOC/SNB）の
 # 総裁・副総裁級ロスターがofficials.jsonへ漏れなく登録されているかの横断監査に向けた
-# 一次情報確認（scripts/phase1/source-recon-v.mjs）。
+# 一次情報確認（scripts/phase1/source-recon-v.mjs、フォローアップのsource-recon-w.mjs）。
 # 確認完了後、このファイルと.cb-officials-gap-recon-triggerは削除する
-# （source-recon-v.mjs自体は監査記録として残す）。
+# （source-recon-v.mjs・source-recon-w.mjs自体は監査記録として残す）。
 name: cb-officials-gap-recon
 on:
   push:
@@ -16,3 +16,4 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: '20' }
       - run: node scripts/phase1/source-recon-v.mjs
+      - run: node scripts/phase1/source-recon-w.mjs
