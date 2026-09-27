@@ -92,10 +92,13 @@ function haltDayCard(day, reportPolicy) {
   // 2026-09-27追記（しょうさん指摘: AU小売売上高等、窓の一部だけが前日にはみ出すケースを
   // 前日カードにも表示する対応）。borrowedLineHtmlの「丸ごと前日」ケースとは異なり、この窓は
   // 発表日自身のカードにも表示され続けるため、ここでは前日側の帯（前日基準の開始時刻〜24時）と、
-  // 翌日の発表時刻・停止終了時刻を明示する注記のみを1行として追加する
+  // 翌日の発表時刻・停止終了時刻を明示する注記のみを1行として追加する。
+  // 2026-09-27是正（しょうさん指摘）: ▲は凡例どおり発表予定時刻に付ける（停止開始時刻[n.start]に
+  // 付けていた初版は凡例「▲＝発表予定時刻」・既存のborrowedLineHtml（▲翌日{発表時刻}）と食い違って
+  // いたため、▲翌{曜日}曜{発表時刻}へ修正した）
   function spilloverLineHtml(n) {
     const pillHtml = `${countryPill(n.countryJa)}${currencyPill(n.currency)}`;
-    const labelHtml = `▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">${esc(n.start)}〜</span>　${esc(n.label)}`;
+    const labelHtml = `▲<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#065f46;">翌${esc(n.weekday)}曜${esc(n.time)}</span>　${esc(n.label)}`;
     const rangeHtml = `<span style="color:#b45309;font-weight:700;">停止開始目安 <span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;">${n.start}–24:00</span></span>`;
     const note = reportPolicy.halt_spillover_note
       .replace('{WEEKDAY}', n.weekday)
