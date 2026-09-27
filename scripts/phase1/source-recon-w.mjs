@@ -6,10 +6,10 @@
 //    判明。個人bioページで役職・在任期間を追加確認する。
 // 2) AU: rba.gov.au/about-rba/people/ の実測がタイトルのみ（261文字）でAssistant Governor各氏の
 //    氏名を再確認できなかった。<nav>/<header>/<footer>除去が本文まで削ってしまった疑いがあるため、
-//    今回はscript/style以外は除去しないライト版クリーニングで再試行する。あわせてRBA新体制
-//    （2025年RBA Act改革：Monetary Policy Board / Governance Board）のURLを追加候補で試す。
-// 3) NZ: source-recon-vではrobots.txt自体がHTTP 403で取得失敗し全対象をSKIPした。再試行して
-//    一時的な問題か恒常的なブロックかを切り分ける。
+//    今回はscript/style以外は除去しないライト版クリーニングで再試行する。
+// （注: 当初はAUの推測URL複数とNZ robots.txt再試行も含めていたが、次のラウンドで原因不明の
+//  長時間待機が発生したため対象を上記2件のみに絞った。NZはrobots.txt自体がHTTP 403で
+//  取得失敗＝確定的にブロックされていることをsource-recon-vで既に確認済みのため再試行不要と判断）
 // 生データは phase1-out/ に保存（コミットしない）。
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -99,18 +99,16 @@ async function fetchAndReport(robotsChecker, label, url, opts = {}) {
   }
 }
 
+// 前ラウンド(v)でau_rba_our_structure/monetary_policy_board/governance_boardの推測URLが
+// いずれも404で、その後の待機がスケジューリング遅延なのか実際のハングなのか切り分けが
+// つかなかったため、本ラウンドは既知で確実に200が返る2件のみに絞り、追加の推測URLや
+// NZ再試行（robots.txt HTTP403は前ラウンドで確定的に確認済みのため再試行しない）は行わない。
 const TARGETS = [
   // --- US follow-up: Jerome Powell個人bioページ（現理事としての在任情報確認） ---
   { label: 'us_frb_powell_bio', url: 'https://www.federalreserve.gov/aboutthefed/bios/board/powell.htm', maxLen: 6000 },
 
-  // --- AU follow-up: 前ラウンドの過剰除去を疑いライト版クリーニングで再取得 ---
+  // --- AU follow-up: 前ラウンドの過剰除去を疑いライト版クリーニングで再取得（既知の200 URL） ---
   { label: 'au_rba_people_light', url: 'https://www.rba.gov.au/about-rba/people/', maxLen: 20000, light: true },
-  { label: 'au_rba_our_structure_slash', url: 'https://www.rba.gov.au/about-rba/our-structure/', maxLen: 15000, light: true },
-  { label: 'au_rba_our_boards', url: 'https://www.rba.gov.au/about-rba/our-boards/', maxLen: 15000, light: true },
-  { label: 'au_rba_monetary_policy_board_slash', url: 'https://www.rba.gov.au/monetary-policy/monetary-policy-board/', maxLen: 15000, light: true },
-
-  // --- NZ follow-up: robots.txt HTTP403が一時的か恒常的か再確認 ---
-  { label: 'nz_rbnz_our_people_retry', url: 'https://www.rbnz.govt.nz/about-us/our-people', maxLen: 15000 },
 ];
 
 (async () => {
