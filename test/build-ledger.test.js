@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, resolveOfficialSpeechImportance, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
+const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, resolveOfficialSpeechImportance, filterUnregisteredSpeakers, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
 const { validateLedger } = require('../scripts/lib/validate-ledger');
 
 const officials = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'officials.json'), 'utf8')).officials;
@@ -216,6 +216,45 @@ test('resolveRuleGeneratedName: official_speech（JP・登録済みの6審議委
 // task #68（しょうさん指摘: 一律★★★は不採用、話者の格[role_rank]に応じて重要度を決める）の回帰テスト
 test('resolveOfficialSpeechImportance: official_speech以外はcandidate.importanceをそのまま素通しする', () => {
   assert.deepEqual(resolveOfficialSpeechImportance({ kind: 'policy_rate', importance: 3 }, officials), { importance: 3, warning: null });
+});
+
+// しょうさん指示（2026-09-27）: gb_boe_calendar（BOE事前公表カレンダー）はBOE以外の登壇者
+// （外部主催イベントの共同パネリスト等）も混在するため、officials.json未登録の話者は
+// gb_boe_speeches（実施後掲載RSS、安全側★★+WARNで掲載）とは異なり掲載対象外＋WARN（氏名入り）
+// とする。SOURCES_REQUIRING_REGISTERED_SPEAKER対象ソース限定の挙動であることを確認する
+test('filterUnregisteredSpeakers: gb_boe_calendarの未登録話者（Phil Evans等）は除外し、氏名入りWARNを1件出す', () => {
+  const candidates = [
+    { kind: 'official_speech', country: 'GB', sourceId: 'gb_boe_calendar', speakerLastName: 'Andrew Bailey', date: '2026-10-01', importance: 3 },
+    { kind: 'official_speech', country: 'GB', sourceId: 'gb_boe_calendar', speakerLastName: 'Phil Evans', date: '2026-09-30', importance: 2 },
+  ];
+  const { kept, warnings } = filterUnregisteredSpeakers(candidates, officials);
+  assert.deepEqual(kept.map((c) => c.speakerLastName), ['Andrew Bailey']);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /gb_boe_calendar/);
+  assert.match(warnings[0], /Phil Evans/);
+});
+
+test('filterUnregisteredSpeakers: gb_boe_speeches（RSS）は未登録話者も除外しない（現状維持）', () => {
+  const candidates = [
+    { kind: 'official_speech', country: 'GB', sourceId: 'gb_boe_speeches', speakerLastName: 'David Bailey', date: '2026-09-24', importance: 2 },
+  ];
+  const { kept, warnings } = filterUnregisteredSpeakers(candidates, officials);
+  assert.deepEqual(kept.map((c) => c.speakerLastName), ['David Bailey']);
+  assert.deepEqual(warnings, []);
+});
+
+test('filterUnregisteredSpeakers: official_speech以外のkindはSOURCES_REQUIRING_REGISTERED_SPEAKER対象ソースでも除外しない', () => {
+  const candidates = [{ kind: 'policy_rate', country: 'GB', sourceId: 'gb_boe_calendar', importance: 3 }];
+  const { kept, warnings } = filterUnregisteredSpeakers(candidates, officials);
+  assert.deepEqual(kept, candidates);
+  assert.deepEqual(warnings, []);
+});
+
+test('filterUnregisteredSpeakers: 話者未指定（speakerLastName null）のgb_boe_calendar候補は「(話者不明)」としてWARNを出し除外する', () => {
+  const candidates = [{ kind: 'official_speech', country: 'GB', sourceId: 'gb_boe_calendar', speakerLastName: null, date: '2026-10-01', importance: 2 }];
+  const { kept, warnings } = filterUnregisteredSpeakers(candidates, officials);
+  assert.deepEqual(kept, []);
+  assert.match(warnings[0], /\(話者不明\)/);
 });
 
 // 2026-09-19発見の実バグの回帰テスト（task #94フォローアップ）: manual-events.json由来の

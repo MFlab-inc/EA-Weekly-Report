@@ -1,12 +1,12 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "generated_at": "2026-09-26T10:30:53+09:00",
+    "generated_at": "2026-09-27T17:53:19+09:00",
     "target_week_start": "2026-09-28",
     "target_week_end": "2026-10-02",
     "pipeline_version": "ea-weekly-report@0.1.0",
-    "generated_from_commit": "5908a6677fc99258c015c396b3bad15710d7929c",
-    "generated_from_code_hash": "ff0d33da4856b02dca30b0c0d4bef55d979336cba4258c1a5258082dd9899bd0",
+    "generated_from_commit": "8179eb3e595d695da38230bea9ece53bc8253d4e",
+    "generated_from_code_hash": "b250cead5dea4b2795e265d08dc0dccb6cc8754acdd23312eb38c76e91d1c97b",
     "outcome": "PUBLISH_READY",
     "warnings": [
       "残量監視WARN: nz_stats_cpi — 年次スケジュールconfigに対象週(2026-09-28)から4週先(2026-10-26)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
@@ -19,7 +19,11 @@
       "定例欠落: 「中国PMI」（毎月1日〜7日ごろ（RatingDog製造業・非製造業とも月初公表が通例））が対象週に該当する見込みだが検出されなかった。対象週が該当日範囲に入っているのに検出なしならWARN（担当ソースcn_pmiがstatus=pending_recon[task #16]のため恒常的にWARNが出る想定。担当ソース実装まではWARNで欠落を可視化し、HOLDにはしない。しょうさん指示2026-08-15）",
       "定例欠落: 「英国建設業PMI」（毎月1日〜7日ごろ（S&P Global系PMIの通例的な公表時期））が対象週に該当する見込みだが検出されなかった。同上（担当ソースgb_construction_pmiがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）",
       "定例欠落: 「ADP雇用統計」（毎月1日〜7日ごろ（米雇用統計[第1金曜]の直前、水曜公表が通例））が対象週に該当する見込みだが検出されなかった。同上（担当ソースus_adpがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）",
-      "定例欠落: 「豪州貿易収支（ABS）」（毎月1日〜10日ごろ（前月または前々月分を公表。既刊実績: 9/3発表分））が対象週に該当する見込みだが検出されなかった。同上（task #87。trade_balanceはkind自体は正しく登録済みで、au_absのhorizon外にあるだけの場合でも警告が出る）"
+      "定例欠落: 「豪州貿易収支（ABS）」（毎月1日〜10日ごろ（前月または前々月分を公表。既刊実績: 9/3発表分））が対象週に該当する見込みだが検出されなかった。同上（task #87。trade_balanceはkind自体は正しく登録済みで、au_absのhorizon外にあるだけの場合でも警告が出る）",
+      "gb_boe_calendar: officials.json未登録の話者のため掲載対象外とした: speaker=\"Nathanael Benjamin\" date=2026-09-30",
+      "gb_boe_calendar: officials.json未登録の話者のため掲載対象外とした: speaker=\"Phil Evans\" date=2026-09-30",
+      "gb_boe_calendar: officials.json未登録の話者のため掲載対象外とした: speaker=\"Sasha Mills\" date=2026-10-01",
+      "gb_boe_calendar: officials.json未登録の話者のため掲載対象外とした: speaker=\"Victoria Saporta\" date=2026-10-01"
     ],
     "holds": []
   },
@@ -27,7 +31,7 @@
     {
       "source_id": "us_bls_fred",
       "type": "date_api_fred",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://api.stlouisfed.org/fred/release/dates",
       "ok": true,
       "http_status": null,
@@ -38,7 +42,7 @@
     {
       "source_id": "au_rba",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.rba.gov.au/schedules-events/board-meeting-schedules.html",
       "ok": true,
       "http_status": null,
@@ -49,8 +53,19 @@
     {
       "source_id": "au_rba_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.rba.gov.au/rss/rss-cb-speeches.xml",
+      "ok": true,
+      "http_status": null,
+      "extractor_result_count": 0,
+      "robots_checked": true,
+      "fail_closed_decision": "OK"
+    },
+    {
+      "source_id": "au_rba_calendar",
+      "type": "weekly_scrape",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
+      "url": "https://www.rba.gov.au/coming-up/index.html",
       "ok": true,
       "http_status": null,
       "extractor_result_count": 0,
@@ -60,7 +75,7 @@
     {
       "source_id": "us_census",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.census.gov/economic-indicators/calendar-listview.html",
       "ok": true,
       "http_status": null,
@@ -71,7 +86,7 @@
     {
       "source_id": "gb_ons",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP",
       "ok": true,
       "http_status": null,
@@ -82,7 +97,7 @@
     {
       "source_id": "nz_statsnz",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
       "ok": true,
       "http_status": null,
@@ -93,7 +108,7 @@
     {
       "source_id": "nz_stats_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/calendar-export?month=8&year=2026",
       "ok": true,
       "http_status": null,
@@ -104,7 +119,7 @@
     {
       "source_id": "nz_stats_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -115,7 +130,7 @@
     {
       "source_id": "nz_stats_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -126,7 +141,7 @@
     {
       "source_id": "ca_statcan",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
       "ok": true,
       "http_status": null,
@@ -137,7 +152,7 @@
     {
       "source_id": "au_abs",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.abs.gov.au/release-calendar/future-releases-calendar",
       "ok": true,
       "http_status": null,
@@ -148,7 +163,7 @@
     {
       "source_id": "us_ism",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/",
       "ok": true,
       "http_status": null,
@@ -159,7 +174,7 @@
     {
       "source_id": "us_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -170,7 +185,7 @@
     {
       "source_id": "us_eia_petroleum",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
       "ok": true,
       "http_status": null,
@@ -181,7 +196,7 @@
     {
       "source_id": "jp_boj",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm",
       "ok": true,
       "http_status": null,
@@ -192,7 +207,7 @@
     {
       "source_id": "jp_boj_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.boj.or.jp/about/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -203,7 +218,7 @@
     {
       "source_id": "us_treasury",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions",
       "ok": true,
       "http_status": null,
@@ -214,7 +229,7 @@
     {
       "source_id": "jp_mof",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -225,7 +240,7 @@
     {
       "source_id": "jp_stat_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.stat.go.jp/data/cpi/4-1.html",
       "ok": true,
       "http_status": null,
@@ -236,7 +251,7 @@
     {
       "source_id": "jp_esri_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html",
       "ok": true,
       "http_status": null,
@@ -247,7 +262,7 @@
     {
       "source_id": "jp_customs_trade",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.customs.go.jp/toukei/calendar/calend.htm",
       "ok": true,
       "http_status": null,
@@ -258,7 +273,7 @@
     {
       "source_id": "us_frb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.federalreserve.gov/feeds/speeches.xml",
       "ok": true,
       "http_status": null,
@@ -269,7 +284,7 @@
     {
       "source_id": "us_frb_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.federalreserve.gov/newsevents/2026-september.htm",
       "ok": true,
       "http_status": null,
@@ -280,7 +295,7 @@
     {
       "source_id": "cn_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -291,7 +306,7 @@
     {
       "source_id": "cn_nbs_data",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/",
       "ok": true,
       "http_status": null,
@@ -302,7 +317,7 @@
     {
       "source_id": "gb_construction_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -313,7 +328,7 @@
     {
       "source_id": "us_adp",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://adpemploymentreport.com/",
       "ok": true,
       "http_status": null,
@@ -324,7 +339,7 @@
     {
       "source_id": "ca_ivey",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://iveypmi.uwo.ca/faq/",
       "ok": true,
       "http_status": null,
@@ -335,7 +350,7 @@
     {
       "source_id": "us_frb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
       "ok": true,
       "http_status": null,
@@ -346,7 +361,7 @@
     {
       "source_id": "ecb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
       "ok": true,
       "http_status": null,
@@ -357,7 +372,7 @@
     {
       "source_id": "ecb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.ecb.europa.eu/rss/press.html",
       "ok": true,
       "http_status": null,
@@ -368,7 +383,7 @@
     {
       "source_id": "eurostat_hicp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -379,7 +394,7 @@
     {
       "source_id": "eurostat_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -390,7 +405,7 @@
     {
       "source_id": "de_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -401,7 +416,7 @@
     {
       "source_id": "eu_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -412,7 +427,7 @@
     {
       "source_id": "gb_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -423,7 +438,7 @@
     {
       "source_id": "de_zew",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.zew.de/en/press/latest-press-releases/2026-release-dates-for-zew-indicator-of-economic-sentiment-fixed",
       "ok": true,
       "http_status": null,
@@ -434,7 +449,7 @@
     {
       "source_id": "boe_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates",
       "ok": true,
       "http_status": null,
@@ -445,7 +460,7 @@
     {
       "source_id": "gb_boe_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.bankofengland.co.uk/rss/speeches",
       "ok": true,
       "http_status": null,
@@ -454,9 +469,20 @@
       "fail_closed_decision": "OK"
     },
     {
+      "source_id": "gb_boe_calendar",
+      "type": "weekly_scrape",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
+      "url": "https://www.bankofengland.co.uk/events/upcoming-events",
+      "ok": true,
+      "http_status": null,
+      "extractor_result_count": 10,
+      "robots_checked": true,
+      "fail_closed_decision": "OK"
+    },
+    {
       "source_id": "boc_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.bankofcanada.ca/press/upcoming-events/",
       "ok": true,
       "http_status": null,
@@ -467,7 +493,7 @@
     {
       "source_id": "ca_boc_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.bankofcanada.ca/content_type/speeches/feed/",
       "ok": true,
       "http_status": null,
@@ -478,7 +504,7 @@
     {
       "source_id": "rbnz_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028",
       "ok": true,
       "http_status": null,
@@ -489,7 +515,7 @@
     {
       "source_id": "snb_policy_rate",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
       "ok": true,
       "http_status": null,
@@ -500,7 +526,7 @@
     {
       "source_id": "snb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "https://www.snb.ch/public/rss/en/speeches",
       "ok": true,
       "http_status": null,
@@ -511,7 +537,7 @@
     {
       "source_id": "manual",
       "type": "manual",
-      "fetched_at": "2026-09-26T10:30:53+09:00",
+      "fetched_at": "2026-09-27T17:53:19+09:00",
       "url": "config/manual-events.json",
       "ok": true,
       "http_status": null,
@@ -541,6 +567,27 @@
       "halt_window_end_jst": null,
       "bundle_id": null,
       "speaker_named": false
+    },
+    {
+      "event_id": "gb-official_speech-2026-09-28",
+      "date_local": "2026-09-28",
+      "time_local": "11:00",
+      "tz": "Europe/London",
+      "date_jst": "2026-09-28",
+      "datetime_jst": "2026-09-28T19:00:00+09:00",
+      "time_status": "published",
+      "country": "GB",
+      "currency": "GBP",
+      "kind": "official_speech",
+      "name_ja": "ラムスデンBOE副総裁（市場・銀行業務担当）の発言",
+      "importance": 3,
+      "source_id": "gb_boe_calendar",
+      "source_evidence": "Dave Ramsden: Speech on quantitative tightening, co-hosted by Macro Money and Finance Society at the Bank of England, London (11am)",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": "2026-09-28T07:00:00+09:00",
+      "halt_window_end_jst": "2026-09-28T15:00:00+09:00",
+      "bundle_id": null,
+      "speaker_named": true
     },
     {
       "event_id": "jp-bond_auction-2026-09-29",
@@ -729,6 +776,48 @@
       "halt_window_start_jst": null,
       "halt_window_end_jst": null,
       "bundle_id": null,
+      "speaker_named": true
+    },
+    {
+      "event_id": "gb-official_speech-2026-09-30",
+      "date_local": "2026-09-29",
+      "time_local": "16:00",
+      "tz": "Europe/London",
+      "date_jst": "2026-09-30",
+      "datetime_jst": "2026-09-30T00:00:00+09:00",
+      "time_status": "published",
+      "country": "GB",
+      "currency": "GBP",
+      "kind": "official_speech",
+      "name_ja": "マンBOE金融政策委員会外部委員の発言",
+      "importance": 2,
+      "source_id": "gb_boe_calendar",
+      "source_evidence": "Catherine L Mann: Panel at McKinsey Global Institute, 'The global balance sheet 2026: Imbalance and divergence' (4pm).",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": null,
+      "halt_window_end_jst": null,
+      "bundle_id": "gb-official_speech-2026-09-30",
+      "speaker_named": true
+    },
+    {
+      "event_id": "gb-official_speech-2026-09-30-2",
+      "date_local": "2026-09-29",
+      "time_local": "16:30",
+      "tz": "Europe/London",
+      "date_jst": "2026-09-30",
+      "datetime_jst": "2026-09-30T00:30:00+09:00",
+      "time_status": "published",
+      "country": "GB",
+      "currency": "GBP",
+      "kind": "official_speech",
+      "name_ja": "テイラーBOE金融政策委員会外部委員の発言",
+      "importance": 2,
+      "source_id": "gb_boe_calendar",
+      "source_evidence": "Alan Taylor: Dow Lecture at NIESR, 'Expectations and the risk of inflation persistence: what we know, what we don't know, and the implications for policy', London . (4.30pm)",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": null,
+      "halt_window_end_jst": null,
+      "bundle_id": "gb-official_speech-2026-09-30",
       "speaker_named": true
     },
     {
@@ -921,6 +1010,48 @@
       "speaker_named": false
     },
     {
+      "event_id": "gb-official_speech-2026-10-01",
+      "date_local": "2026-10-01",
+      "time_local": "09:00",
+      "tz": "Europe/London",
+      "date_jst": "2026-10-01",
+      "datetime_jst": "2026-10-01T17:00:00+09:00",
+      "time_status": "published",
+      "country": "GB",
+      "currency": "GBP",
+      "kind": "official_speech",
+      "name_ja": "ベイリーBOE総裁の発言",
+      "importance": 3,
+      "source_id": "gb_boe_calendar",
+      "source_evidence": "Andrew Bailey: Opening remarks at the LSE/Bank of England Future of Money conference in celebration of Charles Goodhart (9am) - register for the livestream ..",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": "2026-10-01T05:00:00+09:00",
+      "halt_window_end_jst": "2026-10-01T13:00:00+09:00",
+      "bundle_id": null,
+      "speaker_named": true
+    },
+    {
+      "event_id": "gb-official_speech-2026-10-01-2",
+      "date_local": "2026-10-01",
+      "time_local": "13:00",
+      "tz": "Europe/London",
+      "date_jst": "2026-10-01",
+      "datetime_jst": "2026-10-01T21:00:00+09:00",
+      "time_status": "published",
+      "country": "GB",
+      "currency": "GBP",
+      "kind": "official_speech",
+      "name_ja": "マンBOE金融政策委員会外部委員の発言",
+      "importance": 2,
+      "source_id": "gb_boe_calendar",
+      "source_evidence": "Catherine L Mann: Speech at Nomura investor conference, London (1pm)",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": null,
+      "halt_window_end_jst": null,
+      "bundle_id": "gb-official_speech-2026-10-01-2",
+      "speaker_named": true
+    },
+    {
       "event_id": "us-jobless_claims-2026-10-01",
       "date_local": "2026-10-01",
       "time_local": "08:30",
@@ -940,6 +1071,27 @@
       "halt_window_end_jst": null,
       "bundle_id": null,
       "speaker_named": false
+    },
+    {
+      "event_id": "gb-official_speech-2026-10-01-3",
+      "date_local": "2026-10-01",
+      "time_local": "13:30",
+      "tz": "Europe/London",
+      "date_jst": "2026-10-01",
+      "datetime_jst": "2026-10-01T21:30:00+09:00",
+      "time_status": "published",
+      "country": "GB",
+      "currency": "GBP",
+      "kind": "official_speech",
+      "name_ja": "ピルBOEチーフエコノミストの発言",
+      "importance": 2,
+      "source_id": "gb_boe_calendar",
+      "source_evidence": "Huw Pill: Chairing a panel at the LSE/Bank of England Future of Money conference in celebration of Charles Goodhart, 'Past debates in monetary economics revisited - introduced by Charles Goodhart' (1.30pm).",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": null,
+      "halt_window_end_jst": null,
+      "bundle_id": "gb-official_speech-2026-10-01-2",
+      "speaker_named": true
     },
     {
       "event_id": "us-pmi_ism-2026-10-01",

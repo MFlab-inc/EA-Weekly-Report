@@ -25,6 +25,8 @@
   "halt_window_bundle_note": "再開確認は{LAST_EVENT}の終了後から",
   "no_time_note": "時刻未公表（停止目安の対象外）",
   "halt_no_star3_note": "この日は最重要（★★★）イベントはありません（★★は下記「対象週の注目イベント」欄をご確認ください）",
+  "halt_no_star3_spillover_note": "この日は最重要（★★★）イベントの発表はありませんが、翌日発表分の停止目安があります",
+  "halt_spillover_note": "翌{WEEKDAY}曜{TIME}発表分。停止目安は日付をまたぎ、翌日{END_TIME}まで続きます",
   "hero_summary_no_star3_text": "最重要イベントの予定はない週",
   "hero_summary_no_star3_note": "2026-08-15追加（しょうさん指示）: heroSummary自動生成ルール（scripts/render.mjsのautoHeroSummary）で対象週に★★★イベントが1件も無い場合に使う定型文",
   "hero_kind_priority": ["policy_rate", "press_conference", "testimony", "minutes_summary", "opinions_summary", "quarterly_report", "cpi", "pce", "employment_situation", "gdp", "ppi", "pmi_ism", "retail_sales", "industrial_production", "trade_balance", "official_speech", "sentiment"],

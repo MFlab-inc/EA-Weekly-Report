@@ -101,12 +101,39 @@ test('renderer: 禁止語（JST・仮想通貨）が読者向け文言に出な�
 // 説明文位置に明示することで解消する（8/3週の2026-08-04が実例）。
 const generated0803 = renderReportHtml(buildReportData(weekData20260803), { reportPolicy, btcGuide });
 
+// 2026-08-04は元々「自前★★★も翌日発表分の帯も一切無い、真の空の日」の実例として使っていたが、
+// 2026-09-27の停止スケジュール表示改善（しょうさん指摘: 前日からのはみ出し帯を前日カードにも
+// 表示する対応）により、翌日8/5のNZ雇用統計(07:45発表、部分跨ぎ)の帯がこの日にも描画されるように
+// なったため、この日はもはや「真の空の日」の実例ではなくなった（下の新テストでこのケース自体を
+// 別途検証する）。真の空の日の検証には、対象週内に前後どちらの隣接日にもイベントが無い
+// 2026-08-18（weekDataEntirelyPrevDay、8/17-8/21週）を使う
 test('renderer: ★★★イベントがゼロの日はhalt_no_star3_noteが説明文位置に出る（帯・▲は空のまま）', () => {
+  const block = haltDayBlock(generatedEntirelyPrevDay, '2026-08-18');
+  const { bars, triangles } = barsAndTriangles(block);
+  assert.deepEqual(bars, [], '2026-08-18: ★★★がないため帯は空のはず');
+  assert.deepEqual(triangles, [], '2026-08-18: ★★★がないため▲は空のはず');
+  assert.ok(block.includes(reportPolicy.halt_no_star3_note), 'halt_no_star3_noteが出力に含まれていない');
+});
+
+// 2026-09-27追記（しょうさん指摘: AU小売売上高のように窓の一部だけが前日にはみ出すケースを
+// 前日カードにも表示する対応）。8/3週の実測ground truthに、まさにこのケースの実例
+// （8/5(水)07:45のNZ雇用統計が8/4(火)へ部分跨ぎする）が含まれていたため、これを使って検証する。
+// 8/4自身には★★★が無いため、帯だけがあるのに「イベントはありません」と出る矛盾を避ける
+// 専用文言（halt_no_star3_spillover_note）が使われることも合わせて確認する
+test('renderer: 自前の★★★は無いが翌日発表分の部分跨ぎ帯がある日 — halt_no_star3_spillover_note＋spillover行が出る（8/4に8/5 NZ雇用統計07:45が跨ぐ実例）', () => {
   const block = haltDayBlock(generated0803, '2026-08-04');
   const { bars, triangles } = barsAndTriangles(block);
-  assert.deepEqual(bars, [], '2026-08-04: ★★★がないため帯は空のはず');
-  assert.deepEqual(triangles, [], '2026-08-04: ★★★がないため▲は空のはず');
-  assert.ok(block.includes(reportPolicy.halt_no_star3_note), 'halt_no_star3_noteが出力に含まれていない');
+  assert.deepEqual(bars, [['82.3', '17.7']], '2026-08-04: 8/5 NZ雇用統計(07:45)由来の帯（19:45-24:00）が描画されるはず');
+  assert.deepEqual(triangles, [], '2026-08-04自身には発表時刻が無いため▲は無いはず');
+  assert.ok(block.includes(reportPolicy.halt_no_star3_spillover_note), 'halt_no_star3_spillover_noteが出力に含まれていない');
+  assert.ok(!block.includes(reportPolicy.halt_no_star3_note), '矛盾する旧文言（halt_no_star3_note）が出てはならない');
+  // 2026-09-27是正（しょうさん指摘）: ▲は凡例どおり発表予定時刻（07:45）に付ける。
+  // 停止開始時刻（19:45）に付けていた初版は凡例「▲＝発表予定時刻」・既存のborrowedLineHtml
+  // （▲翌日{発表時刻}）と食い違っていたため修正した
+  assert.match(block, /▲<span[^>]*>翌水曜07:45<\/span>/, 'spillover行の▲時刻（翌日の発表予定時刻07:45）が無い');
+  assert.ok(block.includes('雇用統計'), 'spillover行にイベント名が無い');
+  assert.ok(block.includes('19:45–24:00'), 'spillover行のレンジ（19:45–24:00）が無い');
+  assert.ok(block.includes('翌水曜07:45発表分。停止目安は日付をまたぎ、翌日03:45まで続きます'), 'spillover注記の文言（曜日・発表時刻・終了時刻）が正しくない');
 });
 
 // しょうさん指摘（2026-08-14修正2・任意対応）: 同一時刻の▲が完全に重なる場合は重複描画しない

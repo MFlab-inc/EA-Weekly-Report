@@ -90,6 +90,24 @@ test('extractBoeCalendar: 対象週がページの表示ウィンドウ（今週
   assert.match(r.reason, /表示ウィンドウ.*対象週.*含んでいない/);
 });
 
+// しょうさん指示（2026-09-27）: このページは通常必ず何らかの予定が掲載されているため、
+// HTTP取得は成功したが話者行を1件も抽出できない場合は構造的失敗として扱う（サイト構造変化を
+// 見逃さないため）。曜日見出しは見つかるが、話者行のパターン（{フルネーム}: {説明}({時刻})）
+// 自体が変わり1件もマッチしないケースを再現する
+test('extractBoeCalendar: 曜日見出しは見つかるが話者行が1件も抽出できない場合は構造的失敗を返す（HTTP取得成功でも0件は失敗扱い）', () => {
+  const html = [
+    '<title>Upcoming events - w/b 28 September 2026 and 5 October 2026</title>',
+    '<div class="page-content">',
+    '<h3>Monday 28 September</h3>',
+    '<p>Some unrelated announcement with no speaker colon pattern at all</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const r = extractBoeCalendar(html);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /話者行を1件も抽出できなかった/);
+});
+
 test('extractBoeCalendar: <title>から表示ウィンドウを読み取れない入力は構造的失敗を返す', () => {
   const r = extractBoeCalendar('<html><title>no window here</title><div class="page-content"></div><h2>Upcoming key publications</h2></html>');
   assert.equal(r.ok, false);
@@ -135,6 +153,6 @@ test('resolveOfficialBySurname: フルネーム抽出によりAndrew Baileyがof
   assert.equal(bailey.role_rank, 'governor');
 });
 
-test('resolveOfficialBySurname: officials.json未登録の話者（Catherine L Mann等）はnullを返す（安全側フォールバックの対象）', () => {
-  assert.equal(resolveOfficialBySurname(officials, 'Catherine L Mann', 'GB'), null);
+test('resolveOfficialBySurname: officials.json未登録の話者（Executive Director級のNathanael Benjamin等）はnullを返す（安全側フォールバックの対象）', () => {
+  assert.equal(resolveOfficialBySurname(officials, 'Nathanael Benjamin', 'GB'), null);
 });
