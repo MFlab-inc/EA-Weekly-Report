@@ -97,6 +97,30 @@ export function decideGateOutcome(checks, volumeCheck, { acknowledgeLowVolume = 
   return 'PUBLISH_READY';
 }
 
+// 件数下限の手動確認公開（しょうさん指示2026-10-03、item3続き: 12/28週[年末年始]の生成までに
+// acknowledge_low_volumeによる手動公開経路が必要）を台帳自身に記録する。
+// decideGateOutcome()はhasError（監査エラー）を最優先でHOLDにするため、acknowledgeLowVolumeが
+// trueでも監査エラーがある週は常にHOLDのままであり、このレコードはPUBLISH_READYかつ
+// 件数下限（またはtrend）に実際に抵触していた場合にのみ付与される＝HOLDをこのフラグで
+// 公開してしまうことは構造的に起こり得ない。
+// 返り値: 条件を満たさない場合は引数のledgerをそのまま返す（参照同一性で判定できるため、
+// 呼び出し側はledger変化の有無でファイル再書き込みの要否を判断できる）
+export function applyLowVolumeAcknowledgment(ledger, { decision, volumeCheck, trendCheck, acknowledgeLowVolume, checkedAtJst }) {
+  const belowThreshold = Boolean(volumeCheck?.belowThreshold || trendCheck?.belowThreshold);
+  if (!acknowledgeLowVolume || !belowThreshold || decision !== 'PUBLISH_READY') return ledger;
+  return {
+    ...ledger,
+    meta: {
+      ...ledger.meta,
+      low_volume_acknowledged: {
+        acknowledged: true,
+        acknowledged_at: checkedAtJst,
+        reason: '件数下限チェック（または過去実績比較の推移チェック）に抵触したが、内容を確認のうえ手動で公開を承認した（--acknowledge-low-volume）',
+      },
+    },
+  };
+}
+
 async function main() {
   const opts = parseArgs(argv.slice(2));
   if (!opts.ledger || !opts.html) {
@@ -132,6 +156,17 @@ async function main() {
   };
   mkdirSync(dirname(opts.result) || '.', { recursive: true });
   writeFileSync(opts.result, JSON.stringify(payload, null, 2) + '\n');
+
+  // acknowledge-low-volumeにより実際にPUBLISH_READYへ格上げされた場合、その旨を台帳自身へ
+  // 記録する（しょうさん指示2026-10-03）。HOLDの週には絶対に書き込まれない
+  // （applyLowVolumeAcknowledgment参照）
+  const updatedLedger = applyLowVolumeAcknowledgment(ledger, {
+    decision, volumeCheck, trendCheck, acknowledgeLowVolume: opts.acknowledgeLowVolume, checkedAtJst: payload.checked_at_jst,
+  });
+  if (updatedLedger !== ledger) {
+    writeFileSync(opts.ledger, JSON.stringify(updatedLedger, null, 2) + '\n');
+    console.log(`件数下限を確認のうえ公開した旨を台帳へ記録しました: ${opts.ledger}`);
+  }
 
   console.log(`判定: ${decision}`);
   console.log(`監査記録: ${opts.result}`);

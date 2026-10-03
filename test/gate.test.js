@@ -224,3 +224,97 @@ test('統合: baseLedger()（イベント1件のみ）はchecksにERROR無しで
   assert.equal(volumeCheck.belowThreshold, true);
   assert.equal(decideGateOutcome(checks, volumeCheck), 'REVIEW_REQUIRED');
 });
+
+// 2026-10-03追加（しょうさん指摘item3続き: 12/28週[年末年始]の生成[12/26]までに手動公開経路が
+// 必要）。applyLowVolumeAcknowledgment()の単体テスト
+test('applyLowVolumeAcknowledgment: acknowledgeLowVolume:true・belowThreshold:true・decision:PUBLISH_READYの場合のみledger.metaに記録する', async () => {
+  const { applyLowVolumeAcknowledgment } = await loadGate();
+  const ledger = baseLedger();
+  const updated = applyLowVolumeAcknowledgment(ledger, {
+    decision: 'PUBLISH_READY',
+    volumeCheck: { belowThreshold: true },
+    trendCheck: { belowThreshold: false },
+    acknowledgeLowVolume: true,
+    checkedAtJst: '2026-12-26T08:06:00+09:00',
+  });
+  assert.notEqual(updated, ledger, '元のledgerとは別オブジェクトが返るはず');
+  assert.deepEqual(updated.meta.low_volume_acknowledged, {
+    acknowledged: true,
+    acknowledged_at: '2026-12-26T08:06:00+09:00',
+    reason: '件数下限チェック（または過去実績比較の推移チェック）に抵触したが、内容を確認のうえ手動で公開を承認した（--acknowledge-low-volume）',
+  });
+  // 元のledgerは変更されない（イミュータブル）
+  assert.equal(ledger.meta.low_volume_acknowledged, undefined);
+});
+
+test('applyLowVolumeAcknowledgment: decision:HOLDの場合は記録しない（監査エラーがある週をこのフラグで公開してしまうことは絶対に無い）', async () => {
+  const { applyLowVolumeAcknowledgment } = await loadGate();
+  const ledger = baseLedger();
+  const updated = applyLowVolumeAcknowledgment(ledger, {
+    decision: 'HOLD',
+    volumeCheck: { belowThreshold: true },
+    trendCheck: { belowThreshold: false },
+    acknowledgeLowVolume: true,
+    checkedAtJst: '2026-12-26T08:06:00+09:00',
+  });
+  assert.equal(updated, ledger, 'HOLDの場合は元のledgerがそのまま返るはず（変更なし）');
+});
+
+test('applyLowVolumeAcknowledgment: acknowledgeLowVolume:falseなら記録しない（通常のREVIEW_REQUIRED停止時）', async () => {
+  const { applyLowVolumeAcknowledgment } = await loadGate();
+  const ledger = baseLedger();
+  const updated = applyLowVolumeAcknowledgment(ledger, {
+    decision: 'REVIEW_REQUIRED',
+    volumeCheck: { belowThreshold: true },
+    trendCheck: { belowThreshold: false },
+    acknowledgeLowVolume: false,
+    checkedAtJst: '2026-12-26T08:06:00+09:00',
+  });
+  assert.equal(updated, ledger);
+});
+
+test('applyLowVolumeAcknowledgment: belowThresholdがfalse（そもそも下限抵触していない）なら記録しない', async () => {
+  const { applyLowVolumeAcknowledgment } = await loadGate();
+  const ledger = baseLedger();
+  const updated = applyLowVolumeAcknowledgment(ledger, {
+    decision: 'PUBLISH_READY',
+    volumeCheck: { belowThreshold: false },
+    trendCheck: { belowThreshold: false },
+    acknowledgeLowVolume: true,
+    checkedAtJst: '2026-12-26T08:06:00+09:00',
+  });
+  assert.equal(updated, ledger, '確認すべき下限抵触自体が無いので記録は不要');
+});
+
+// 2026-10-03追加: baseLedger()（1件のみ）の低件数シナリオで、REVIEW_REQUIRED→
+// acknowledge_low_volumeによるPUBLISH_READY格上げ→台帳への記録、という一連の流れを
+// runGateChecks/decideGateOutcome/applyLowVolumeAcknowledgmentの実結線で確認する
+// （しょうさん指示: 「過去の少件数シナリオ（テスト用の台帳）で一連の流れを試験」）
+test('統合: 低件数シナリオ（baseLedger）でREVIEW_REQUIRED→acknowledge_low_volumeでPUBLISH_READYへ格上げされ、台帳に記録される', async () => {
+  const { runGateChecks, decideGateOutcome, applyLowVolumeAcknowledgment } = await loadGate();
+  const { checkEventVolume } = await import('../scripts/lib/validate-event-volume.js');
+
+  const checks = await runGateChecks({
+    ledger: baseLedger(), html: baseHtml(), reportPolicy: REPORT_POLICY, btcGuide: BTC_GUIDE,
+    skipMobile: true, skipLinkReachability: true,
+  });
+  const volumeCheck = checkEventVolume(baseLedger(), VOLUME_POLICY);
+
+  // 1回目（未確認）: REVIEW_REQUIRED、台帳は変更されない
+  const firstDecision = decideGateOutcome(checks, volumeCheck);
+  assert.equal(firstDecision, 'REVIEW_REQUIRED');
+  const ledgerAfterFirst = applyLowVolumeAcknowledgment(baseLedger(), {
+    decision: firstDecision, volumeCheck, trendCheck: undefined, acknowledgeLowVolume: false, checkedAtJst: '2026-12-26T08:06:00+09:00',
+  });
+  assert.equal(ledgerAfterFirst.meta.low_volume_acknowledged, undefined);
+
+  // 2回目（acknowledge_low_volume=true、しょうさんがレビュー用HTMLを確認後に手動実行）:
+  // PUBLISH_READYへ格上げされ、台帳に確認記録が残る
+  const secondDecision = decideGateOutcome(checks, volumeCheck, { acknowledgeLowVolume: true });
+  assert.equal(secondDecision, 'PUBLISH_READY');
+  const ledgerAfterSecond = applyLowVolumeAcknowledgment(baseLedger(), {
+    decision: secondDecision, volumeCheck, trendCheck: undefined, acknowledgeLowVolume: true, checkedAtJst: '2026-12-27T10:00:00+09:00',
+  });
+  assert.equal(ledgerAfterSecond.meta.low_volume_acknowledged.acknowledged, true);
+  assert.equal(ledgerAfterSecond.meta.low_volume_acknowledged.acknowledged_at, '2026-12-27T10:00:00+09:00');
+});
