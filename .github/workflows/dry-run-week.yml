@@ -1,0 +1,46 @@
+# 日付境界の潜在バグ事前点検用ツール（scripts/check/dry-run-week.mjs）のworkflow_dispatchエントリ
+# ポイント（2026-10-03、しょうさん指摘「日付まわりの潜在バグの事前点検」: 「初めて迎える日付
+# パターン」の週を本番到来前に検証したい）。
+#
+# data/ledger/・output/配下の本番パスには一切書き込まない（dry-run-week.mjs内部でスクラッチ領域
+# [phase1-out/dry-run/、gitignore済み]にのみ書き込み、本ワークフローはそれをartifactとして
+# アップロードするのみでコミットは一切行わない）。しょうさん自身が今後も手動で任意の週を
+# 試験実行できるよう恒久的なワークフローとして追加する（調査用の一時recon workflowとは異なり
+# 削除しない）。
+name: dry-run-week
+on:
+  workflow_dispatch:
+    inputs:
+      now:
+        description: '生成日をシミュレートする日付（YYYY-MM-DD、土曜想定）。実際のcronの挙動を最も忠実に再現する（推奨）。target_week_startと排他'
+        required: false
+      target_week_start:
+        description: '対象週の月曜日を直接指定（YYYY-MM-DD）。nowを省略した場合のみ使用'
+        required: false
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: Install Playwright Chromium (モバイル多幅レイアウト検証に使用)
+        run: npx playwright install --with-deps chromium
+      - name: dry-run実行（本番パスには一切書き込まない）
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.now }}" ]; then ARGS="--now ${{ github.event.inputs.now }}"; fi
+          if [ -z "${{ github.event.inputs.now }}" ] && [ -n "${{ github.event.inputs.target_week_start }}" ]; then ARGS="--target-week-start ${{ github.event.inputs.target_week_start }}"; fi
+          if [ -z "$ARGS" ]; then echo "now または target_week_start のいずれかを指定してください" >&2; exit 2; fi
+          node scripts/check/dry-run-week.mjs $ARGS --out-dir phase1-out/dry-run
+      - name: 結果をartifactとしてアップロード（台帳・HTML・gate結果）
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dry-run-result
+          path: phase1-out/dry-run/
+          retention-days: 30
+          if-no-files-found: ignore

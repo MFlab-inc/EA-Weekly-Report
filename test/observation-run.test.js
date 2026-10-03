@@ -129,6 +129,43 @@ test('buildObservationSummary: thisWeek由来とmatchedEntries由来の候補を
   assert.ok(!summary.candidates.some((c) => c.sourceId === 'cn_pmi'));
 });
 
+test('buildObservationSummary: annual_schedule_config型のmatchedEntriesはJST変換後に対象週をロールオーバーする候補を除外する（2026-10-03発見、ca_ivey実例）', async () => {
+  // ca_ivey（Ivey PMI、annual_schedule_config型）の実設定: 2026-11-06（対象週最終日=金）
+  // 10:00 America/Toronto（EST、夏時間終了後）で発表 → UTC 15:00 → JST 2026-11-07T00:00:00+09:00（土）。
+  // harness.mjsのcheckAnnualScheduleSourceはscheduleのローカル日付（2026-11-06）で対象週内と
+  // 判定してmatchedEntriesに含めるが、JST変換後は対象週（〜11/6）の翌日（土）にロールオーバーする。
+  // 修正前はこのままannualEntryToCandidateで候補化され台帳に紛れ込んでいた。修正後は
+  // isWithinWeek(candidate.date, ...)による再チェックで除外されることを確認する
+  const { buildObservationSummary } = await import('../scripts/phase1/observation-run.mjs');
+  const report = {
+    targetWeek: { start: '2026-11-02', end: '2026-11-06' },
+    outcome: { status: 'OK' },
+    residualWarnings: [],
+    recurringMissingWarnings: [],
+    results: [
+      {
+        id: 'ca_ivey',
+        ok: true,
+        matchedEntries: [{ date: '2026-11-06', kind: 'pmi_ism' }],
+      },
+    ],
+  };
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'ca_ivey',
+        country: 'CA',
+        announce_time_by_kind: { pmi_ism: { local_time: '10:00', tz: 'America/Toronto' } },
+      },
+    ],
+  };
+  const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
+
+  const summary = buildObservationSummary(report, sourcesConfig, importanceRules);
+  assert.equal(summary.candidateCount, 0);
+  assert.ok(!summary.candidates.some((c) => c.sourceId === 'ca_ivey'));
+});
+
 test('buildObservationSummary: manualEventsConfigの対象週内entriesを他ソースと同列の候補として取り込む', async () => {
   const { buildObservationSummary } = await import('../scripts/phase1/observation-run.mjs');
   const report = {
