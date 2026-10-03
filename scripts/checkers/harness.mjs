@@ -17,7 +17,7 @@
 // 現時点でこのハーネスがHOLDを返しても実配信には影響しない。
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getTargetWeek, formatYmd, parseYmd, addDays } from '../lib/dates.js';
+import { getTargetWeek, formatYmd, parseYmd, addDays, isWithinWeek } from '../lib/dates.js';
 import { decideRunOutcome, isExpectedThisWeek, checkResidualMonitoring, checkRecurringMissing } from '../lib/fail-closed.js';
 import { matchesRecurringRule } from '../lib/recurring-rules.js';
 import { createRobotsChecker } from '../lib/robots.js';
@@ -106,6 +106,25 @@ function buildNzCalendarMonthTargets(source, targetWeek) {
   });
 }
 
+// au_abs向け: future-releases-calendar（デフォルトページ）の掲載horizonは固定ローリング窓ではなく
+// 変動するため、月末近辺のスクレイプでは翌月序盤の発表（例: 2026-10-01発表の貿易収支）が掲載範囲外に
+// なり得る（2026-10-03、しょうさん指摘: 9/28週で実際に発生。au-trade-balance-2026-09-03に続き2件目）。
+// ABS自身がページ内の「Choose month」ナビゲーションとして提供している月指定URL
+// （/future-releases-calendar/YYYYMM）は、GitHub Actions実測（2026-10-03）で対象月の約1〜2ヶ月前
+// 時点で既に該当月の全リリースを掲載していることを確認済み（11月ページで11/5分、12月ページで
+// 12/3分の貿易収支をそれぞれ発表の1〜2ヶ月前に検出）。ABSの各リリースは必ず自分の暦月のページに
+// 載る（他の月のページに先行掲載されることはない、2026-10-03実測で確認）ため、jp_mofと同様
+// 対象週の月（またがる場合は両方）のみを対象にすれば足り、us_frb_calendarのような翌月先読みは不要
+function buildAbsMonthTargets(source, targetWeek) {
+  const pattern = source.access?.month_url_pattern;
+  if (!pattern) return source.access?.targets || [];
+  const months = [...new Set([targetWeek.targetWeekStart.slice(0, 7), targetWeek.targetWeekEnd.slice(0, 7)])].sort();
+  return months.map((ym) => {
+    const [y, m] = ym.split('-');
+    return { label: `calendar_${y}${m}`, url: pattern.replace('{YEAR}', y).replace('{MONTH}', m) };
+  });
+}
+
 const FRB_CALENDAR_MONTH_NAMES = [
   'january', 'february', 'march', 'april', 'may', 'june',
   'july', 'august', 'september', 'october', 'november', 'december',
@@ -145,8 +164,11 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     parseFn: extractCensusCalendar,
     toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime }),
   },
+  // 2026-10-03変更（しょうさん指摘、9/28週の貿易収支取りこぼし対応）: デフォルトページ単体
+  // （primaryLabel方式）からbuildTargets方式へ変更。対象週の月に応じた月指定URLを動的生成し、
+  // フェッチ成功した全ページの抽出結果をマージする（buildAbsMonthTargets参照）
   au_abs: {
-    primaryLabel: 'future_releases_calendar',
+    buildTargets: buildAbsMonthTargets,
     parseFn: extractAbsCalendar,
     toRow: (r) => ({ title: r.title, utcInstant: r.utcInstant }),
   },
@@ -300,10 +322,6 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime }),
   },
 };
-
-function isWithinWeek(dateStr, weekStartStr, weekEndStr) {
-  return dateStr >= weekStartStr && dateStr <= weekEndStr;
-}
 
 // task #93（2026-09-06、しょうさん指示: Manus突合廃止に伴う欠落検知強化の2点目
 // 「公表リリース全量の差分監査」）: 個々のrelease_idの日程を見る（checkFredSource）のではなく、
