@@ -62,5 +62,17 @@ const section = (title) => log(`\n##### ${title} #####`);
     }
   }
 
+  section('ページネーション・月指定クエリ・API呼び出しの手がかり（horizon延長の代替経路調査）');
+  const hints = [
+    /page=\d+/gi, /\bmonth=/gi, /\byear=/gi, /load-?more/gi, /next-?page/gi,
+    /\/api\/[\w-]+/gi, /fetch\(['"][^'"]+['"]/gi, /href="[^"]*future-releases[^"]*"/gi,
+  ];
+  for (const re of hints) {
+    const found = [...new Set([...text.matchAll(re)].map((m) => m[0]))];
+    if (found.length > 0) log(`${re}: ${found.slice(0, 10).join(' | ')}`);
+  }
+  const paginationNav = text.match(/<nav[^>]*pag[^>]*>[\s\S]{0,500}/i);
+  if (paginationNav) log('pagination-nav excerpt:', paginationNav[0].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 500));
+
   section(`phase1 source-recon-z end ${new Date().toISOString()}`);
 })();
