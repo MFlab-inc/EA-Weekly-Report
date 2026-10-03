@@ -74,5 +74,28 @@ const section = (title) => log(`\n##### ${title} #####`);
   const paginationNav = text.match(/<nav[^>]*pag[^>]*>[\s\S]{0,500}/i);
   if (paginationNav) log('pagination-nav excerpt:', paginationNav[0].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 500));
 
+  section('月指定URL（/future-releases-calendar/YYYYMM）の実測 — horizon不足の根本解決になるか確認');
+  for (const ym of ['202611', '202612']) {
+    const monthUrl = `https://www.abs.gov.au/release-calendar/future-releases-calendar/${ym}`;
+    const mVerdict = await robotsChecker.isAllowed(monthUrl);
+    if (!mVerdict.allowed) {
+      log(`[SKIP-DISALLOWED] ${monthUrl} — ${mVerdict.reason}`);
+      continue;
+    }
+    const mRes = await fetch(monthUrl, { headers: { 'User-Agent': UA, Accept: '*/*' }, signal: AbortSignal.timeout(30000) });
+    const mText = await mRes.text();
+    log(`[FETCH] ${ym}: HTTP ${mRes.status} ${mText.length}B final=${mRes.url}`);
+    const mParsed = extractAbsCalendar(mText);
+    if (!mParsed.ok) {
+      log(`  抽出失敗: ${mParsed.reason}`);
+      continue;
+    }
+    const mSorted = [...mParsed.rows].sort((a, b) => a.utcInstant.localeCompare(b.utcInstant));
+    log(`  抽出件数: ${mSorted.length}`);
+    for (const r of mSorted) log(' ', r.utcInstant, '|', r.title);
+    const tradeHit = mSorted.find((r) => r.title.toLowerCase().includes('international trade in goods'));
+    log(`  International Trade in Goods: ${tradeHit ? `FOUND ${tradeHit.utcInstant}` : 'NOT FOUND'}`);
+  }
+
   section(`phase1 source-recon-z end ${new Date().toISOString()}`);
 })();
