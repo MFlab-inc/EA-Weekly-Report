@@ -22,6 +22,14 @@ jobs:
     # 月曜cron（FF事後突合専用）ではこのジョブを起動しない
     if: github.event_name == 'workflow_dispatch' || github.event.schedule != '23 23 * * 0'
     runs-on: ubuntu-latest
+    # 2026-10-03追加（しょうさん指摘: 10/5週の本番・保険cron両方がHOLDで失敗したが、通知の
+    # 仕組みが無くしょうさんが自ら確認するまで誰も気づけなかった）。失敗時にIssueを自動作成する
+    # ステップ（末尾、if: failure()）がissues: writeを必要とするため、job-level permissionsで
+    # 明示する（job-levelはworkflow-levelとマージではなく置き換えのため、contents: writeも
+    # 再掲する必要がある。monday-ff-cross-checkジョブと同じ理由）
+    permissions:
+      contents: write
+      issues: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -123,6 +131,17 @@ jobs:
           git add output/ data/ docs/
           git diff --cached --quiet || git commit -m "weekly report $(date -u +%Y-%m-%d)"
           git push
+      # 2026-10-03追加（しょうさん指摘、10/5週本番・保険cron両方HOLDのインシデント対策）:
+      # pipelineまたはcommit outputsが失敗した場合（冪等チェックでスキップされた場合は対象外。
+      # その場合はどちらのステップも実行されず失敗もしない）、GitHub Issueを自動作成する。
+      # どのステップで止まったかはgate-result.json・data/ledger/<週>.jsonの有無から推定する
+      # （scripts/check/create-pipeline-failure-issue.mjs参照）。同一対象週につき1件のみ作成
+      # （monday-ff-cross-checkのcreate-discrepancy-issue.mjsと同じマーカー方式）
+      - name: パイプライン失敗をGitHub Issueとして自動作成（失敗した場合のみ）
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check/create-pipeline-failure-issue.mjs "${{ steps.idempotency.outputs.target_week_start }}" gate-result.json
 
   # GitHub Pagesプレビュー公開（task #42、2026-08-17実装）。output/配下の配信済みレポートのみを
   # 一覧ページ（scripts/render/build-pages-index.js）と共に公開する。config/scripts等の内部

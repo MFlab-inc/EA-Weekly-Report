@@ -880,3 +880,75 @@ test('checkWeeklyScrapeSource: 「Australian National Accounts: Finance and Weal
   // 設計（harness.mjsのcheckWeeklyScrapeSource参照）のため、unregisteredは空のままになるはず
   assert.deepEqual(result.unregistered, [], 'kind不一致の行はunregistered等のWARN経路にも一切乗らないはず');
 });
+
+// 2026-10-03追加（しょうさん指摘: 9/28週で2026-10-01発表の貿易収支『International Trade in
+// Goods, August 2026』が未検出だった、取りこぼしの再発防止用回帰テスト）。真因はfuture-releases-
+// calendar（デフォルトページ）の掲載horizonが変動すること（キーワード不一致ではない。GitHub
+// Actions実測で確認済み）。対策としてau_absをbuildTargets方式（月指定URL）へ変更した。
+// このテストは次回該当分（2026-11-05発表、対象週2026-11-02）を題材に、(a)対象週の月に応じた
+// 正しいURLが構築されること、(b)デフォルトページには載っていない（horizon外を模した）状況でも
+// 月指定ページから正しく検出できることの両方を確認する
+test('checkWeeklyScrapeSource: au_absは対象週の月指定URL（/future-releases-calendar/YYYYMM）から貿易収支を検出する（2026-11-05分、9/28週取りこぼしの回帰テスト）', async () => {
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  const source = {
+    id: 'au_abs', status: 'active', country: 'AU', kinds: ['trade_balance'], type: 'weekly_scrape',
+    access: {
+      robots_check: true,
+      month_url_pattern: 'https://www.abs.gov.au/release-calendar/future-releases-calendar/{YEAR}{MONTH}',
+      targets: [{ label: 'future_releases_calendar', url: 'https://www.abs.gov.au/release-calendar/future-releases-calendar' }],
+    },
+    announce_time_by_kind: { trade_balance: { local_time: '11:30', tz: 'Australia/Sydney' } },
+  };
+  const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
+  // デフォルトページはhorizon不足で10月分の無関係イベントしか載っていない状況を模す
+  // （9/28週取りこぼし時の実際の状況）。月指定ページ（/202611）のみに11/5の貿易収支を含める
+  const defaultPageHtml = '<div><strong class="event-name">Consumer Price Index, Australia</strong><time datetime="2026-10-28T00:30:00Z"></time></div>';
+  const novemberPageHtml = `
+    <div><strong class="event-name">Monthly Household Spending Indicator</strong><time datetime="2026-11-04T00:30:00Z"></time></div>
+    <div><strong class="event-name">International Trade in Goods</strong><time datetime="2026-11-05T00:30:00Z"></time></div>
+  `;
+  const requestedUrls = [];
+  const fetchImpl = async (url) => {
+    requestedUrls.push(url);
+    if (url.endsWith('/202611')) return { ok: true, status: 200, text: async () => novemberPageHtml };
+    if (url === 'https://www.abs.gov.au/release-calendar/future-releases-calendar') return { ok: true, status: 200, text: async () => defaultPageHtml };
+    return { ok: false, status: 404 };
+  };
+  const targetWeek = { targetWeekStart: '2026-11-02', targetWeekEnd: '2026-11-06' };
+  const r = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, robotsChecker, eventNames: REAL_EVENT_NAMES });
+  // buildAbsMonthTargetsが対象週の月（2026-11）のみを対象にし、デフォルトページは叩かないはず
+  assert.deepEqual(requestedUrls, ['https://www.abs.gov.au/release-calendar/future-releases-calendar/202611']);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.foundKinds, ['trade_balance']);
+  const tradeBalance = r.thisWeek.find((c) => c.kind === 'trade_balance');
+  assert.ok(tradeBalance, 'International Trade in Goods（2026-11-05）がtrade_balanceとして検出されるはず');
+  assert.equal(tradeBalance.date, '2026-11-05');
+  assert.equal(tradeBalance.time, '09:30'); // 11:30 AEST(UTC+10、夏時間なし) → JST 09:30
+});
+
+test('checkWeeklyScrapeSource: au_absは月またぎ週で両月の月指定ページをフェッチし結果をマージする', async () => {
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  const source = {
+    id: 'au_abs', status: 'active', country: 'AU', kinds: ['trade_balance'], type: 'weekly_scrape',
+    access: {
+      robots_check: true,
+      month_url_pattern: 'https://www.abs.gov.au/release-calendar/future-releases-calendar/{YEAR}{MONTH}',
+    },
+    announce_time_by_kind: { trade_balance: { local_time: '11:30', tz: 'Australia/Sydney' } },
+  };
+  const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
+  const requestedUrls = [];
+  const fetchImpl = async (url) => {
+    requestedUrls.push(url);
+    return { ok: true, status: 200, text: async () => '<div><strong class="event-name">International Trade in Goods</strong><time datetime="2026-12-03T00:30:00Z"></time></div>' };
+  };
+  // 2026-11-30(月)〜2026-12-04(金): 11月・12月をまたぐ週
+  const targetWeek = { targetWeekStart: '2026-11-30', targetWeekEnd: '2026-12-04' };
+  const r = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, robotsChecker, eventNames: REAL_EVENT_NAMES });
+  assert.deepEqual(requestedUrls.sort(), [
+    'https://www.abs.gov.au/release-calendar/future-releases-calendar/202611',
+    'https://www.abs.gov.au/release-calendar/future-releases-calendar/202612',
+  ]);
+  assert.equal(r.ok, true);
+  assert.equal(r.allCandidatesCount, 2, '同一fixtureを2ページ分解析するため1件×2ページ=2件になるはず');
+});

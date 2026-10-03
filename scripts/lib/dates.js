@@ -77,6 +77,17 @@ function getCurrentWeekMonday(now = new Date()) {
   return formatYmd(monday);
 }
 
+// dateStr（'YYYY-MM-DD'）が対象週の範囲内（両端含む）かを判定する。文字列比較で足りる
+// （同じYYYY-MM-DD形式同士は辞書順＝日付順と一致するため）。2026-10-03追加（しょうさん指摘で
+// 発見: annual_schedule_config型ソースの候補[scripts/phase1/observation-run.mjsの
+// annualEntryToCandidate]がJST変換後の日付で再チェックされておらず、設定上のローカル日付は
+// 対象週内でもJST変換後に対象週外へロールオーバーする候補が台帳に紛れ込む潜在バグがあった。
+// weekly_scrape型（scripts/checkers/harness.mjs）が既に使っていた同趣旨の判定を共通化し、
+// annual_schedule_config型にも同じ基準を適用できるようにした
+function isWithinWeek(dateStr, weekStartStr, weekEndStr) {
+  return dateStr >= weekStartStr && dateStr <= weekEndStr;
+}
+
 module.exports = {
   getTargetWeek,
   getCurrentWeekMonday,
@@ -87,4 +98,5 @@ module.exports = {
   formatYmd,
   formatMd,
   parseYmd,
+  isWithinWeek,
 };

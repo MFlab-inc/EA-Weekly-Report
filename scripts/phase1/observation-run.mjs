@@ -14,7 +14,7 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runChecks } from '../checkers/harness.mjs';
-import { getTargetWeek } from '../lib/dates.js';
+import { getTargetWeek, isWithinWeek } from '../lib/dates.js';
 import { createRobotsChecker } from '../lib/robots.js';
 
 const require = createRequire(import.meta.url);
@@ -125,7 +125,18 @@ export function buildObservationSummary(report, sourcesConfig, importanceRules, 
     }
     if (Array.isArray(r.matchedEntries)) {
       const source = sourcesConfig.sources.find((s) => s.id === r.id);
-      for (const e of r.matchedEntries) candidates.push(annualEntryToCandidate(e, source, importanceRules, eventNames));
+      for (const e of r.matchedEntries) {
+        const candidate = annualEntryToCandidate(e, source, importanceRules, eventNames);
+        // 2026-10-03追加（しょうさん指摘で発見した潜在バグ）: checkAnnualScheduleSource側の
+        // matchedEntriesフィルタ（harness.mjs）はscheduleのローカル日付で対象週判定するため、
+        // ローカル日付は対象週内でもJST変換後（annualEntryToCandidateのjst.date）に対象週の
+        // 翌日（土曜）へロールオーバーする候補が素通りしてしまう（実例: カナダIveyPMIが
+        // 対象週最終日[金]のローカル時刻で発表され、JST変換で翌日[土]扱いになるケース）。
+        // weekly_scrape型（harness.mjsのthisWeekフィルタ）と同じ基準でJST変換後に再判定する
+        if (isWithinWeek(candidate.date, report.targetWeek.start, report.targetWeek.end)) {
+          candidates.push(candidate);
+        }
+      }
     }
   }
   if (manualEventsConfig) {
