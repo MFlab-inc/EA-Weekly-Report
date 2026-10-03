@@ -3,10 +3,11 @@
 // しょうさん指示2026-08-15）。scripts/collect.mjsが書き出したphase1-out/collect-result.jsonと
 // 各種configを読み込み、scripts/lib/build-ledger.jsのbuildLedger()（純粋関数・テスト済み）で
 // 台帳を組み立て、data/ledger/YYYY-MM-DD.json（YYYY-MM-DD=対象週の月曜）として書き出す。
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { computeRecurringChecksStatus } from './checkers/harness.mjs';
+import { parseYmd, addDays, formatYmd } from './lib/dates.js';
 
 const require = createRequire(import.meta.url);
 const { buildLedger } = require('./lib/build-ledger.js');
@@ -14,17 +15,31 @@ const { validateLedger } = require('./lib/validate-ledger.js');
 const { validateExpectedCoverage } = require('./lib/validate-expected-coverage.js');
 const { nowJstIso } = require('./lib/tz-convert.js');
 const { computePipelineCodeHash } = require('./lib/pipeline-code-hash.js');
+const { suppressRepeatRecurringWarnings } = require('./lib/suppress-repeat-recurring-warnings.js');
 
 const PIPELINE_VERSION = `ea-weekly-report@${require('../package.json').version}`;
 
-export function buildLedgerFromCollectResult({ collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules, expectedCoverageConfig, generatedAt, generatedFromCommit, generatedFromCodeHash }) {
+// previousLedger: 対象週の前週（7日前の月曜）のledger JSON（省略可。無ければ抑制は一切効かない＝
+// 従来どおり全件警告する安全側の既定動作。scripts/build-ledger.mjsのmain()がdata/ledger/から
+// 読み込んで渡す。dry-run-week.mjsも同様に渡せる）
+export function buildLedgerFromCollectResult({ collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules, expectedCoverageConfig, generatedAt, generatedFromCommit, generatedFromCodeHash, previousLedger }) {
   const { targetWeek, report, candidates } = collectResult;
   const recurringChecksStatus = computeRecurringChecksStatus(report.results, importanceRules, targetWeek);
   const expectedCoverageResult = validateExpectedCoverage(sourcesConfig, officialsConfig, expectedCoverageConfig);
+  const recurringMissingWarnings = suppressRepeatRecurringWarnings(
+    report.recurringMissingWarnings, importanceRules?.recurring_checks, targetWeek.targetWeekEnd, previousLedger,
+  );
   return buildLedger({
-    report, sourcesConfig, manualEventsConfig, officialsConfig, candidates,
+    report: { ...report, recurringMissingWarnings }, sourcesConfig, manualEventsConfig, officialsConfig, candidates,
     expectedCoverageResult, recurringChecksStatus, pipelineVersion: PIPELINE_VERSION, generatedAt, generatedFromCommit, generatedFromCodeHash,
   });
+}
+
+function loadPreviousLedger(targetWeekStart) {
+  const previousWeekStart = formatYmd(addDays(parseYmd(targetWeekStart), -7));
+  const previousLedgerPath = join('data', 'ledger', `${previousWeekStart}.json`);
+  if (!existsSync(previousLedgerPath)) return null;
+  return JSON.parse(readFileSync(previousLedgerPath, 'utf8'));
 }
 
 async function main() {
@@ -34,11 +49,12 @@ async function main() {
   const importanceRules = JSON.parse(readFileSync('config/importance-rules.json', 'utf8'));
   const expectedCoverageConfig = JSON.parse(readFileSync('config/expected-coverage.json', 'utf8'));
   const collectResult = JSON.parse(readFileSync(join('phase1-out', 'collect-result.json'), 'utf8'));
+  const previousLedger = loadPreviousLedger(collectResult.targetWeek.targetWeekStart);
 
   const ledger = buildLedgerFromCollectResult({
     collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules,
     expectedCoverageConfig, generatedAt: nowJstIso(), generatedFromCommit: process.env.GITHUB_SHA || null,
-    generatedFromCodeHash: computePipelineCodeHash(),
+    generatedFromCodeHash: computePipelineCodeHash(), previousLedger,
   });
 
   const check = validateLedger(ledger);

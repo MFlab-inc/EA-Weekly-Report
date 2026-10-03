@@ -43,3 +43,77 @@ test('buildLedgerFromCollectResult: collect-result.json形からcandidatesと期
   // AU/policy_rateはau_rbaでカバー済みのためmissingは空
   assert.equal(ledger.coverage.expected_coverage.missing.length, 0);
 });
+
+// 2026-10-03追加（しょうさん指摘item4: 定例欠落WARN誤報の抑制）。
+// scripts/lib/suppress-repeat-recurring-warnings.jsの配線がbuildLedgerFromCollectResult経由で
+// 実際にledger.meta.warningsへ反映されることを確認する（単体テストはsuppress-repeat-
+// recurring-warnings.test.jsで別途実施済み。ここでは配線自体の確認が目的）
+test('buildLedgerFromCollectResult: previousLedgerを渡すと同一周期・前週found:trueの定例欠落WARNがledger.meta.warningsから抑制される', async () => {
+  const { buildLedgerFromCollectResult } = await import('../scripts/build-ledger.mjs');
+  const sourcesConfig = { sources: [] };
+  const manualEventsConfig = { entries: [] };
+  const officialsConfig = { officials: [] };
+  const expectedCoverageConfig = { derived_rules: [] };
+  const importanceRules = {
+    recurring_checks: [{ name: '豪州貿易収支（ABS）', rule: '毎月1日〜10日ごろ', action: 'WARN' }],
+  };
+  const targetWeek = { targetWeekStart: '2026-10-05', targetWeekEnd: '2026-10-09', dates: [{ date: '2026-10-05' }] };
+  const collectResult = {
+    targetWeek,
+    report: {
+      targetWeek: { start: '2026-10-05', end: '2026-10-09' },
+      outcome: { status: 'OK', reasons: [] },
+      residualWarnings: [],
+      recurringMissingWarnings: ['定例欠落: 「豪州貿易収支（ABS）」（毎月1日〜10日ごろ）が対象週に該当する見込みだが検出されなかった。WARN'],
+      results: [],
+    },
+    candidates: [],
+  };
+  // 前週(9/28週、月をまたぐ)で既に検出済み（found:true）
+  const previousLedger = {
+    meta: { target_week_start: '2026-09-28', target_week_end: '2026-10-02' },
+    coverage: { recurring_checks: [{ name: '豪州貿易収支（ABS）', applies_this_week: true, found: true }] },
+  };
+
+  const ledger = buildLedgerFromCollectResult({
+    collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules, expectedCoverageConfig,
+    generatedAt: '2026-10-05T08:06:00+09:00', previousLedger,
+  });
+
+  assert.ok(!ledger.meta.warnings.some((w) => w.includes('豪州貿易収支（ABS）')), `抑制されるはずのWARNが残っている: ${JSON.stringify(ledger.meta.warnings)}`);
+  // coverage.recurring_checks自体は抑制の影響を受けず、今週の生の検出結果（found:false）を
+  // 正直に記録し続ける（翌週以降の抑制判定の入力として正しく機能するため）
+  const status = ledger.coverage.recurring_checks.find((s) => s.name === '豪州貿易収支（ABS）');
+  assert.equal(status.found, false);
+});
+
+test('buildLedgerFromCollectResult: previousLedger未指定時は定例欠落WARNを抑制せず従来どおり出す（安全側の既定動作）', async () => {
+  const { buildLedgerFromCollectResult } = await import('../scripts/build-ledger.mjs');
+  const sourcesConfig = { sources: [] };
+  const manualEventsConfig = { entries: [] };
+  const officialsConfig = { officials: [] };
+  const expectedCoverageConfig = { derived_rules: [] };
+  const importanceRules = {
+    recurring_checks: [{ name: '豪州貿易収支（ABS）', rule: '毎月1日〜10日ごろ', action: 'WARN' }],
+  };
+  const targetWeek = { targetWeekStart: '2026-10-05', targetWeekEnd: '2026-10-09', dates: [{ date: '2026-10-05' }] };
+  const warningText = '定例欠落: 「豪州貿易収支（ABS）」（毎月1日〜10日ごろ）が対象週に該当する見込みだが検出されなかった。WARN';
+  const collectResult = {
+    targetWeek,
+    report: {
+      targetWeek: { start: '2026-10-05', end: '2026-10-09' },
+      outcome: { status: 'OK', reasons: [] },
+      residualWarnings: [],
+      recurringMissingWarnings: [warningText],
+      results: [],
+    },
+    candidates: [],
+  };
+
+  const ledger = buildLedgerFromCollectResult({
+    collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules, expectedCoverageConfig,
+    generatedAt: '2026-10-05T08:06:00+09:00',
+  });
+
+  assert.ok(ledger.meta.warnings.includes(warningText));
+});

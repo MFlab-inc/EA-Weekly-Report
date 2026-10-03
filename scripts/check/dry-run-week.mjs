@@ -19,7 +19,7 @@
 // 実ネットワークへアクセスする（config/official-sources.jsonの実ソースへ実アクセス）ため、
 // サンドボックス環境によっては一部ソースがブロックされ得る（本プロジェクトの既存の注意点と
 // 同じ。本番相当の検証はGitHub Actions実ネットワーク環境で行うこと）。
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { getTargetWeek, parseYmd, addDays, weekdayJa, formatYmd, formatMd } from '../lib/dates.js';
@@ -110,9 +110,16 @@ async function main() {
   });
   console.log(`[dry-run-week] collect: 候補${collectResult.candidates.length}件 outcome=${collectResult.report.outcome.status}`);
 
+  // 定例欠落WARN抑制（scripts/lib/suppress-repeat-recurring-warnings.js）の動作も本番同様に
+  // 再現するため、実際のdata/ledger/配下の前週台帳（本番の既存データ）があれば読み込んで渡す
+  const previousWeekStart = formatYmd(addDays(parseYmd(targetWeek.targetWeekStart), -7));
+  const previousLedgerPath = join('data', 'ledger', `${previousWeekStart}.json`);
+  const previousLedger = existsSync(previousLedgerPath) ? JSON.parse(readFileSync(previousLedgerPath, 'utf8')) : null;
+
   const ledger = buildLedgerFromCollectResult({
     collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules, expectedCoverageConfig,
     generatedAt: nowJstIso(nowForNarrative), generatedFromCommit: 'dry-run', generatedFromCodeHash: computePipelineCodeHash(),
+    previousLedger,
   });
   const ledgerCheck = validateLedger(ledger);
   console.log(`[dry-run-week] build-ledger: outcome=${ledger.meta.outcome} events=${ledger.events.length}件 schema_ok=${ledgerCheck.ok}`);
