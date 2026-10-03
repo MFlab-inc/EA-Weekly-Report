@@ -56,4 +56,8 @@ node scripts/check/dry-run-week.mjs --now 2026-10-31 --out-dir phase1-out/dry-ru
 
 ただしREVIEW_REQUIRED・HOLDいずれの場合も`weekly.yml`の`pipeline`ステップは非ゼロ終了コードで失敗する（`bash -e`のため）ため、`commit outputs`ステップはスキップされ、出力は自動では配信されない。2026-10-03追加の失敗時Issue自動作成（`scripts/check/create-pipeline-failure-issue.mjs`）はHOLD・REVIEW_REQUIREDいずれでも発火し、gate判定とvolume_checkの詳細をIssue本文に含めるため、しょうさんは気づける設計になっている。
 
-現状、REVIEW_REQUIRED確認後に「この内容で確定配信してよい」と判断した場合、`gate.mjs`の`--acknowledge-low-volume`相当をGitHub Actions側から実行する手段が無い（`weekly.yml`の`workflow_dispatch`には`force_regenerate`しか無い）。この手動公開経路の追加は別途しょうさんへ提案・確認予定。
+2026-10-03追記（しょうさん指示、12/28週の生成までに対応）: REVIEW_REQUIRED確認後に手動公開する経路を実装した。`weekly.yml`の`workflow_dispatch`に`acknowledge_low_volume`入力を追加し、trueにすると`gate.mjs`へ`--acknowledge-low-volume`が渡りPUBLISH_READYへ格上げされる（監査エラーによるHOLDはこの入力では絶対に公開されない。`decideGateOutcome()`がhasErrorを最優先するため）。
+
+REVIEW_REQUIREDになった時点で、render済みのHTMLを本番パス（`output/ea-weekly-<週>.html`）とは別の`output/review/ea-weekly-<週>.html`としてmainへコミットする（本番パスは未確定のため更新しない）。しょうさんは`https://raw.githubusercontent.com/MFlab-inc/EA-Weekly-Report/main/output/review/ea-weekly-<週>.html`で内容を確認でき（見た目で確認したい場合は`https://htmlpreview.github.io/?<上記URL>`でブラウザ表示できる）、妥当であれば「Actions → weekly-report → Run workflow → acknowledge_low_volumeをON → Run workflow」で正式公開できる。この手順は失敗時に自動作成されるGitHub Issue本文にも記載される（`scripts/check/create-pipeline-failure-issue.mjs`）。
+
+確認済みで公開した場合、台帳の`meta.low_volume_acknowledged`に確認日時と理由が記録される（`scripts/check/gate.mjs`の`applyLowVolumeAcknowledgment()`）。

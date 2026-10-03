@@ -11,6 +11,10 @@ on:
         description: '既存台帳の有無・生成元コミットに関わらず対象週を強制的に再生成する（コード修正を反映させたい手動再実行時に使用）'
         type: boolean
         default: false
+      acknowledge_low_volume:
+        description: '件数下限チェックのみが理由のREVIEW_REQUIRED（output/review/配下の確認用HTMLで内容確認済み）を、公開してよいものとして確定する。監査エラーによるHOLDはこの入力では絶対に公開されない'
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -119,10 +123,43 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
           TARGET_WEEK_START="${{ steps.idempotency.outputs.target_week_start }}"
+          GATE_ACK_FLAG=""
+          if [ "${{ github.event.inputs.acknowledge_low_volume }}" = "true" ]; then
+            GATE_ACK_FLAG="--acknowledge-low-volume"
+          fi
           node scripts/collect.mjs
           node scripts/build-ledger.mjs
           node scripts/render.mjs "data/ledger/${TARGET_WEEK_START}.json" --out "output/ea-weekly-${TARGET_WEEK_START//-/}.html"
-          node scripts/check/gate.mjs --ledger "data/ledger/${TARGET_WEEK_START}.json" --html "output/ea-weekly-${TARGET_WEEK_START//-/}.html" --result gate-result.json
+          node scripts/check/gate.mjs --ledger "data/ledger/${TARGET_WEEK_START}.json" --html "output/ea-weekly-${TARGET_WEEK_START//-/}.html" --result gate-result.json $GATE_ACK_FLAG
+      # 2026-10-03追加（しょうさん指摘item3続き: 12/28週[年末年始]のような正当に件数が少ない週は
+      # gate判定がREVIEW_REQUIRED[監査エラーは無く件数下限のみ抵触]になるが、確認後に公開する
+      # 手段がworkflow_dispatchに無かった）。REVIEW_REQUIREDの場合、render済みのHTMLを本番パス
+      # （output/ea-weekly-<週>.html）とは別のoutput/review/配下へコピーしmainへコミットする。
+      # しょうさんはraw.githubusercontent.com経由でこの内容を確認でき、妥当であれば
+      # acknowledge_low_volume:trueで再実行することで正式公開できる（この時点ではpipelineが
+      # 失敗[exit 3]扱いのため後続のcommit outputsはスキップされ、本番パスは更新されない。
+      # HOLD[監査エラーあり]の場合はこのステップは何もしない＝確認用HTMLも出力しない）
+      - name: REVIEW_REQUIREDの場合、確認用HTMLを本番とは別パスへコミット
+        if: always() && steps.idempotency.outputs.already_generated == 'false'
+        run: |
+          TARGET_WEEK_START="${{ steps.idempotency.outputs.target_week_start }}"
+          HTML_PATH="output/ea-weekly-${TARGET_WEEK_START//-/}.html"
+          DECISION=""
+          if [ -f gate-result.json ]; then
+            DECISION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('gate-result.json','utf8')).decision)")
+          fi
+          if [ "$DECISION" = "REVIEW_REQUIRED" ] && [ -f "$HTML_PATH" ]; then
+            mkdir -p output/review
+            cp "$HTML_PATH" "output/review/ea-weekly-${TARGET_WEEK_START//-/}.html"
+            git config user.name "ea-weekly-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add output/review/
+            if ! git diff --cached --quiet; then
+              git commit -m "review: ea-weekly-${TARGET_WEEK_START}（REVIEW_REQUIRED、件数下限要確認）"
+              git push
+              echo "確認用HTMLをコミットしました: output/review/ea-weekly-${TARGET_WEEK_START//-/}.html"
+            fi
+          fi
       - name: commit outputs
         if: steps.idempotency.outputs.already_generated == 'false' && success()
         run: |

@@ -20,7 +20,18 @@ function marker(week) {
   return `<!-- weekly-pipeline-failure:${week} -->`;
 }
 
-function buildIssueBody({ week, gateResult, ledgerExists, runUrl }) {
+// 監査エラー（checks[].errors）が1件も無く、volume_check・volume_trend_checkの下限抵触のみが
+// 理由でREVIEW_REQUIREDになったかどうか（しょうさん指示2026-10-03、item3続き）。この場合のみ
+// acknowledge_low_volumeによる手動公開の案内を出す。監査エラーが1件でもある場合は
+// HOLD（decideGateOutcome()参照）になるため、そもそもこの判定には到達しない設計だが、
+// 念のためdecisionとerrorChecksの両方で確認する
+function isPureVolumeReviewRequired(gateResult) {
+  if (!gateResult || gateResult.decision !== 'REVIEW_REQUIRED') return false;
+  const errorChecks = (gateResult.checks || []).filter((c) => (c.errors || []).length > 0);
+  return errorChecks.length === 0;
+}
+
+function buildIssueBody({ week, gateResult, ledgerExists, runUrl, repo }) {
   const lines = [];
   lines.push('## 週次レポート生成パイプラインの失敗');
   lines.push('');
@@ -56,9 +67,35 @@ function buildIssueBody({ week, gateResult, ledgerExists, runUrl }) {
   }
 
   lines.push('---');
-  lines.push('この週のレポートはまだ生成・配信されていません。対応方法:');
-  lines.push('- 原因を解消し、`workflow_dispatch`（`force_regenerate: true`）で再生成してください');
-  lines.push('- 保険cron（土曜08:41 JST）がこの後に控えている場合、自動的に再試行されます（冪等チェックによりコードが変わっていなければ同じ原因で再度失敗する可能性が高い点に注意）');
+
+  if (isPureVolumeReviewRequired(gateResult)) {
+    // 2026-10-03追加（しょうさん指摘item3続き: 年末年始週のように正当に件数が少ない週向け）。
+    // 監査エラーは無く件数下限のみが理由のため、内容を確認のうえ手動で公開できる
+    const weekCompact = week.replace(/-/g, '');
+    const reviewPath = `output/review/ea-weekly-${weekCompact}.html`;
+    const rawUrl = repo ? `https://raw.githubusercontent.com/${repo}/main/${reviewPath}` : reviewPath;
+    const previewUrl = repo ? `https://htmlpreview.github.io/?${rawUrl}` : null;
+    lines.push('この週のレポートは「監査エラーは無いが、イベント件数が下限を下回っている」ため配信待ちです（内容に問題があるわけではなく、確認が必要なだけです）。以下の手順で内容を確認し、問題なければ公開してください。');
+    lines.push('');
+    lines.push('### 確認後に公開する手順');
+    lines.push('');
+    lines.push(`1. 確認用レポート（${reviewPath}）を開いて内容を確認する`);
+    lines.push(`   - 内容を直接確認: ${rawUrl}`);
+    if (previewUrl) lines.push(`   - ブラウザで見た目を確認したい場合: ${previewUrl}`);
+    lines.push('2. 内容が妥当だと判断したら、GitHubの「Actions」タブを開く');
+    lines.push('3. 左側の一覧から「weekly-report」を選ぶ');
+    lines.push('4. 右上の「Run workflow」ボタンを押す');
+    lines.push('5. ブランチは「main」のまま、「acknowledge_low_volume」のチェックボックスをON（true）にする');
+    lines.push('6. 「Run workflow」を押して実行する（数分で完了します）');
+    lines.push(`7. 完了後、本番ページ（output/ea-weekly-${weekCompact}.html）として正式に公開されます`);
+    lines.push('');
+    lines.push('**注意**: 監査エラーがあるHOLDの週は、この手順では絶対に公開されません（原因を解消してからの再生成が必要です）。');
+  } else {
+    lines.push('この週のレポートはまだ生成・配信されていません。対応方法:');
+    lines.push('- 原因を解消し、`workflow_dispatch`（`force_regenerate: true`）で再生成してください');
+    lines.push('- 保険cron（土曜08:41 JST）がこの後に控えている場合、自動的に再試行されます（冪等チェックによりコードが変わっていなければ同じ原因で再度失敗する可能性が高い点に注意）');
+  }
+
   if (runUrl) {
     lines.push('');
     lines.push(`実行ログ: ${runUrl}`);
@@ -121,7 +158,7 @@ async function main() {
   const runId = process.env.GITHUB_RUN_ID;
   const runUrl = runId ? `${serverUrl}/${process.env.GITHUB_REPOSITORY}/actions/runs/${runId}` : null;
 
-  const body = buildIssueBody({ week, gateResult, ledgerExists, runUrl });
+  const body = buildIssueBody({ week, gateResult, ledgerExists, runUrl, repo: process.env.GITHUB_REPOSITORY });
   const title = `[週次レポート生成失敗] ${week}週`;
   const created = await gh('/issues', {
     method: 'POST',
@@ -137,4 +174,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 }
 
-export { buildIssueBody, findExistingIssue, marker };
+export { buildIssueBody, findExistingIssue, marker, isPureVolumeReviewRequired };
