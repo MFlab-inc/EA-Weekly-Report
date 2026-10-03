@@ -1,0 +1,35 @@
+# 一時recon workflow（2026-10-03、しょうさん指摘item3「日付まわりの潜在バグの事前点検」）:
+# scripts/check/dry-run-week.mjs・.github/workflows/dry-run-week.yml（本家、workflow_dispatch型）は
+# まだmainへマージされておらずworkflow_dispatchでは実行できないため、マージ前に3週分の試験実行を
+# 済ませるための一時pushトリガー版。調査完了後、本ワークフロー・トリガーファイルは削除する
+# （dry-run-week.mjs/dry-run-week.ymlは恒久ツールとして残す）。
+name: dry-run-future-weeks-recon
+on:
+  push:
+    paths: ['.dry-run-future-weeks-trigger']
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        now: ['2026-10-31', '2026-12-26', '2027-01-02']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: Install Playwright Chromium (モバイル多幅レイアウト検証に使用)
+        run: npx playwright install --with-deps chromium
+      - name: dry-run実行
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: node scripts/check/dry-run-week.mjs --now ${{ matrix.now }} --out-dir "phase1-out/dry-run-${{ matrix.now }}"
+      - name: 結果をartifactとしてアップロード
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dry-run-result-${{ matrix.now }}
+          path: phase1-out/dry-run-${{ matrix.now }}/
+          retention-days: 7
+          if-no-files-found: ignore
