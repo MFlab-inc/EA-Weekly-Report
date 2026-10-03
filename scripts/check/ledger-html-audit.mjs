@@ -18,8 +18,14 @@ const EXPECTED_LAYOUT_VERSION = 'ea-only-v4';
 const EXPECTED_SECTION_COUNT = '4';
 const EXPECTED_READER_TIME_TERM = '日本時間';
 const EXPECTED_HALT_GUIDANCE = 'pre4to12h';
-// (?<!年): 「YYYY年M月D日（曜）」形式（作成日等）は別途チェックするため、年が直前に無い表記のみ対象とする
-const MD_WEEKDAY_RE = /(?<!年)(\d{1,2})月(\d{1,2})日[（(]([月火水木金土日])[）)]/g;
+// 「YYYY年M月D日（曜）」形式（作成日等）は別途チェックするため、年が直前に無い表記のみ対象とする。
+// 2026-10-03是正（しょうさん指摘、10/5週初のOctober[2桁月]で実発覚）: (?<!年)だけだと、
+// 2桁月（例:「2026年10月3日」）の場合に正しい2桁マッチ（開始位置が直後に"年"）だけが除外され、
+// 1文字ずれた位置（月の2桁目「0」を起点とする「0月3日」という偽マッチ）はその直前が"1"のため
+// 除外されずヒットしてしまっていた（1桁月だけでテストしていた間は発覚しなかった実バグ）。
+// (?<!年\d)を追加し、「年+数字1桁」が直前にある開始位置も合わせて除外することで、
+// 2桁月の年付き表記全体を正しく除外する
+const MD_WEEKDAY_RE = /(?<!年)(?<!年\d)(\d{1,2})月(\d{1,2})日[（(]([月火水木金土日])[）)]/g;
 const ROOT_ATTR_RE = /<div\b[^>]*\bdata-ea-report-meta="([^"]*)"[^>]*>/;
 const DATE_GROUP_RE = /<div\b[^>]*class="ea-date-group"[^>]*\bdata-ea-date="(\d{4}-\d{2}-\d{2})"[^>]*\bdata-ea-date-event-count="(\d+)"[^>]*>([\s\S]*?)(?=<div\b[^>]*class="ea-date-group"|<!-- ▼|$)/g;
 const EVENT_CARD_RE = /<div\b[^>]*class="ea-event-card"[^>]*\bdata-ea-event-id="([^"]*)"[^>]*\bdata-ea-event-importance="([^"]*)"[^>]*>/g;
