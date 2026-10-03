@@ -149,6 +149,26 @@ test('必須ケース: 対象週と違う日付を混ぜる → DATE_OUT_OF_TARG
   assert.ok(errors.some((e) => e.startsWith('DATE_OUT_OF_TARGET_WEEK')), JSON.stringify(errors));
 });
 
+// 2026-10-03是正（しょうさん指摘、10/5週の本番・保険cron両方がHOLDした実インシデント）:
+// 「作成日：YYYY年M月D日（曜）」形式の日付（対象週外の生成日・土曜であることが多い）は
+// auditTargetWeekDatesの対象外とする設計だが、月が2桁（10〜12月）の場合に月の2桁目を
+// 起点とした偽マッチ（「2026年10月3日」→「0月3日」）が除外しきれず、対象週外の日付として
+// 誤検出しHOLDにしてしまっていた（1桁月では発生しないため10月に入って初めて発覚した）
+test('auditTargetWeekDates: 「作成日：YYYY年M月D日（曜）」形式（1桁月）は対象週外でも誤検出しない', async () => {
+  const { auditTargetWeekDates } = await loadAudit();
+  const html = baseHtml().replace('<div>対象週（日本時間） 8月17日（月）〜 8月21日（金）</div>', '<div>作成日：2026年8月15日（土）</div>\n  <div>対象週（日本時間） 8月17日（月）〜 8月21日（金）</div>');
+  const errors = auditTargetWeekDates(html, baseLedger());
+  assert.deepEqual(errors, []);
+});
+
+test('auditTargetWeekDates: 「作成日：YYYY年M月D日（曜）」形式（2桁月、10/5週の実インシデント再現）は対象週外でも誤検出しない', async () => {
+  const { auditTargetWeekDates } = await loadAudit();
+  const ledger = { meta: { target_week_start: '2026-10-05', target_week_end: '2026-10-09' }, events: [] };
+  const html = '<div>作成日：2026年10月3日（土）</div>\n<div>対象週（日本時間） 10月5日（月）〜 10月9日（金）</div>';
+  const errors = auditTargetWeekDates(html, ledger);
+  assert.deepEqual(errors, [], 'バグ修正前は「0月3日（土）」という偽の対象週外日付がDATE_OUT_OF_TARGET_WEEKとして検出されていた');
+});
+
 test('曜日の不一致 → WEEKDAY_MISMATCH', async () => {
   const { auditLedgerHtml } = await loadAudit();
   const html = baseHtml().replace('8月18日（火）', '8月18日（水）');
