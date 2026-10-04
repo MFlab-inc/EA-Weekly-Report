@@ -69,3 +69,73 @@ test('findExistingIssue: open issueが0件ならnullを返す', async () => {
   const { findExistingIssue } = await import('../scripts/check/create-pipeline-failure-issue.mjs');
   assert.equal(findExistingIssue([], '2026-10-05'), null);
 });
+
+// 2026-10-03追加（しょうさん指摘item3続き: 12/28週[年末年始]の生成までに手動公開経路が必要）
+test('isPureVolumeReviewRequired: 監査エラー無し・REVIEW_REQUIREDならtrue', async () => {
+  const { isPureVolumeReviewRequired } = await import('../scripts/check/create-pipeline-failure-issue.mjs');
+  const gateResult = { decision: 'REVIEW_REQUIRED', checks: [{ name: 'ledger_schema', errors: [], warnings: [] }] };
+  assert.equal(isPureVolumeReviewRequired(gateResult), true);
+});
+
+test('isPureVolumeReviewRequired: decisionがHOLDならfalse（監査エラーがある週は対象外）', async () => {
+  const { isPureVolumeReviewRequired } = await import('../scripts/check/create-pipeline-failure-issue.mjs');
+  const gateResult = { decision: 'HOLD', checks: [{ name: 'ledger_html_audit', errors: ['test'], warnings: [] }] };
+  assert.equal(isPureVolumeReviewRequired(gateResult), false);
+});
+
+test('isPureVolumeReviewRequired: REVIEW_REQUIREDでも何らかの検査にerrorsがあればfalse（念のための防御）', async () => {
+  const { isPureVolumeReviewRequired } = await import('../scripts/check/create-pipeline-failure-issue.mjs');
+  const gateResult = { decision: 'REVIEW_REQUIRED', checks: [{ name: 'ledger_html_audit', errors: ['test'], warnings: [] }] };
+  assert.equal(isPureVolumeReviewRequired(gateResult), false);
+});
+
+test('isPureVolumeReviewRequired: gateResultが無ければfalse', async () => {
+  const { isPureVolumeReviewRequired } = await import('../scripts/check/create-pipeline-failure-issue.mjs');
+  assert.equal(isPureVolumeReviewRequired(null), false);
+});
+
+test('buildIssueBody: 件数下限のみのREVIEW_REQUIREDは確認後に公開する手順（acknowledge_low_volume）を案内する', async () => {
+  const { buildIssueBody } = await import('../scripts/check/create-pipeline-failure-issue.mjs');
+  const gateResult = {
+    decision: 'REVIEW_REQUIRED',
+    checks: [{ name: 'ledger_schema', errors: [], warnings: [] }],
+    volume_check: { displayedCount: 3, star3Count: 2, belowThreshold: true, reasons: ['掲載対象イベントが下限(4件)未満'] },
+  };
+  const body = buildIssueBody({ week: '2026-12-28', gateResult, ledgerExists: true, runUrl: null, repo: 'MFlab-inc/EA-Weekly-Report' });
+
+  assert.match(body, /### 確認後に公開する手順/);
+  assert.match(body, /output\/review\/ea-weekly-20261228\.html/);
+  assert.match(body, /https:\/\/raw\.githubusercontent\.com\/MFlab-inc\/EA-Weekly-Report\/main\/output\/review\/ea-weekly-20261228\.html/);
+  assert.match(body, /https:\/\/htmlpreview\.github\.io\/\?https:\/\/raw\.githubusercontent\.com/);
+  assert.match(body, /acknowledge_low_volume/);
+  assert.match(body, /weekly-report/);
+  // 監査エラーがあるHOLDはこの手順では絶対に公開されない旨の注意書きも含める
+  assert.match(body, /HOLDの週は、この手順では絶対に公開されません/);
+  // 従来のforce_regenerate一般案内は出さない（確認後公開の手順に置き換わるため）
+  assert.doesNotMatch(body, /force_regenerate: true/);
+});
+
+test('buildIssueBody: repo未指定でも確認後に公開する手順自体は出る（raw URLは相対パスにフォールバック）', async () => {
+  const { buildIssueBody } = await import('../scripts/check/create-pipeline-failure-issue.mjs');
+  const gateResult = {
+    decision: 'REVIEW_REQUIRED',
+    checks: [{ name: 'ledger_schema', errors: [], warnings: [] }],
+    volume_check: { displayedCount: 3, star3Count: 2, belowThreshold: true, reasons: ['test'] },
+  };
+  const body = buildIssueBody({ week: '2026-12-28', gateResult, ledgerExists: true, runUrl: null });
+  assert.match(body, /### 確認後に公開する手順/);
+  assert.doesNotMatch(body, /htmlpreview\.github\.io/);
+});
+
+test('buildIssueBody: HOLD（監査エラーあり）は確認後に公開する手順を案内しない。従来どおりforce_regenerate案内のまま', async () => {
+  const { buildIssueBody } = await import('../scripts/check/create-pipeline-failure-issue.mjs');
+  const gateResult = {
+    decision: 'HOLD',
+    checks: [{ name: 'ledger_html_audit', errors: ['DATE_OUT_OF_TARGET_WEEK: test'], warnings: [] }],
+    volume_check: { displayedCount: 3, star3Count: 0, belowThreshold: true, reasons: ['test'] },
+  };
+  const body = buildIssueBody({ week: '2026-12-28', gateResult, ledgerExists: true, runUrl: null, repo: 'MFlab-inc/EA-Weekly-Report' });
+  assert.doesNotMatch(body, /### 確認後に公開する手順/);
+  assert.doesNotMatch(body, /acknowledge_low_volume/);
+  assert.match(body, /force_regenerate: true/);
+});
