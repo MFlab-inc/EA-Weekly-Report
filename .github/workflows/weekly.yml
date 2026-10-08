@@ -275,10 +275,17 @@ jobs:
   # （buildジョブの各種push分岐[pipeline成功・promote・保険cronのスキップ等]が増えても、
   # 「buildジョブ終了時点のHEAD」を素直に参照するだけで良いため、今後の回帰も防げる）。
   # deploy_pages_only指定時はbuildジョブ自体がスキップされるため、final_shaが無く
-  # 空文字列になる。その場合は単純にmainの現在のHEADを使う
+  # 空文字列になる。その場合は単純にmainの現在のHEADを使う。
+  #
+  # if:のalways()は必須（2026-10-08、deploy_pages_only実装時の実機検証で発覚）: GitHub
+  # Actionsは「needsで指定したジョブがskippedの場合、このジョブも自動的にskippedにする」
+  # デフォルト挙動を、always()等のステータス関数をif:に含めない限りバイパスできない。
+  # alwaysを付けず`needs.build.result == 'success' || ...`のみにしたところ、
+  # deploy_pages_only:trueでbuildがskipされた際にdeploy-pages自身もskipされてしまい
+  # （実際にworkflow run #43で再現・確認済み）、再デプロイが一切実行されなかった
   deploy-pages:
     needs: build
-    if: needs.build.result == 'success' || github.event.inputs.deploy_pages_only == 'true'
+    if: always() && (needs.build.result == 'success' || github.event.inputs.deploy_pages_only == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
