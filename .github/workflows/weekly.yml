@@ -15,6 +15,10 @@ on:
         description: '件数下限チェックのみが理由のREVIEW_REQUIRED（output/review/配下の確認用HTMLで内容確認済み）を、公開してよいものとして確定する。監査エラーによるHOLDはこの入力では絶対に公開されない'
         type: boolean
         default: false
+      deploy_pages_only:
+        description: '新しい生成を一切行わず、現在のmain（output/配下）の内容でGitHub Pagesのプレビュー一覧だけを再デプロイする（buildジョブ自体をスキップする。対象週の先取り生成を防ぐため、force_regenerate/acknowledge_low_volumeを同時指定しても無視される）'
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -23,8 +27,12 @@ concurrency:
 jobs:
   build:
     # workflow_dispatch（手動）またはSaturdayの2本のcron（本番・保険）でのみ実行する。
-    # 月曜cron（FF事後突合専用）ではこのジョブを起動しない
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule != '23 23 * * 0'
+    # 月曜cron（FF事後突合専用）ではこのジョブを起動しない。
+    # 2026-10-08追加: deploy_pages_only指定時はこのジョブ自体をスキップする（新しい生成を
+    # 一切行わず、現在のmainの内容だけでPagesを再デプロイしたいケース向け。しょうさん指摘:
+    # 木曜等の平日にdeploy_pages_onlyなしでworkflow_dispatchすると対象週（次週）を
+    # 先取り生成してしまうため、再デプロイだけしたい場合に生成を確実に回避する手段が必要）
+    if: (github.event_name == 'workflow_dispatch' || github.event.schedule != '23 23 * * 0') && github.event.inputs.deploy_pages_only != 'true'
     runs-on: ubuntu-latest
     # 2026-10-03追加（しょうさん指摘: 10/5週の本番・保険cron両方がHOLDで失敗したが、通知の
     # 仕組みが無くしょうさんが自ら確認するまで誰も気づけなかった）。失敗時にIssueを自動作成する
@@ -34,6 +42,15 @@ jobs:
     permissions:
       contents: write
       issues: write
+    # 2026-10-08追加（しょうさん指摘: deploy-pagesジョブのチェックアウトがgithub.sha
+    # [このworkflow runが起動した時点のコミット]を使っており、このbuildジョブが
+    # commit outputs等で新たにpushしたコミットを反映しないまま1週遅れでPagesを生成する
+    # バグがあった。実際に10/5週生成後のdeploy-pagesの実行ログでpages_build_versionが
+    # pushの前のコミットSHAのままだったことを確認済み）。このジョブの最終的なHEAD
+    # （commit outputs等で何かpushしていればそのコミット、何も変化が無ければ元のまま）を
+    # 記録し、deploy-pagesが必ずこの時点のHEADをチェックアウトするようにする
+    outputs:
+      final_sha: ${{ steps.final_sha.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -232,14 +249,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/check/create-pipeline-failure-issue.mjs "${{ steps.idempotency.outputs.target_week_start }}" gate-result.json
+      # 2026-10-08追加: deploy-pagesが参照する最終HEAD SHA（上記のpromote/commit outputs等が
+      # pushしていれば新しいコミット、何もpushしていなければ変化していない元のHEAD）を
+      # 常に記録する（if: always()。失敗時も記録する必要があるかは無いが、記録自体を失敗させない）
+      - name: deploy-pages向けに最終的なHEAD SHAを記録
+        id: final_sha
+        if: always()
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   # GitHub Pagesプレビュー公開（task #42、2026-08-17実装）。output/配下の配信済みレポートのみを
   # 一覧ページ（scripts/render/build-pages-index.js）と共に公開する。config/scripts等の内部
   # ファイルは含めない。しょうさん側の前提: リポジトリSettings→Pages→Source を
   # 「GitHub Actions」に設定しておくこと（docs/setup-guide.md参照）
+  #
+  # 2026-10-08修正（しょうさん指摘、実インシデント: 10/5週の本番・保険cronが両方HOLDし、
+  # 唯一成功した手動workflow_dispatch[10/3 12:30 JST頃]のあとPagesが9/28週止まりのまま
+  # 更新されなかった）。actions/checkoutがref未指定だとgithub.sha（このworkflow runが
+  # 起動した時点のコミット）を使うため、buildジョブがcommit outputs等で新たにpushした
+  # コミットを反映しないまま、1週遅れの内容でPagesを生成してしまうバグがあった（実際の
+  # 実行ログでpages_build_versionがpushの前のコミットSHAのままだったことを確認済み）。
+  # 通常は32分後の保険cronが新しいgithub.shaで起動し直すことで結果的に正しく再デプロイされ
+  # 隠れていたが、本番・保険とも失敗し手動1回のみの実行だった今回は遅れが残り続けた。
+  # 対策として、buildジョブが記録したfinal_sha（このworkflow run内での最終的なHEAD）を
+  # 明示的にチェックアウトすることで、どの経路でも常に最新のoutput/を反映するようにした
+  # （buildジョブの各種push分岐[pipeline成功・promote・保険cronのスキップ等]が増えても、
+  # 「buildジョブ終了時点のHEAD」を素直に参照するだけで良いため、今後の回帰も防げる）。
+  # deploy_pages_only指定時はbuildジョブ自体がスキップされるため、final_shaが無く
+  # 空文字列になる。その場合は単純にmainの現在のHEADを使う
   deploy-pages:
     needs: build
-    if: needs.build.result == 'success'
+    if: needs.build.result == 'success' || github.event.inputs.deploy_pages_only == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -250,6 +289,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.build.outputs.final_sha || 'main' }}
       - uses: actions/setup-node@v7
         with: { node-version: '20' }
       - run: npm ci
