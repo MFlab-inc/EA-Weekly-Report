@@ -58,6 +58,10 @@ node scripts/check/dry-run-week.mjs --now 2026-10-31 --out-dir phase1-out/dry-ru
 
 2026-10-03追記（しょうさん指示、12/28週の生成までに対応）: REVIEW_REQUIRED確認後に手動公開する経路を実装した。`weekly.yml`の`workflow_dispatch`に`acknowledge_low_volume`入力を追加し、trueにすると`gate.mjs`へ`--acknowledge-low-volume`が渡りPUBLISH_READYへ格上げされる（監査エラーによるHOLDはこの入力では絶対に公開されない。`decideGateOutcome()`がhasErrorを最優先するため）。
 
-REVIEW_REQUIREDになった時点で、render済みのHTMLを本番パス（`output/ea-weekly-<週>.html`）とは別の`output/review/ea-weekly-<週>.html`としてmainへコミットする（本番パスは未確定のため更新しない）。しょうさんは`https://raw.githubusercontent.com/MFlab-inc/EA-Weekly-Report/main/output/review/ea-weekly-<週>.html`で内容を確認でき（見た目で確認したい場合は`https://htmlpreview.github.io/?<上記URL>`でブラウザ表示できる）、妥当であれば「Actions → weekly-report → Run workflow → acknowledge_low_volumeをON → Run workflow」で正式公開できる。この手順は失敗時に自動作成されるGitHub Issue本文にも記載される（`scripts/check/create-pipeline-failure-issue.mjs`）。
+REVIEW_REQUIREDになった時点で、render済みの**台帳・HTML両方**を本番パス（`data/ledger/<週>.json`・`output/ea-weekly-<週>.html`）とは別の`output/review/ledger-<週>.json`・`output/review/ea-weekly-<週>.html`としてmainへコミットする（本番パスは未確定のため更新しない）。しょうさんは`https://raw.githubusercontent.com/MFlab-inc/EA-Weekly-Report/main/output/review/ea-weekly-<週>.html`で内容を確認でき（見た目で確認したい場合は`https://htmlpreview.github.io/?<上記URL>`でブラウザ表示できる）、妥当であれば「Actions → weekly-report → Run workflow → acknowledge_low_volumeをON → Run workflow」で正式公開できる。この手順は失敗時に自動作成されるGitHub Issue本文にも記載される（`scripts/check/create-pipeline-failure-issue.mjs`）。
 
 確認済みで公開した場合、台帳の`meta.low_volume_acknowledged`に確認日時と理由が記録される（`scripts/check/gate.mjs`の`applyLowVolumeAcknowledgment()`）。
+
+**2026-10-08追記（しょうさん指摘、再収集による内容ズレのリスク対策）**: 当初の実装はacknowledge_low_volume再実行時に`collect.mjs`を含むpipelineを丸ごと再実行しており、レビュー時点から外部ソースの予定が変わっていた場合、確認していない内容がそのまま公開されてしまう構造的リスクがあった。対策として、`force_regenerate`が指定されていない・かつ対象週の`output/review/ledger-<週>.json`が存在する場合は、**再収集せずレビュー済みの台帳・HTMLをそのまま本番へ昇格する**方式に変更した（`weekly.yml`の`promote`ステップ）。この時gate.mjsはレビュー済みファイルに対して再実行されるため同一データで決定的にPUBLISH_READYになり、本番パスへコピーする内容はレビュー時点のものと完全に一致する（collect.mjsは一切呼ばれない。手動end-to-endで、本番パスへ意図的に「ドリフトした別データ」を置いた状態でpromoteを実行し、レビュー時点の内容で正しく上書きされること・ドリフトしたデータが一切混入しないことを確認済み）。
+
+`force_regenerate: true`を併用した場合は、レビュー有無に関わらず常に新規収集（collect.mjsから再実行）する（最新データを明示的に取り直す意図のため）。レビューを経ずに`acknowledge_low_volume`のみを初回から付けて実行した場合（`output/review/`に該当週のファイルが無い場合）も新規収集するが、この場合は収集と確認が同一run内で同時に起きるため、時間差によるズレは発生しない。

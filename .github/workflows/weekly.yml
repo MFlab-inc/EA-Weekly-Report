@@ -15,6 +15,10 @@ on:
         description: '件数下限チェックのみが理由のREVIEW_REQUIRED（output/review/配下の確認用HTMLで内容確認済み）を、公開してよいものとして確定する。監査エラーによるHOLDはこの入力では絶対に公開されない'
         type: boolean
         default: false
+      deploy_pages_only:
+        description: '新しい生成を一切行わず、現在のmain（output/配下）の内容でGitHub Pagesのプレビュー一覧だけを再デプロイする（buildジョブ自体をスキップする。対象週の先取り生成を防ぐため、force_regenerate/acknowledge_low_volumeを同時指定しても無視される）'
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -23,8 +27,12 @@ concurrency:
 jobs:
   build:
     # workflow_dispatch（手動）またはSaturdayの2本のcron（本番・保険）でのみ実行する。
-    # 月曜cron（FF事後突合専用）ではこのジョブを起動しない
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule != '23 23 * * 0'
+    # 月曜cron（FF事後突合専用）ではこのジョブを起動しない。
+    # 2026-10-08追加: deploy_pages_only指定時はこのジョブ自体をスキップする（新しい生成を
+    # 一切行わず、現在のmainの内容だけでPagesを再デプロイしたいケース向け。しょうさん指摘:
+    # 木曜等の平日にdeploy_pages_onlyなしでworkflow_dispatchすると対象週（次週）を
+    # 先取り生成してしまうため、再デプロイだけしたい場合に生成を確実に回避する手段が必要）
+    if: (github.event_name == 'workflow_dispatch' || github.event.schedule != '23 23 * * 0') && github.event.inputs.deploy_pages_only != 'true'
     runs-on: ubuntu-latest
     # 2026-10-03追加（しょうさん指摘: 10/5週の本番・保険cron両方がHOLDで失敗したが、通知の
     # 仕組みが無くしょうさんが自ら確認するまで誰も気づけなかった）。失敗時にIssueを自動作成する
@@ -34,6 +42,15 @@ jobs:
     permissions:
       contents: write
       issues: write
+    # 2026-10-08追加（しょうさん指摘: deploy-pagesジョブのチェックアウトがgithub.sha
+    # [このworkflow runが起動した時点のコミット]を使っており、このbuildジョブが
+    # commit outputs等で新たにpushしたコミットを反映しないまま1週遅れでPagesを生成する
+    # バグがあった。実際に10/5週生成後のdeploy-pagesの実行ログでpages_build_versionが
+    # pushの前のコミットSHAのままだったことを確認済み）。このジョブの最終的なHEAD
+    # （commit outputs等で何かpushしていればそのコミット、何も変化が無ければ元のまま）を
+    # 記録し、deploy-pagesが必ずこの時点のHEADをチェックアウトするようにする
+    outputs:
+      final_sha: ${{ steps.final_sha.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -109,6 +126,53 @@ jobs:
           else
             echo "already_generated=false" >> "$GITHUB_OUTPUT"
           fi
+      # 2026-10-08追加（しょうさん指摘: acknowledge_low_volumeで再実行すると、PR #39時点の実装は
+      # collect.mjsを再実行してしまい、レビュー時点から外部ソースの予定が変わっていた場合、
+      # 確認していない内容がそのまま公開されてしまう構造的リスクがあった）。
+      # しょうさん指示の方式(a)「再収集せず、レビュー時の台帳・HTMLをそのまま本番へ昇格する」を
+      # 採用する。force_regenerateが指定されていない・かつ対象週のレビュー済み台帳
+      # （output/review/ledger-<週>.json、下のREVIEW_REQUIREDステップが書き出す）が存在する場合、
+      # pipelineステップ（collect.mjsを含む）を一切実行せず、レビュー済みファイルをそのまま
+      # gate.mjsで再判定（同一データなので決定的にPUBLISH_READYになる。audit系checkも含め
+      # 全て再実行することで、レビュー後にファイルが壊れていないかの最終確認にもなる）した上で
+      # 本番パスへコピーする。
+      # - force_regenerate:true指定時は常に新規生成（レビュー有無に関わらず最新データを取り直す
+      #   明示的な意図のため、promoteはスキップしpipelineへフォールバックする）
+      # - レビュー済みファイルが無い場合（レビューを経ずacknowledge_low_volumeのみを初回から
+      #   付けて実行した等）は、collect〜gateを1回で通して実行するためドリフトは発生しない
+      #   （収集と判定が同一run内で同時に起きるため、「後で確認」という時間差自体が無い）
+      - name: 確認済み（acknowledge_low_volume）の場合、レビュー済み台帳・HTMLを再収集せず本番へ昇格
+        id: promote
+        if: steps.idempotency.outputs.already_generated == 'false' && github.event.inputs.acknowledge_low_volume == 'true' && github.event.inputs.force_regenerate != 'true'
+        run: |
+          TARGET_WEEK_START="${{ steps.idempotency.outputs.target_week_start }}"
+          REVIEW_LEDGER="output/review/ledger-${TARGET_WEEK_START}.json"
+          REVIEW_HTML="output/review/ea-weekly-${TARGET_WEEK_START//-/}.html"
+          if [ -f "$REVIEW_LEDGER" ] && [ -f "$REVIEW_HTML" ]; then
+            echo "レビュー済みの台帳・HTML（${REVIEW_LEDGER}）が見つかりました。再収集せずそのまま本番へ昇格します（確認後に予定が変わっていても、未確認の内容を公開してしまわないようにするため）"
+            node scripts/check/gate.mjs --ledger "$REVIEW_LEDGER" --html "$REVIEW_HTML" --result gate-result.json --acknowledge-low-volume
+            DECISION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('gate-result.json','utf8')).decision)")
+            if [ "$DECISION" = "PUBLISH_READY" ]; then
+              TARGET_WEEK_COMPACT="${TARGET_WEEK_START//-/}"
+              mkdir -p "data/ledger" "output"
+              cp "$REVIEW_LEDGER" "data/ledger/${TARGET_WEEK_START}.json"
+              cp "$REVIEW_HTML" "output/ea-weekly-${TARGET_WEEK_COMPACT}.html"
+              git config user.name "ea-weekly-bot"
+              git config user.email "actions@users.noreply.github.com"
+              git add output/ data/ docs/
+              git diff --cached --quiet || git commit -m "weekly report ${TARGET_WEEK_START}（レビュー済み台帳を確認のうえ公開、再収集なし）"
+              git push
+              echo "promoted=true" >> "$GITHUB_OUTPUT"
+              echo "レビュー済み台帳をそのまま本番へ昇格しました（collect.mjsは実行していません）"
+            else
+              echo "レビュー済み台帳の再gate判定がPUBLISH_READYになりませんでした（decision=${DECISION}）。想定外のため公開を見送ります。"
+              echo "promoted=false" >> "$GITHUB_OUTPUT"
+              exit 1
+            fi
+          else
+            echo "レビュー済みの台帳・HTML（${REVIEW_LEDGER} / ${REVIEW_HTML}）が見つかりません。通常のpipelineで新規に収集・判定します"
+            echo "promoted=false" >> "$GITHUB_OUTPUT"
+          fi
       # 2026-08-15: 検証パイプラインをPython+Playwrightから移設した際にsetup-python/pipを撤去し、
       # Node.js一本（.github/workflows/ci.ymlと同一ランタイム）に統一した
       # （docs/validate-scripts-guide.md参照）。collect→build-ledger→renderの3ステップは
@@ -116,9 +180,11 @@ jobs:
       # scripts/build-ledger.mjs・scripts/render.mjs）。renderステップの--narrativeは指定しない
       # （heroSummary/heroPillsはしょうさん確定仕様2026-08-15の自動生成ルールで生成する。
       # scripts/render.mjsのautoHeroSummary/autoHeroPills参照。人手キュレーションが必要な場合のみ
-      # --narrativeで上書き可能）。発表枠の束ね（bundle_id、task #34）も配線済み
+      # --narrativeで上書き可能）。発表枠の束ね（bundle_id、task #34）も配線済み。
+      # 2026-10-08追加: 上のpromoteステップが既にレビュー済み内容を昇格済み（promoted:true）の
+      # 場合はここでの再収集は行わない（二重処理防止・ドリフト防止の本体）
       - name: pipeline
-        if: steps.idempotency.outputs.already_generated == 'false'
+        if: steps.idempotency.outputs.already_generated == 'false' && steps.promote.outputs.promoted != 'true'
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
@@ -133,31 +199,35 @@ jobs:
           node scripts/check/gate.mjs --ledger "data/ledger/${TARGET_WEEK_START}.json" --html "output/ea-weekly-${TARGET_WEEK_START//-/}.html" --result gate-result.json $GATE_ACK_FLAG
       # 2026-10-03追加（しょうさん指摘item3続き: 12/28週[年末年始]のような正当に件数が少ない週は
       # gate判定がREVIEW_REQUIRED[監査エラーは無く件数下限のみ抵触]になるが、確認後に公開する
-      # 手段がworkflow_dispatchに無かった）。REVIEW_REQUIREDの場合、render済みのHTMLを本番パス
-      # （output/ea-weekly-<週>.html）とは別のoutput/review/配下へコピーしmainへコミットする。
-      # しょうさんはraw.githubusercontent.com経由でこの内容を確認でき、妥当であれば
-      # acknowledge_low_volume:trueで再実行することで正式公開できる（この時点ではpipelineが
-      # 失敗[exit 3]扱いのため後続のcommit outputsはスキップされ、本番パスは更新されない。
-      # HOLD[監査エラーあり]の場合はこのステップは何もしない＝確認用HTMLも出力しない）
-      - name: REVIEW_REQUIREDの場合、確認用HTMLを本番とは別パスへコミット
-        if: always() && steps.idempotency.outputs.already_generated == 'false'
+      # 手段がworkflow_dispatchに無かった）。REVIEW_REQUIREDの場合、render済みの台帳・HTMLを
+      # 本番パス（data/ledger/<週>.json・output/ea-weekly-<週>.html）とは別のoutput/review/配下へ
+      # コピーしmainへコミットする。しょうさんはraw.githubusercontent.com経由でこの内容を確認でき、
+      # 妥当であればacknowledge_low_volume:trueで再実行することで正式公開できる（この時点では
+      # pipelineが失敗[exit 3]扱いのため後続のcommit outputsはスキップされ、本番パスは更新されない。
+      # HOLD[監査エラーあり]の場合はこのステップは何もしない＝確認用ファイルも出力しない）。
+      # 2026-10-08追加: 台帳もコミットするようにした（HTMLのみでは、上のpromoteステップが
+      # 再収集せず昇格するための元データが無い）
+      - name: REVIEW_REQUIREDの場合、確認用の台帳・HTMLを本番とは別パスへコミット
+        if: always() && steps.idempotency.outputs.already_generated == 'false' && steps.promote.outputs.promoted != 'true'
         run: |
           TARGET_WEEK_START="${{ steps.idempotency.outputs.target_week_start }}"
           HTML_PATH="output/ea-weekly-${TARGET_WEEK_START//-/}.html"
+          LEDGER_PATH="data/ledger/${TARGET_WEEK_START}.json"
           DECISION=""
           if [ -f gate-result.json ]; then
             DECISION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('gate-result.json','utf8')).decision)")
           fi
-          if [ "$DECISION" = "REVIEW_REQUIRED" ] && [ -f "$HTML_PATH" ]; then
+          if [ "$DECISION" = "REVIEW_REQUIRED" ] && [ -f "$HTML_PATH" ] && [ -f "$LEDGER_PATH" ]; then
             mkdir -p output/review
             cp "$HTML_PATH" "output/review/ea-weekly-${TARGET_WEEK_START//-/}.html"
+            cp "$LEDGER_PATH" "output/review/ledger-${TARGET_WEEK_START}.json"
             git config user.name "ea-weekly-bot"
             git config user.email "actions@users.noreply.github.com"
             git add output/review/
             if ! git diff --cached --quiet; then
               git commit -m "review: ea-weekly-${TARGET_WEEK_START}（REVIEW_REQUIRED、件数下限要確認）"
               git push
-              echo "確認用HTMLをコミットしました: output/review/ea-weekly-${TARGET_WEEK_START//-/}.html"
+              echo "確認用の台帳・HTMLをコミットしました: output/review/ea-weekly-${TARGET_WEEK_START//-/}.html, output/review/ledger-${TARGET_WEEK_START}.json"
             fi
           fi
       - name: commit outputs
@@ -179,14 +249,43 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/check/create-pipeline-failure-issue.mjs "${{ steps.idempotency.outputs.target_week_start }}" gate-result.json
+      # 2026-10-08追加: deploy-pagesが参照する最終HEAD SHA（上記のpromote/commit outputs等が
+      # pushしていれば新しいコミット、何もpushしていなければ変化していない元のHEAD）を
+      # 常に記録する（if: always()。失敗時も記録する必要があるかは無いが、記録自体を失敗させない）
+      - name: deploy-pages向けに最終的なHEAD SHAを記録
+        id: final_sha
+        if: always()
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   # GitHub Pagesプレビュー公開（task #42、2026-08-17実装）。output/配下の配信済みレポートのみを
   # 一覧ページ（scripts/render/build-pages-index.js）と共に公開する。config/scripts等の内部
   # ファイルは含めない。しょうさん側の前提: リポジトリSettings→Pages→Source を
   # 「GitHub Actions」に設定しておくこと（docs/setup-guide.md参照）
+  #
+  # 2026-10-08修正（しょうさん指摘、実インシデント: 10/5週の本番・保険cronが両方HOLDし、
+  # 唯一成功した手動workflow_dispatch[10/3 12:30 JST頃]のあとPagesが9/28週止まりのまま
+  # 更新されなかった）。actions/checkoutがref未指定だとgithub.sha（このworkflow runが
+  # 起動した時点のコミット）を使うため、buildジョブがcommit outputs等で新たにpushした
+  # コミットを反映しないまま、1週遅れの内容でPagesを生成してしまうバグがあった（実際の
+  # 実行ログでpages_build_versionがpushの前のコミットSHAのままだったことを確認済み）。
+  # 通常は32分後の保険cronが新しいgithub.shaで起動し直すことで結果的に正しく再デプロイされ
+  # 隠れていたが、本番・保険とも失敗し手動1回のみの実行だった今回は遅れが残り続けた。
+  # 対策として、buildジョブが記録したfinal_sha（このworkflow run内での最終的なHEAD）を
+  # 明示的にチェックアウトすることで、どの経路でも常に最新のoutput/を反映するようにした
+  # （buildジョブの各種push分岐[pipeline成功・promote・保険cronのスキップ等]が増えても、
+  # 「buildジョブ終了時点のHEAD」を素直に参照するだけで良いため、今後の回帰も防げる）。
+  # deploy_pages_only指定時はbuildジョブ自体がスキップされるため、final_shaが無く
+  # 空文字列になる。その場合は単純にmainの現在のHEADを使う。
+  #
+  # if:のalways()は必須（2026-10-08、deploy_pages_only実装時の実機検証で発覚）: GitHub
+  # Actionsは「needsで指定したジョブがskippedの場合、このジョブも自動的にskippedにする」
+  # デフォルト挙動を、always()等のステータス関数をif:に含めない限りバイパスできない。
+  # alwaysを付けず`needs.build.result == 'success' || ...`のみにしたところ、
+  # deploy_pages_only:trueでbuildがskipされた際にdeploy-pages自身もskipされてしまい
+  # （実際にworkflow run #43で再現・確認済み）、再デプロイが一切実行されなかった
   deploy-pages:
     needs: build
-    if: needs.build.result == 'success'
+    if: always() && (needs.build.result == 'success' || github.event.inputs.deploy_pages_only == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -197,6 +296,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.build.outputs.final_sha || 'main' }}
       - uses: actions/setup-node@v7
         with: { node-version: '20' }
       - run: npm ci
