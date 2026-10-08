@@ -87,7 +87,9 @@ function buildIssueBody({ week, gateResult, ledgerExists, runUrl, repo }) {
     lines.push('4. 右上の「Run workflow」ボタンを押す');
     lines.push('5. ブランチは「main」のまま、「acknowledge_low_volume」のチェックボックスをON（true）にする');
     lines.push('6. 「Run workflow」を押して実行する（数分で完了します）');
-    lines.push(`7. 完了後、本番ページ（output/ea-weekly-${weekCompact}.html）として正式に公開されます`);
+    lines.push(`7. 完了後、本番ページ（output/ea-weekly-${weekCompact}.html）として正式に公開されます（上記の確認用ファイルの内容がそのまま昇格します。再収集は行われません）`);
+    lines.push('');
+    lines.push(`**注意**: 「acknowledge_low_volume」で公開できるのは、上記の確認用ファイル（${reviewPath}等）が存在する場合のみです。この確認用ファイルが無い状態や、「force_regenerate」を同時指定した場合は「acknowledge_low_volume」は効果を持たず、通常どおり新規収集してやり直されます（確認していない内容がそのまま公開されることはありません）。`);
     lines.push('');
     lines.push('**注意**: 監査エラーがあるHOLDの週は、この手順では絶対に公開されません（原因を解消してからの再生成が必要です）。');
   } else {

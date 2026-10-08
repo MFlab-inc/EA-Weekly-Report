@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
       acknowledge_low_volume:
-        description: '件数下限チェックのみが理由のREVIEW_REQUIRED（output/review/配下の確認用HTMLで内容確認済み）を、公開してよいものとして確定する。監査エラーによるHOLDはこの入力では絶対に公開されない'
+        description: '件数下限チェックのみが理由のREVIEW_REQUIREDで、output/review/配下に既にある確認用の台帳・HTMLを、内容確認済みとして再収集せずそのまま公開する。対象週のレビュー済みファイルが無い場合やforce_regenerateを同時指定した場合はこの入力は無効（通常どおり新規収集→判定し、件数下限に抵触すればREVIEW_REQUIREDで停止する。誰も確認していない新規収集結果が公開されることは無い）。監査エラーによるHOLDはこの入力では絶対に公開されない'
         type: boolean
         default: false
       deploy_pages_only:
@@ -139,8 +139,12 @@ jobs:
       # - force_regenerate:true指定時は常に新規生成（レビュー有無に関わらず最新データを取り直す
       #   明示的な意図のため、promoteはスキップしpipelineへフォールバックする）
       # - レビュー済みファイルが無い場合（レビューを経ずacknowledge_low_volumeのみを初回から
-      #   付けて実行した等）は、collect〜gateを1回で通して実行するためドリフトは発生しない
-      #   （収集と判定が同一run内で同時に起きるため、「後で確認」という時間差自体が無い）
+      #   付けて実行した等）はpipelineへフォールバックする
+      # いずれのフォールバック時も、下のpipelineステップはacknowledge_low_volumeの値を一切見ない
+      # （2026-10-08再修正。しょうさん指摘: 「確認済みで公開できるのは、確認用に出したものだけ」。
+      # 新規収集結果を今回acknowledge_low_volumeで自動公開してしまうことは無く、件数下限に
+      # 抵触すれば必ずREVIEW_REQUIREDで停止し確認用ファイルが出力される。force_regenerateと
+      # acknowledge_low_volumeを併用した場合も同様で、実質force_regenerate単独と同じ挙動になる）
       - name: 確認済み（acknowledge_low_volume）の場合、レビュー済み台帳・HTMLを再収集せず本番へ昇格
         id: promote
         if: steps.idempotency.outputs.already_generated == 'false' && github.event.inputs.acknowledge_low_volume == 'true' && github.event.inputs.force_regenerate != 'true'
@@ -182,21 +186,30 @@ jobs:
       # scripts/render.mjsのautoHeroSummary/autoHeroPills参照。人手キュレーションが必要な場合のみ
       # --narrativeで上書き可能）。発表枠の束ね（bundle_id、task #34）も配線済み。
       # 2026-10-08追加: 上のpromoteステップが既にレビュー済み内容を昇格済み（promoted:true）の
-      # 場合はここでの再収集は行わない（二重処理防止・ドリフト防止の本体）
+      # 場合はここでの再収集は行わない（二重処理防止・ドリフト防止の本体）。
+      #
+      # 2026-10-08再修正（しょうさん指摘: 「確認済みで公開できるのは、確認用に出したものだけ」
+      # というルールを徹底したい）: このステップでは--acknowledge-low-volumeを絶対に渡さない。
+      # 以前はacknowledge_low_volume:trueの場合ここでも渡していたため、(1)レビューファイルが
+      # 無い状態でacknowledge_low_volume:trueのみ実行した場合、(2)force_regenerate:trueと
+      # acknowledge_low_volume:trueを併用した場合、のいずれも「誰も中身を見ていない今回の
+      # 新規収集結果」が件数下限チェックを自動的にクリアしてそのまま公開されてしまっていた
+      # （promoteステップが拾う対象[output/review/配下の既存ファイル]が無い・使われない経路の
+      # ため、promoteの再収集防止は効かない）。このステップが呼ぶgate.mjsは常に
+      # acknowledge無しで判定するため、件数下限に抵触する限り必ずREVIEW_REQUIREDで停止し
+      # （下のステップが確認用ファイルを出力して止まる。Issueも通常どおり作成される）、
+      # 新規収集結果が人の確認を経ずに公開されることは無い。「確認済みで公開」はpromote
+      # ステップ（output/review/配下の既存レビュー済みファイルの昇格）経由のみに限定される
       - name: pipeline
         if: steps.idempotency.outputs.already_generated == 'false' && steps.promote.outputs.promoted != 'true'
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
           TARGET_WEEK_START="${{ steps.idempotency.outputs.target_week_start }}"
-          GATE_ACK_FLAG=""
-          if [ "${{ github.event.inputs.acknowledge_low_volume }}" = "true" ]; then
-            GATE_ACK_FLAG="--acknowledge-low-volume"
-          fi
           node scripts/collect.mjs
           node scripts/build-ledger.mjs
           node scripts/render.mjs "data/ledger/${TARGET_WEEK_START}.json" --out "output/ea-weekly-${TARGET_WEEK_START//-/}.html"
-          node scripts/check/gate.mjs --ledger "data/ledger/${TARGET_WEEK_START}.json" --html "output/ea-weekly-${TARGET_WEEK_START//-/}.html" --result gate-result.json $GATE_ACK_FLAG
+          node scripts/check/gate.mjs --ledger "data/ledger/${TARGET_WEEK_START}.json" --html "output/ea-weekly-${TARGET_WEEK_START//-/}.html" --result gate-result.json
       # 2026-10-03追加（しょうさん指摘item3続き: 12/28週[年末年始]のような正当に件数が少ない週は
       # gate判定がREVIEW_REQUIRED[監査エラーは無く件数下限のみ抵触]になるが、確認後に公開する
       # 手段がworkflow_dispatchに無かった）。REVIEW_REQUIREDの場合、render済みの台帳・HTMLを
