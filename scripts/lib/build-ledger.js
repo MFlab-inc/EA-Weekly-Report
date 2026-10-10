@@ -360,11 +360,25 @@ function filterUnregisteredSpeakers(candidates, officials) {
 // warningsも合わせて返す（呼び出し側[buildLedger]がmeta.warningsへ合流させる）。
 // filterUnregisteredSpeakers（上記）はSOURCES_REQUIRING_REGISTERED_SPEAKER対象ソースの
 // 未登録話者を先に除外する（resolveOfficialSpeechImportanceより前段の処理）
+// タイムゾーン不明のため時刻未確定として扱った候補（resolve-candidate.jsのtimeAmbiguous。
+// 現時点ではgb_boe_calendarのみが発生させるが、kind/ソースを問わない汎用の仕組みとする。
+// しょうさん指示2026-10-10: 海外会場での発言にBOE自身がBST等のタイムゾーンを明記しない行が
+// あり、ロンドン時間として推測変換するのは安全でないため、推測せず時刻未確定（停止目安の
+// 計算対象外）として掲載し、WARNで気づけるようにする
+function checkTimeAmbiguousWarning(candidate) {
+  if (!candidate.timeAmbiguous) return null;
+  const speaker = candidate.speakerLastName || '(話者不明)';
+  const rawTime = candidate.ambiguousTimeRaw ? ` raw_time="${candidate.ambiguousTimeRaw}"` : '';
+  return `${candidate.sourceId}: タイムゾーンの記載が無いため時刻未確定として扱った（停止目安の計算対象外）: speaker="${speaker}" date=${candidate.date}${rawTime}`;
+}
+
 function buildEventsSection(candidates, officials) {
   const usedIds = new Set();
   const { kept, warnings: filterWarnings } = filterUnregisteredSpeakers(candidates, officials);
   const warnings = [...filterWarnings];
   const adjusted = kept.map((c) => {
+    const timeAmbiguousWarning = checkTimeAmbiguousWarning(c);
+    if (timeAmbiguousWarning) warnings.push(timeAmbiguousWarning);
     const { importance, warning } = resolveOfficialSpeechImportance(c, officials);
     if (warning) warnings.push(warning);
     return importance === c.importance ? c : { ...c, importance };
@@ -472,6 +486,7 @@ module.exports = {
   resolveRuleGeneratedName,
   resolveOfficialSpeechImportance,
   filterUnregisteredSpeakers,
+  checkTimeAmbiguousWarning,
   computeBundleIds,
   makeEventId,
   minutesToJstIso,

@@ -33,6 +33,20 @@
 // 同じ設計）。時刻は各予定の最初の括弧内からのみ拾う（説明文の後半に出てくる無関係な時刻表記
 // ―実測例: 「(11.25am) - text to be released on Thursday 1 October at 10am.」の"10am"―を
 // 誤って拾わないため）。
+//
+// タイムゾーンの扱い（しょうさん指摘2026-10-10）: このページは通常「11am」のように現地時刻を
+// 書くだけでタイムゾーンを明記しないが、海外会場での発言（実測2026-10-12週: バンコクIMF年次総会
+// 関連のGreene/Pill/Breeden/Bailey）には「(10.30am BST)」のようにBST（または将来GMTの可能性も
+// ある）を明記する運用が確認できた。一方、同じ海外会場でもCatherine L Mann（NABE年次総会、米国）・
+// Victoria Cleland（デンマークらしき表記）の2件はタイムゾーン表記が無いまま掲載されており、
+// この時刻がロンドン時間なのか会場現地時間なのか判別できない。この構造的な不整合を安全側で
+// 扱うため、本抽出器は「括弧内にBST/GMTの明記が無い行は、ロンドン開催かどうかに関わらず
+// 全て時刻未確定として扱う」方針を採用した（しょうさん承認済み。ロンドン開催の大半の既存項目も
+// 同様に時刻未確定になるが、これまでBOE自身が一切タイムゾーンを明記していなかった以上、
+// 「ロンドン時間のはず」という前提自体が推測であり、明記が無い限り確定とは扱わない）。
+// 時刻未確定の行はlocalTime:nullかつtimeAmbiguous:true・ambiguousTimeRaw（元の時刻表記）を
+// 持つ形でitemsに含める（除外はしない。resolveCandidateEvent/build-ledger.js側でtime_status=
+// unpublished・停止目安[halt_window]対象外・WARN付きのイベントとして扱われる）。
 
 const MONTHS = {
   january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
@@ -194,17 +208,32 @@ function extractBoeCalendar(html, ctx) {
       if (!speakerM) continue; // 話者名を伴わない行（公表物の告知リンク等）は掲載対象外
       const firstParenM = /\(([^)]*)\)/.exec(chunkText);
       if (!firstParenM) continue; // 時刻の手がかりが無い行は掲載しない（推測で補わない）
-      const timeMatches = [...firstParenM[1].matchAll(/\d{1,2}(?:\.\d{2})?\s*(?:am|pm)/gi)];
+      const parenContent = firstParenM[1];
+      const timeMatches = [...parenContent.matchAll(/\d{1,2}(?:\.\d{2})?\s*(?:am|pm)/gi)];
       if (timeMatches.length !== 1) continue; // 時刻0件、または併記で一意に決まらない行は
         // 推測で補わずスキップする（例: 「Speech at 9.40am, Panel at 10am」は掲載しない）
       const localTime = parseBoeCalendarTime(timeMatches[0][0]);
       if (!localTime) continue;
-      items.push({
-        date: currentDate,
-        localTime,
-        speakerLastName: speakerM[1].trim(),
-        title: chunkText,
-      });
+      const hasTzMarker = /\b(?:BST|GMT)\b/i.test(parenContent);
+      if (hasTzMarker) {
+        items.push({
+          date: currentDate,
+          localTime,
+          speakerLastName: speakerM[1].trim(),
+          title: chunkText,
+        });
+      } else {
+        // タイムゾーン表記が無いため、ロンドン時間かどうかを推測せず時刻未確定として扱う
+        // （上記コメント参照、しょうさん指示2026-10-10）
+        items.push({
+          date: currentDate,
+          localTime: null,
+          speakerLastName: speakerM[1].trim(),
+          title: chunkText,
+          timeAmbiguous: true,
+          ambiguousTimeRaw: timeMatches[0][0].trim(),
+        });
+      }
     }
   }
 

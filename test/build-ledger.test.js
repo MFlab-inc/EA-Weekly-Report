@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, resolveOfficialSpeechImportance, filterUnregisteredSpeakers, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
+const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, resolveOfficialSpeechImportance, filterUnregisteredSpeakers, checkTimeAmbiguousWarning, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
 const { validateLedger } = require('../scripts/lib/validate-ledger');
 
 const officials = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'officials.json'), 'utf8')).officials;
@@ -255,6 +255,60 @@ test('filterUnregisteredSpeakers: 話者未指定（speakerLastName null）のgb
   const { kept, warnings } = filterUnregisteredSpeakers(candidates, officials);
   assert.deepEqual(kept, []);
   assert.match(warnings[0], /\(話者不明\)/);
+});
+
+// 2026-10-10新設（しょうさん指摘: gb_boe_calendarで海外会場の発言にタイムゾーンの明記が無い行が
+// ロンドン時間として推測変換されていた問題。resolve-candidate.jsのtimeAmbiguousフラグを受けて
+// WARNを生成する関数の単体テスト）
+test('checkTimeAmbiguousWarning: timeAmbiguous=trueの候補は話者名・日付・元の時刻表記を含むWARNを返す', () => {
+  const w = checkTimeAmbiguousWarning({
+    sourceId: 'gb_boe_calendar', speakerLastName: 'Catherine L Mann', date: '2026-10-12', timeAmbiguous: true, ambiguousTimeRaw: '1.50pm',
+  });
+  assert.match(w, /gb_boe_calendar/);
+  assert.match(w, /Catherine L Mann/);
+  assert.match(w, /2026-10-12/);
+  assert.match(w, /1\.50pm/);
+  assert.match(w, /時刻未確定/);
+});
+
+test('checkTimeAmbiguousWarning: timeAmbiguousが無い（false/undefined）候補はnullを返す', () => {
+  assert.equal(checkTimeAmbiguousWarning({ sourceId: 'gb_boe_calendar', speakerLastName: 'Sarah Breeden', timeAmbiguous: false }), null);
+  assert.equal(checkTimeAmbiguousWarning({ sourceId: 'gb_boe_calendar', speakerLastName: 'Sarah Breeden' }), null);
+});
+
+test('checkTimeAmbiguousWarning: 話者名未設定（speakerLastName null）でも「(話者不明)」でWARNを返す', () => {
+  const w = checkTimeAmbiguousWarning({ sourceId: 'gb_boe_calendar', speakerLastName: null, date: '2026-10-15', timeAmbiguous: true, ambiguousTimeRaw: '8.50am' });
+  assert.match(w, /\(話者不明\)/);
+});
+
+// buildLedger()を通した統合テスト: timeAmbiguousな候補が最終的にtime_status=unpublished・
+// halt_window無し（停止目安の計算対象外）のイベントとしてそのまま掲載され、meta.warningsに
+// タイムゾーン未確定WARNが載ることを確認する
+test('buildLedger: timeAmbiguousな候補はイベントとして掲載されるがhalt_windowは計算されず、meta.warningsにWARNが載る', () => {
+  const report = {
+    outcome: { status: 'PUBLISH_READY', reasons: [] },
+    targetWeek: { start: '2026-10-12', end: '2026-10-16' },
+    residualWarnings: [],
+    recurringMissingWarnings: [],
+    catalogAuditWarnings: [],
+    results: [],
+  };
+  const candidates = [{
+    kind: 'official_speech', country: 'GB', importance: 3, sourceId: 'gb_boe_calendar',
+    speakerLastName: 'Catherine L Mann', date: '2026-10-12', time: null, localDate: '2026-10-12',
+    localTime: null, tz: null, timeAmbiguous: true, ambiguousTimeRaw: '1.50pm',
+  }];
+  const sourcesConfig = { sources: [{ id: 'gb_boe_calendar', type: 'weekly_scrape', name_ja: 'BOE（事前公表カレンダー）' }] };
+  const ledger = buildLedger({
+    report, sourcesConfig, manualEventsConfig: { entries: [] }, officialsConfig: { officials },
+    candidates, expectedCoverageResult: { required: [], missing: [] }, recurringChecksStatus: [],
+    pipelineVersion: 'test', generatedAt: '2026-10-10T00:00:00+09:00',
+  });
+  assert.equal(ledger.events.length, 1);
+  assert.equal(ledger.events[0].time_status, 'unpublished');
+  assert.equal(ledger.events[0].halt_window_start_jst, null);
+  assert.equal(ledger.events[0].halt_window_end_jst, null);
+  assert.ok(ledger.meta.warnings.some((w) => /タイムゾーンの記載が無いため時刻未確定/.test(w) && /Catherine L Mann/.test(w)));
 });
 
 // 2026-09-19発見の実バグの回帰テスト（task #94フォローアップ）: manual-events.json由来の
