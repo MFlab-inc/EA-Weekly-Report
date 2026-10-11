@@ -155,3 +155,30 @@ test('resolveCandidateEvent: AU×gdpが想定外の月に発表された場合�
   assert.equal(r.ok, true);
   assert.equal(r.displayName, 'GDP');
 });
+
+// 2026-10-10新設（しょうさん指摘: gb_boe_calendarでタイムゾーン表記が無い項目がロンドン時間として
+// 推測変換されていた問題の修正）。row.timeAmbiguous=trueの行はtime:null・tz:null・localTime:null
+// として扱い（推測しない）、呼び出し側（build-ledger.jsのcheckTimeAmbiguousWarning）がWARNを生成する
+// 材料としてtimeAmbiguous/ambiguousTimeRawをそのまま候補に残す
+test('resolveCandidateEvent: timeAmbiguous=trueの行はtime/localTime/tzをnullにし、time.ambiguousTimeRawをそのまま保持する', () => {
+  const row = {
+    title: 'Speech', date: '2026-10-12', localTime: null, timeAmbiguous: true, ambiguousTimeRaw: '1.50pm', speakerLastName: 'Catherine L Mann',
+  };
+  const r = resolveCandidateEvent(row, { country: 'GB', kind: 'official_speech', tz: 'Europe/London', ruleGenerated: true });
+  assert.equal(r.ok, true);
+  assert.equal(r.date, '2026-10-12');
+  assert.equal(r.time, null);
+  assert.equal(r.localTime, null);
+  assert.equal(r.tz, null, 'タイムゾーン不明のため、ctx.tzが設定されていてもnullのまま（Europe/Londonを推測しない）');
+  assert.equal(r.timeAmbiguous, true);
+  assert.equal(r.ambiguousTimeRaw, '1.50pm');
+});
+
+test('resolveCandidateEvent: timeAmbiguousが無い通常の行ではtimeAmbiguous:false・ambiguousTimeRaw:nullを返す（後方互換）', () => {
+  const row = { title: 'Speech', date: '2026-10-12', localTime: '10:30', speakerLastName: 'Sarah Breeden' };
+  const r = resolveCandidateEvent(row, { country: 'GB', kind: 'official_speech', tz: 'Europe/London', ruleGenerated: true });
+  assert.equal(r.ok, true);
+  assert.equal(r.time, '18:30'); // 10:30 BST（UTC+1）→ 09:30 UTC → 18:30 JST
+  assert.equal(r.timeAmbiguous, false);
+  assert.equal(r.ambiguousTimeRaw, null);
+});

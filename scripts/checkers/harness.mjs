@@ -252,7 +252,14 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
   gb_boe_calendar: {
     primaryLabel: 'upcoming_events',
     parseFn: extractBoeCalendar,
-    toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime, kind: 'official_speech', speakerLastName: r.speakerLastName }),
+    // timeAmbiguous/ambiguousTimeRawはresolveCandidateEvent（scripts/lib/resolve-candidate.js）・
+    // build-ledger.jsのcheckTimeAmbiguousWarningが使う（タイムゾーン・開催地のいずれからも
+    // 英国時間と確定できない行をWARN付きで時刻未確定扱いにする、しょうさん指示2026-10-10/11）。
+    // ここで渡し忘れるとrowに付いていても後段に伝わらない（2026-10-11に発覚・修正）
+    toRow: (r) => ({
+      title: r.title, date: r.date, localTime: r.localTime, kind: 'official_speech', speakerLastName: r.speakerLastName,
+      timeAmbiguous: r.timeAmbiguous, ambiguousTimeRaw: r.ambiguousTimeRaw,
+    }),
   },
   // BOC/RBA/ECB/SNB講演: task #72（2026-09-19）で新設。いずれもpubDate/dc:date/cb:occurrenceDateが
   // 絶対時刻（明示的UTCオフセットまたはZ固定）のためutcInstantとして渡す（BOE/FRBと同じ設計）。
