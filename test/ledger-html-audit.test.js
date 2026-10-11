@@ -238,3 +238,48 @@ test('auditMonthEndNotice: 日付が一致しないとMONTH_END_NOTICE_DATE_MISM
   const errors = auditMonthEndNotice(html, monthEndLedger('2026-10-26', '2026-10-30'));
   assert.ok(errors.some((e) => e.startsWith('MONTH_END_NOTICE_DATE_MISMATCH')), JSON.stringify(errors));
 });
+
+// 2026-10-11新設（しょうさん指示: 週末スピルオーバー。Katharine Braddick副総裁の実例と同型）。
+// harness.mjsが対象週の金曜(JST)市場クローズ前にかかる候補を対象週の翌日(土)として追加で
+// 取り込み、is_weekend_spillover:trueを付けている（build-ledger.jsのcandidateToLedgerEvent
+// 参照）。この日付(土)の台帳イベントが金曜の日付グループへ「▲翌日」表記で掲載されても、
+// DATE_GROUP_EVENT_DATE_MISMATCHとして誤検知しないことを確認する
+function weekendSpilloverLedger() {
+  const ledger = baseLedger();
+  ledger.events.push({ event_id: 'gb-official_speech-2026-08-22-braddick', date_jst: '2026-08-22', importance: 3, is_weekend_spillover: true });
+  return ledger;
+}
+
+function weekendSpilloverHtml() {
+  return baseHtml().replace(
+    '<div class="ea-date-group" data-ea-date="2026-08-21" data-ea-date-event-count="0">\n    <div>8月21日（金）</div>\n  </div>',
+    '<div class="ea-date-group" data-ea-date="2026-08-21" data-ea-date-event-count="1">\n    <div>8月21日（金）</div>\n    <div class="ea-event-card" data-ea-event-id="gb-official_speech-2026-08-22-braddick" data-ea-event-importance="3">ブラディックBOE副総裁の発言</div>\n  </div>'
+  );
+}
+
+test('auditLedgerHtml: 週末スピルオーバー（台帳date_jst=土・is_weekend_spillover:true）が金曜の日付グループに掲載されてもエラー無し', async () => {
+  const { auditLedgerHtml } = await loadAudit();
+  assert.deepEqual(auditLedgerHtml(weekendSpilloverHtml(), weekendSpilloverLedger()), []);
+});
+
+test('auditLedgerHtml: is_weekend_spillover:trueでも金曜以外（例: 木曜）の日付グループに載せるとDATE_GROUP_EVENT_DATE_MISMATCH（金曜限定のカーブアウト）', async () => {
+  const { auditLedgerHtml } = await loadAudit();
+  const html = baseHtml().replace(
+    '<div class="ea-date-group" data-ea-date="2026-08-20" data-ea-date-event-count="0">\n    <div>8月20日（木）</div>\n  </div>',
+    '<div class="ea-date-group" data-ea-date="2026-08-20" data-ea-date-event-count="1">\n    <div>8月20日（木）</div>\n    <div class="ea-event-card" data-ea-event-id="gb-official_speech-2026-08-22-braddick" data-ea-event-importance="3">ブラディックBOE副総裁の発言</div>\n  </div>'
+  );
+  const errors = auditLedgerHtml(html, weekendSpilloverLedger());
+  assert.ok(errors.some((e) => e.includes('DATE_GROUP_EVENT_DATE_MISMATCH')), JSON.stringify(errors));
+});
+
+test('auditLedgerHtml: is_weekend_spillover:falseな台帳外日付イベントが金曜に載っても従来どおりDATE_GROUP_EVENT_DATE_MISMATCH（カーブアウトの誤爆防止）', async () => {
+  const { auditLedgerHtml } = await loadAudit();
+  const ledger = baseLedger();
+  ledger.events.push({ event_id: 'xx-other-2026-08-22', date_jst: '2026-08-22', importance: 3 }); // is_weekend_spillover未設定
+  const html = baseHtml().replace(
+    '<div class="ea-date-group" data-ea-date="2026-08-21" data-ea-date-event-count="0">\n    <div>8月21日（金）</div>\n  </div>',
+    '<div class="ea-date-group" data-ea-date="2026-08-21" data-ea-date-event-count="1">\n    <div>8月21日（金）</div>\n    <div class="ea-event-card" data-ea-event-id="xx-other-2026-08-22" data-ea-event-importance="3">テスト</div>\n  </div>'
+  );
+  const errors = auditLedgerHtml(html, ledger);
+  assert.ok(errors.some((e) => e.includes('DATE_GROUP_EVENT_DATE_MISMATCH')), JSON.stringify(errors));
+});

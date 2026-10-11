@@ -992,3 +992,79 @@ test('checkWeeklyScrapeSource: gb_boe_calendarはtoRow経由でもtimeAmbiguous/
   assert.equal(mann.timeAmbiguous, true);
   assert.equal(mann.ambiguousTimeRaw, '4pm');
 });
+
+// 2026-10-11新設（しょうさん指示: 対象週の金曜(JST)市場クローズ前にかかる発表の取りこぼし対策。
+// Katharine Braddick副総裁の実例＝BOE予定ページ上は金曜21:00 BSTの発表だが、JST変換すると
+// 翌日(土)05:00になり、対象週（月〜金・JST）の素朴な判定では丸ごと除外されていた）。
+// checkWeeklyScrapeSource（gb_boe_calendarの実extractor経由）で、金曜のNY市場クローズ
+// （17:00 ET）のJST換算時刻（この週はEDTのため土06:00）より前の候補が、isWeekendSpillover:trueの
+// フラグ付きでthisWeekへ含まれることを確認する
+test('checkWeeklyScrapeSource: 金曜(JST)市場クローズ前にかかる候補（Braddick副総裁の実例と同型）はisWeekendSpillover:trueで対象週へ含まれる', async () => {
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  const html = [
+    '<title>Upcoming events - w/b 19 October 2026 and 26 October 2026</title>',
+    '<div class="page-content">',
+    '<h3>Friday 23 October</h3>',
+    '<p>Katharine Braddick: <a href="/speech">Speech at a conference, London</a> (9pm BST)</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const source = {
+    id: 'gb_boe_calendar', status: 'active', country: 'GB', kinds: ['official_speech'], type: 'weekly_scrape',
+    access: { robots_check: true, provides_exact_time: true, targets: [{ label: 'upcoming_events', url: 'https://www.bankofengland.co.uk/events/upcoming-events' }] },
+    announce_time_by_kind: { official_speech: { tz: 'Europe/London' } },
+  };
+  const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const targetWeek = { targetWeekStart: '2026-10-19', targetWeekEnd: '2026-10-23' };
+  const r = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, robotsChecker, eventNames: [] });
+  assert.equal(r.ok, true);
+  const braddick = r.thisWeek.find((c) => c.speakerLastName === 'Katharine Braddick');
+  assert.ok(braddick, JSON.stringify(r.thisWeek));
+  assert.equal(braddick.date, '2026-10-24'); // JST変換後は土曜
+  assert.equal(braddick.time, '05:00'); // 21:00 BST(UTC+1) → 20:00 UTC → 05:00 JST(翌日)
+  assert.equal(braddick.isWeekendSpillover, true);
+});
+
+test('checkWeeklyScrapeSource: NY金17:00換算のカットオフより後（土曜日中）の候補は週末スピルオーバーに含めない', () => {
+  // カットオフ後（この週はJST土06:00以降）の候補は対象週外として除外されることを、
+  // isWithinWeekの拡張条件を直接検証する（土曜09:00は06:00カットオフより後）
+  const targetWeek = { targetWeekStart: '2026-10-19', targetWeekEnd: '2026-10-23' };
+  const { isWithinWeek } = require('../scripts/lib/dates.js');
+  const { weekendSpilloverCutoffJst } = require('../scripts/lib/tz-convert.js');
+  const cutoff = weekendSpilloverCutoffJst(targetWeek.targetWeekEnd);
+  assert.equal(cutoff.date, '2026-10-24');
+  assert.equal(cutoff.time, '06:00');
+  const candidateDate = '2026-10-24';
+  const candidateTime = '09:00'; // カットオフ(06:00)より後
+  const withinExtended = isWithinWeek(candidateDate, targetWeek.targetWeekStart, targetWeek.targetWeekEnd)
+    || (candidateDate === cutoff.date && candidateTime <= cutoff.time);
+  assert.equal(withinExtended, false);
+});
+
+test('checkWeeklyScrapeSource: 時刻未確定(timeAmbiguous)の候補は週末スピルオーバーの対象に含めない（推測で含めない）', async () => {
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  // BOEの予定ページに土曜の見出しが載る想定の合成fixture。タイムゾーン表記・英国内の手がかりが
+  // 無いため時刻未確定（candidate.time===null）になる。週末スピルオーバーの条件（c.time &&
+  // c.date===cutoff.date && c.time<=cutoff.time）はtimeが無いと成立しないため、推測で時刻を
+  // 補って含めることはしない（対象週(月〜金)にも週末スピルオーバーにも入らず除外される）
+  const html = [
+    '<title>Upcoming events - w/b 19 October 2026 and 26 October 2026</title>',
+    '<div class="page-content">',
+    '<h3>Saturday 24 October</h3>',
+    '<p>Someone Else: <a href="/speech">Panellist at an overseas conference</a> (11pm)</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const source = {
+    id: 'gb_boe_calendar', status: 'active', country: 'GB', kinds: ['official_speech'], type: 'weekly_scrape',
+    access: { robots_check: true, provides_exact_time: true, targets: [{ label: 'upcoming_events', url: 'https://www.bankofengland.co.uk/events/upcoming-events' }] },
+    announce_time_by_kind: { official_speech: { tz: 'Europe/London' } },
+  };
+  const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const targetWeek = { targetWeekStart: '2026-10-19', targetWeekEnd: '2026-10-23' };
+  const r = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, robotsChecker, eventNames: [] });
+  assert.equal(r.ok, true);
+  assert.ok(!r.thisWeek.some((c) => c.speakerLastName === 'Someone Else'), JSON.stringify(r.thisWeek));
+});

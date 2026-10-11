@@ -275,3 +275,102 @@ test('renderer: 月曜00:30発表（窓が丸ごと日曜に収まる）— 対�
     assert.deepEqual(bars, [], `${date}にはこのイベント由来の帯が出ないはず`);
   }
 });
+
+// 2026-10-11新設（しょうさん指示: 週末スピルオーバー。Katharine Braddick副総裁の実例と同型。
+// 10/23(金)21:00 BST＝JST10/24(土)05:00の発言が、対象週[月〜金]の判定だけでは丸ごと
+// 取りこぼされる問題への対応）。金曜(days[4])自身にも通常の発表（Sasha Mills想定）があり、
+// かつ週末スピルオーバー（weekendSpillover*）も同時にあるケースで、(a)金曜の停止帯に
+// 自分自身の帯＋週末スピルオーバーの帯の両方が描画される、(b)セクション2（対象週の注目イベント）
+// の金曜カードに、通常のイベント一覧の後ろへ「翌日発表分」の見出し＋「翌日05:00」表記の
+// カードが追加される、(c)ヒーロー統計（★★★件数・発表枠）に週末スピルオーバー分が加算される、
+// ことを確認する
+const weekDataWeekendSpillover = {
+  reportMeta: 'ea-weekly-test-weekend-spillover',
+  createdDateJa: '2026年10月17日（土）',
+  targetWeekStart: '2026-10-19',
+  targetWeekEnd: '2026-10-23',
+  heroSummary: '週末スピルオーバーを確認する週',
+  heroPills: ['BOE副総裁 10/23金21:00 BST'],
+  days: [
+    { date: '2026-10-19', md: '10/19', weekday: '月', events: [], windowGroups: [] },
+    { date: '2026-10-20', md: '10/20', weekday: '火', events: [], windowGroups: [] },
+    { date: '2026-10-21', md: '10/21', weekday: '水', events: [], windowGroups: [] },
+    { date: '2026-10-22', md: '10/22', weekday: '木', events: [], windowGroups: [] },
+    {
+      date: '2026-10-23', md: '10/23', weekday: '金',
+      events: [
+        { id: 'gb-official_speech-2026-10-23-mills', time: '13:30', importance: 3, countryJa: '英国', currency: 'GBP', displayName: 'ミルズBOE金融安定局長の発言' },
+      ],
+      windowGroups: [
+        { firstTime: '13:30', lastTime: '13:30', countryJa: '英国', currency: 'GBP', labelItems: [{ time: '13:30', text: 'ミルズBOE金融安定局長の発言' }] },
+      ],
+      weekendSpilloverDate: '2026-10-24',
+      weekendSpilloverEvents: [
+        { id: 'gb-official_speech-2026-10-24-braddick', time: '05:00', importance: 3, countryJa: '英国', currency: 'GBP', displayName: 'ブラディックBOE副総裁の発言', isWeekendSpillover: true },
+      ],
+      weekendSpilloverWindowGroups: [
+        { firstTime: '05:00', lastTime: '05:00', countryJa: '英国', currency: 'GBP', labelItems: [{ time: '05:00', text: 'ブラディックBOE副総裁の発言' }] },
+      ],
+    },
+  ],
+};
+const reportDataWeekendSpillover = buildReportData(weekDataWeekendSpillover);
+const generatedWeekendSpillover = renderReportHtml(reportDataWeekendSpillover, { reportPolicy, btcGuide });
+
+test('renderer: 週末スピルオーバー — 金曜の停止帯に自分自身の帯と週末スピルオーバーの帯が両方描画される', () => {
+  const block = haltDayBlock(generatedWeekendSpillover, '2026-10-23');
+  const { bars } = barsAndTriangles(block);
+  assert.equal(bars.length, 2, '自分自身(13:30発表)の帯と週末スピルオーバー(翌日05:00発表)の帯の2本のはず');
+  // 週末スピルオーバーの帯: 05:00-12h=前日17:00, 05:00-4h=翌日01:00（当日0時でクランプ）
+  // → 金曜バー上は17:00(=1020分=70.8%)〜24:00(=1440分=29.2%幅)
+  const spilloverBar = bars.find(([left]) => left === '70.8');
+  assert.ok(spilloverBar, JSON.stringify(bars));
+  assert.equal(spilloverBar[1], '29.2');
+});
+
+test('renderer: 週末スピルオーバー — 金曜カードに「▲翌日05:00」「翌土曜05:00発表分。停止目安は日付をまたぎ、翌日01:00まで続きます」の注記が出る', () => {
+  const block = haltDayBlock(generatedWeekendSpillover, '2026-10-23');
+  assert.ok(block.includes('翌日05:00'), '▲の時刻に「翌日」が前置されていない');
+  assert.ok(block.includes('ブラディックBOE副総裁の発言'), '発表名が含まれていない');
+  assert.ok(block.includes('17:00–24:00'), '週末スピルオーバーの停止範囲(17:00-24:00)が表示されていない');
+  assert.ok(block.includes('翌土曜05:00発表分。停止目安は日付をまたぎ、翌日01:00まで続きます'), '週末スピルオーバーの注記文言が無い');
+  assert.ok(block.includes('★★★ 1件'), '金曜自身の★★★件数が出ていない（ミルズ局長の発言）');
+});
+
+test('renderer: 週末スピルオーバー — セクション2の金曜カードに「翌日発表分」の見出しとブラディック副総裁のカードが、通常のイベント一覧の後ろに追加される', () => {
+  const start = generatedWeekendSpillover.indexOf('<div class="ea-date-group" data-ea-date="2026-10-23"');
+  const end = generatedWeekendSpillover.indexOf('<div class="ea-date-group"', start + 10);
+  const block = generatedWeekendSpillover.slice(start, end > 0 ? end : generatedWeekendSpillover.length);
+  assert.ok(block.includes('data-ea-date-event-count="2"'), '金曜自身1件＋週末スピルオーバー1件で合計2のはず');
+  assert.ok(block.includes('★★★ 2件'), 'countLabelにも週末スピルオーバー分が加算されるはず');
+  assert.match(block, /data-ea-event-id="gb-official_speech-2026-10-23-mills"/);
+  assert.match(block, /data-ea-event-id="gb-official_speech-2026-10-24-braddick"/);
+  assert.ok(block.includes('翌日発表分'), '週末スピルオーバーの見出し（翌日発表分）が無い');
+  assert.ok(block.includes('翌日05:00'), 'ブラディック副総裁のカードの時刻表記に「翌日」が前置されていない');
+  const millsIdx = block.indexOf('ミルズBOE金融安定局長の発言');
+  const spilloverHeadingIdx = block.indexOf('翌日発表分');
+  const braddickIdx = block.indexOf('ブラディックBOE副総裁の発言');
+  assert.ok(millsIdx >= 0 && spilloverHeadingIdx >= 0 && braddickIdx >= 0 && millsIdx < spilloverHeadingIdx && spilloverHeadingIdx < braddickIdx, '通常イベント→翌日発表分見出し→週末スピルオーバーカードの順になっていない');
+});
+
+test('renderer: 週末スピルオーバー — ヒーロー統計（★★★件数・発表枠）に加算される', () => {
+  assert.equal(reportDataWeekendSpillover.star3Total, 2, 'ミルズ局長(金曜13:30)＋ブラディック副総裁(週末スピルオーバー)の2件のはず');
+  assert.equal(reportDataWeekendSpillover.releaseWindowCount, 2, '別々の発表枠（時刻）2枠のはず');
+  assert.match(generatedWeekendSpillover, /最重要（★★★）2件/);
+});
+
+test('renderer: 週末スピルオーバー — 金曜以外の日（月〜木）にはこのイベント由来の帯・カードが一切出ない', () => {
+  for (const date of ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22']) {
+    const block = haltDayBlock(generatedWeekendSpillover, date);
+    const { bars } = barsAndTriangles(block);
+    assert.deepEqual(bars, [], `${date}にはこのイベント由来の帯が出ないはず`);
+    assert.ok(!block.includes('ブラディック'), `${date}にブラディック副総裁の表示が混入している`);
+  }
+});
+
+test('renderer: 週末スピルオーバーが無い通常週（weekDataEntirelyPrevDay）は挙動が変わらない（回帰確認）', () => {
+  const block = haltDayBlock(generatedEntirelyPrevDay, '2026-08-21');
+  assert.ok(!block.includes('翌日発表分'), '週末スピルオーバーが無い週の金曜に「翌日発表分」が出てはならない');
+  const { bars } = barsAndTriangles(block);
+  assert.deepEqual(bars, [], '週末スピルオーバーが無い週では金曜に余計な帯が出ない');
+});

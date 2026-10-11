@@ -113,3 +113,45 @@ test('ledgerToWeekInput: narrativeとledgerを合成しweekInput形を組み立�
   assert.equal(weekInput.days.length, 5);
   assert.equal(weekInput.days[0].events[0].displayName, '日銀金融政策決定会合における主な意見の公表（7月30・31日開催分）');
 });
+
+// 2026-10-11新設（しょうさん指示: 週末スピルオーバー。Katharine Braddick副総裁の実例と同型）。
+// 対象週の翌日(土、2026-08-15)にis_weekend_spillover:trueの台帳イベントがある場合、
+// 金曜（配列最後、days[4]）へweekendSpilloverDate/Events/WindowGroupsとして付加され、
+// 新しい「土曜カード」は作られない（days.lengthは5のまま）
+test('buildDays: is_weekend_spillover:trueのイベント（対象週の翌日=土）は金曜(days[4])へweekendSpillover*として付加される', () => {
+  const ledger = baseLedger([
+    {
+      event_id: 'gb-official_speech-2026-08-15', date_jst: '2026-08-15', datetime_jst: '2026-08-15T05:00:00+09:00',
+      country: 'GB', currency: 'GBP', kind: 'official_speech', name_ja: 'ブラディックBOE副総裁の発言',
+      importance: 3, source_id: 'gb_boe_calendar', is_weekend_spillover: true,
+    },
+  ]);
+  const days = buildDays(ledger, undefined);
+  assert.equal(days.length, 5, '土曜の新しいカードは作られない');
+  const friday = days[4];
+  assert.equal(friday.date, '2026-08-14');
+  assert.equal(friday.events.length, 0, '金曜自身のevents配列には混在させない（別枠で保持する）');
+  assert.equal(friday.weekendSpilloverDate, '2026-08-15');
+  assert.equal(friday.weekendSpilloverEvents.length, 1);
+  assert.equal(friday.weekendSpilloverEvents[0].id, 'gb-official_speech-2026-08-15');
+  assert.equal(friday.weekendSpilloverEvents[0].time, '05:00');
+  assert.equal(friday.weekendSpilloverEvents[0].isWeekendSpillover, true);
+  assert.equal(friday.weekendSpilloverWindowGroups.length, 1);
+  assert.equal(friday.weekendSpilloverWindowGroups[0].firstTime, '05:00');
+});
+
+test('buildDays: is_weekend_spilloverが無い通常週はweekendSpillover*フィールドを持たない（undefined）', () => {
+  const ledger = baseLedger([]);
+  const days = buildDays(ledger, undefined);
+  const friday = days[4];
+  assert.equal(friday.weekendSpilloverEvents, undefined);
+  assert.equal(friday.weekendSpilloverWindowGroups, undefined);
+});
+
+test('buildDays: 対象週の翌日(土)にイベントがあってもis_weekend_spillover:falseなら無視する（通常の時刻未公表イベント等との混同防止）', () => {
+  const ledger = baseLedger([
+    { event_id: 'xx-other-2026-08-15', date_jst: '2026-08-15', datetime_jst: null, country: 'US', currency: 'USD', kind: 'other', name_ja: 'テスト', importance: 2, is_weekend_spillover: false },
+  ]);
+  const days = buildDays(ledger, undefined);
+  assert.equal(days[4].weekendSpilloverEvents, undefined);
+});

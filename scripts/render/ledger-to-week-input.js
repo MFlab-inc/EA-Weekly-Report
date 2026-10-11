@@ -111,7 +111,15 @@ function windowGroupsForDay(dayEvents) {
 }
 
 // ledger.meta.target_week_start起点の対象週5日分（月〜金）をすべて生成する（SPEC §6.3「日別カード×5」。
-// イベントが1件も無い日も空のカードとして含める）
+// イベントが1件も無い日も空のカードとして含める）。
+//
+// 週末スピルオーバー（しょうさん指示2026-10-11）: harness.mjsが対象週の金曜(JST)市場クローズ
+// （NY金17:00のJST換算）前にかかる候補を対象週の翌日(土)として追加で取り込み、
+// is_weekend_spillover:trueを付けている（build-ledger.jsのcandidateToLedgerEvent参照）。
+// この日付（土）は5日分の配列には含めない（新しい「土曜カード」は作らない）。代わりに
+// 金曜（配列の最後、i=4）のweekendSpilloverEvents/weekendSpilloverWindowGroups/
+// weekendSpilloverDateへ別途まとめ、build-report-data.js・html-renderer.jsが既存の
+// 「▲翌日」表記（翌日発表分・部分スピルオーバー）と同じ見た目で金曜カードへ描画する
 function buildDays(ledger, eventComments) {
   const byDate = new Map();
   for (const ev of ledger.events) {
@@ -131,6 +139,14 @@ function buildDays(ledger, eventComments) {
       events: dayEvents.map((ev) => eventToWeekInputEvent(ev, eventComments)),
       windowGroups: windowGroupsForDay(dayEvents),
     });
+  }
+  const spilloverDate = formatYmd(addDays(startDate, 5));
+  const spilloverEvents = (byDate.get(spilloverDate) || []).filter((ev) => ev.is_weekend_spillover);
+  if (spilloverEvents.length > 0) {
+    const friday = days[days.length - 1];
+    friday.weekendSpilloverDate = spilloverDate;
+    friday.weekendSpilloverEvents = spilloverEvents.map((ev) => ({ ...eventToWeekInputEvent(ev, eventComments), isWeekendSpillover: true }));
+    friday.weekendSpilloverWindowGroups = windowGroupsForDay(spilloverEvents);
   }
   return days;
 }

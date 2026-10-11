@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { zonedWallTimeToJst, offsetMinutesAt, nowJstIso } = require('../scripts/lib/tz-convert');
+const { zonedWallTimeToJst, offsetMinutesAt, nowJstIso, weekendSpilloverCutoffJst } = require('../scripts/lib/tz-convert');
 const { ISO_DATETIME_OFFSET_RE } = require('../scripts/lib/validate-ledger');
 
 // 停止目安計算はJST時刻に依存するため、DST切替週の換算を必須テストとする
@@ -86,4 +86,20 @@ test('nowJstIso: +09:00オフセット・ミリ秒なしで、validate-ledger.js
 
 test('nowJstIso: 引数省略時は実時刻ベースでもISO_DATETIME_OFFSET_REに適合する（new Date().toISOString()の直接使用を防止する回帰テスト）', () => {
   assert.match(nowJstIso(), ISO_DATETIME_OFFSET_RE);
+});
+
+// 2026-10-11新設（しょうさん指示: 対象週の金曜(JST)市場クローズ前にかかる発表の取りこぼし対策。
+// Katharine Braddick副総裁の10/23金21:00 BST＝JST10/24土05:00の実例）。
+// NY金曜17:00（週末の市場クローズ）をJSTへ換算した日時を返す。夏時間・冬時間の切り替えを
+// 考慮したものになっているかを確認する
+test('weekendSpilloverCutoffJst: 夏時間（EDT、10月）の金17:00はJST翌日06:00になる', () => {
+  const r = weekendSpilloverCutoffJst('2026-10-23'); // 金曜
+  assert.equal(r.date, '2026-10-24');
+  assert.equal(r.time, '06:00');
+});
+
+test('weekendSpilloverCutoffJst: 冬時間（EST、12月）の金17:00はJST翌日07:00になる', () => {
+  const r = weekendSpilloverCutoffJst('2026-12-18'); // 金曜
+  assert.equal(r.date, '2026-12-19');
+  assert.equal(r.time, '07:00');
 });

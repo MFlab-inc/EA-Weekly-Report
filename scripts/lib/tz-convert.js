@@ -78,6 +78,19 @@ function zonedWallTimeToJst(y, mo, d, h, mi, ianaZone) {
   return { ...utcToJstParts(utc), utcInstant: utc };
 }
 
+// 対象週終端（金曜・JST、'YYYY-MM-DD'）から、「ニューヨーク時間の金曜17:00（週末の市場クローズ）」
+// をJSTへ換算した日時を返す（しょうさん指示2026-10-11: Katharine Braddick副総裁の10/23金21:00
+// BST＝JST10/24土05:00のような、対象週の金曜市場クローズ前にかかる発表が、JST基準の月〜金という
+// 対象週の定義だけでは取りこぼされる問題への対応）。夏時間・冬時間の切り替えはzonedWallTimeToJst
+// （Intl/ICUのタイムゾーンデータ経由）が自動的に解決するため、本関数側で個別のDST規則は持たない。
+// 戻り値のdateは通常、fridayDateStrの翌日（土、JST）になる（NY 17:00がJSTでは常に翌日未明〜早朝に
+// 当たるため）。scripts/checkers/harness.mjsの候補フィルタ（isWithinWeek拡張）で使う
+function weekendSpilloverCutoffJst(fridayDateStr) {
+  const [y, mo, d] = fridayDateStr.split('-').map(Number);
+  const { date, time } = zonedWallTimeToJst(y, mo, d, 17, 0, 'America/New_York');
+  return { date, time };
+}
+
 // 現在時刻を「+09:00」オフセット付きISO日時（秒精度、ミリ秒なし）の文字列で返す。
 // scripts/lib/validate-ledger.jsのISO_DATETIME_OFFSET_RE（ミリ秒非対応）に適合させるため、
 // `new Date().toISOString()`（UTC・Z・ミリ秒付き）をmeta.generated_at等にそのまま使わないこと
@@ -100,5 +113,6 @@ module.exports = {
   utcToJstParts,
   utcToZonedParts,
   zonedWallTimeToJst,
+  weekendSpilloverCutoffJst,
   nowJstIso,
 };

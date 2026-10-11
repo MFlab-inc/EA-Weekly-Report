@@ -128,6 +128,16 @@ export function auditDateGroups(html, ledger) {
     expectedByDate.get(e.date_jst).push(e);
   }
   const weekDates = expectedWeekDates(ledger);
+  const lastWeekDate = weekDates[weekDates.length - 1];
+  // 週末スピルオーバー（しょうさん指示2026-10-11）: harness.mjsが対象週の金曜(JST)市場クローズ前に
+  // かかる候補を対象週の翌日(土)として追加で取り込み、is_weekend_spillover:trueを付けている
+  // （build-ledger.jsのcandidateToLedgerEvent参照）。この日付(土)の台帳イベントは、金曜カードへ
+  // 「▲翌日」表記で掲載される設計（ledger-to-week-input.js・html-renderer.js参照）のため、
+  // 金曜の日付グループに現れても台帳日付との不一致として扱わない
+  const weekendSpilloverDate = addDaysToYmd(lastWeekDate, 1);
+  const weekendSpilloverIds = new Set(
+    (expectedByDate.get(weekendSpilloverDate) || []).filter((e) => e.is_weekend_spillover).map((e) => e.event_id)
+  );
 
   const groupDates = [];
   let m;
@@ -144,10 +154,11 @@ export function auditDateGroups(html, ledger) {
       continue;
     }
     const expectedIdsForDate = new Set((expectedByDate.get(groupDate) || []).map((e) => e.event_id));
+    const allowWeekendSpillover = groupDate === lastWeekDate;
     for (const id of cardIds) {
-      if (!expectedIdsForDate.has(id)) {
-        errors.push(`DATE_GROUP_EVENT_DATE_MISMATCH: ${id} の日付グループ(${groupDate})が台帳のdate_jstと一致しません`);
-      }
+      if (expectedIdsForDate.has(id)) continue;
+      if (allowWeekendSpillover && weekendSpilloverIds.has(id)) continue;
+      errors.push(`DATE_GROUP_EVENT_DATE_MISMATCH: ${id} の日付グループ(${groupDate})が台帳のdate_jstと一致しません`);
     }
   }
 

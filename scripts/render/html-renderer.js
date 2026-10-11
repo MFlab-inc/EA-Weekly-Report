@@ -160,8 +160,12 @@ function eventCard3(ev, reportPolicy) {
     : '';
   const comment = ev.comment ? `\n        <div style="font-size:12px;color:#6b8177;margin-top:${ev.showPrevForecast && ev.prevForecastText ? '3' : '4'}px;">${esc(ev.comment)}</div>` : '';
   const borderStyle = ev.isLastInGroup ? '' : 'border-bottom:1px dashed #e2ede7;';
-  const timeHtml = ev.time
-    ? `<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">${esc(ev.time)}</span>`
+  // 週末スピルオーバー（しょうさん指示2026-10-11）: 対象週の金曜カードに掲載されるが実際の発表は
+  // 翌日（土）のため、生の時刻のまま出すと金曜当日の発表と誤読されかねない。セクション1（EA停止
+  // スケジュール）の既存の「▲翌日HH:MM」表記と同じ前置詞を付ける
+  const timeText = ev.isWeekendSpillover && ev.time ? `翌日${ev.time}` : ev.time;
+  const timeHtml = timeText
+    ? `<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">${esc(timeText)}</span>`
     : `<span style="font-size:11px;font-weight:700;color:#8aa097;">${esc(reportPolicy.no_time_note)}</span>`;
   return `      <div class="ea-event-card" data-ea-event-id="${esc(ev.id)}" data-ea-event-importance="3" style="padding:11px 14px;${borderStyle}">
         <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
@@ -176,8 +180,10 @@ function eventCard3(ev, reportPolicy) {
 
 function eventCard2(ev, reportPolicy) {
   const forecastPart = ev.showPrevForecast && ev.prevForecastText ? `　<span style="font-size:12px;color:#6b8177;">${esc(ev.prevForecastText)}</span>` : '';
-  const timeHtml = ev.time
-    ? `<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#3a6e56;">${esc(ev.time)}</span>　`
+  // 週末スピルオーバー（しょうさん指示2026-10-11）: eventCard3と同じ理由で「翌日HH:MM」表記にする
+  const timeText2 = ev.isWeekendSpillover && ev.time ? `翌日${ev.time}` : ev.time;
+  const timeHtml = timeText2
+    ? `<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-weight:700;color:#3a6e56;">${esc(timeText2)}</span>　`
     : `<span style="font-weight:700;color:#8aa097;">${esc(reportPolicy.no_time_note)}</span>　`;
   return `      <div class="ea-event-card" data-ea-event-id="${esc(ev.id)}" data-ea-event-importance="2" style="padding:9px 14px;background:#fbfdfc;${ev.isLastInGroup ? '' : 'border-bottom:1px dashed #e2ede7;'}">
         <div style="font-size:12.5px;color:#43564d;overflow-wrap:anywhere;">${timeHtml}${esc(ev.countryJa)}・${esc(ev.displayName)} <span style="color:#8aa097;font-weight:700;">★★</span>${forecastPart}</div>
@@ -186,20 +192,32 @@ function eventCard2(ev, reportPolicy) {
 }
 
 function dateGroup(day, reportPolicy) {
-  const star3 = day.events.filter((e) => e.importance === 3).length;
-  const star2 = day.events.filter((e) => e.importance === 2).length;
+  const spilloverEvents = day.weekendSpilloverEvents || [];
+  const star3 = day.events.filter((e) => e.importance === 3).length + spilloverEvents.filter((e) => e.importance === 3).length;
+  const star2 = day.events.filter((e) => e.importance === 2).length + spilloverEvents.filter((e) => e.importance === 2).length;
   const countLabel = [star3 ? `★★★ ${star3}件` : '', star2 ? `★★ ${star2}件` : ''].filter(Boolean).join('・');
   const sorted = [...day.events].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
   const cardsHtml = sorted
-    .map((ev, i) => ({ ...ev, isLastInGroup: i === sorted.length - 1 }))
+    .map((ev, i) => ({ ...ev, isLastInGroup: i === sorted.length - 1 && spilloverEvents.length === 0 }))
     .map((ev) => (ev.importance === 3 ? eventCard3(ev, reportPolicy) : eventCard2(ev, reportPolicy)))
     .join('');
+  // 週末スピルオーバー（しょうさん指示2026-10-11）: 対象週の金曜(JST)市場クローズ前にかかるため
+  // 金曜カードへ追加で掲載する翌日(土)発表分。通常のイベント一覧とは別枠として末尾に追加する
+  // （時刻（翌日のため早朝になりがち）でソートし直すと、金曜当日の発表の間に紛れて見えてしまうため）
+  const spilloverSorted = [...spilloverEvents].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+  const spilloverCardsHtml = spilloverSorted
+    .map((ev, i) => ({ ...ev, isLastInGroup: i === spilloverSorted.length - 1 }))
+    .map((ev) => (ev.importance === 3 ? eventCard3(ev, reportPolicy) : eventCard2(ev, reportPolicy)))
+    .join('');
+  const spilloverLabelHtml = spilloverEvents.length > 0
+    ? `      <div style="padding:6px 14px 0;font-size:10.5px;color:#8aa097;font-weight:700;">${esc(reportPolicy.halt_borrowed_bar_note)}</div>\n`
+    : '';
   const [, m, d] = day.date.split('-');
-  return `    <div class="ea-date-group" data-ea-date="${day.date}" data-ea-date-event-count="${day.events.length}" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;overflow:hidden;margin-bottom:10px;">
+  return `    <div class="ea-date-group" data-ea-date="${day.date}" data-ea-date-event-count="${day.events.length + spilloverEvents.length}" style="background:#ffffff;border:1px solid #dbe9e2;border-radius:14px;overflow:hidden;margin-bottom:10px;">
       <div style="background:#eaf5ef;border-left:4px solid #059669;padding:8px 14px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;">
         <span style="font-size:14px;font-weight:800;color:#1a3a2e;">${Number(m)}月${Number(d)}日（${day.weekday}）</span><span style="font-size:11px;color:#047857;font-weight:700;">${countLabel}</span>
       </div>
-${cardsHtml}    </div>
+${cardsHtml}${spilloverLabelHtml}${spilloverCardsHtml}    </div>
 `;
 }
 

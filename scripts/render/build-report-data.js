@@ -89,6 +89,33 @@ function buildReportData(weekInput) {
     });
   });
 
+  // 週末スピルオーバー（しょうさん指示2026-10-11）: 対象週の金曜(JST)市場クローズ前にかかる
+  // ため対象週の翌日(土)として取り込まれた候補（ledger-to-week-input.jsのweekendSpillover*）を、
+  // 金曜（配列の最後）の停止目安バーへ描画する。土曜という「架空の1日」を作らず、
+  // 上の通常ループと全く同じ計算（computeHaltWindow→crossesPreviousDay→前日[この場合は金曜]の
+  // バー・注記へ追加）を金曜インデックスに対して直接行う。weekendSpilloverWindowGroupsが
+  // 無い週は何もしない（既存の挙動に影響しない）
+  const fridayIdx = rawDays.length - 1;
+  const spilloverWindowGroups = weekInput.days[fridayIdx]?.weekendSpilloverWindowGroups || [];
+  const spilloverDate = weekInput.days[fridayIdx]?.weekendSpilloverDate;
+  for (const group of spilloverWindowGroups) {
+    const w = computeHaltWindow({ date: spilloverDate, firstTime: group.firstTime, lastTime: group.lastTime });
+    if (!w.crossesPreviousDay) continue; // 含める条件（NY金17:00のJST換算までの時刻）上は常にtrueのはずだが念のため防御
+    extraBarsByIndex[fridayIdx].push({ start: w.previousDayBarStartMin, end: w.previousDayBarEndMin });
+    const label = (group.labelItems || []).map((li) => li.text).join('・') || '';
+    if (w.entirelyPreviousDay) {
+      borrowedNotesByIndex[fridayIdx].push({
+        time: w.resumeAfter, label, start: w.rawPreviousDayStart, end: w.rawPreviousDayEnd,
+        countryJa: group.countryJa || '', currency: group.currency || '',
+      });
+    } else {
+      spilloverNotesByIndex[fridayIdx].push({
+        weekday: '土', time: group.firstTime || w.resumeAfter, endTime: w.displayEnd, label,
+        start: w.rawPreviousDayStart, countryJa: group.countryJa || '', currency: group.currency || '',
+      });
+    }
+  }
+
   const days = rawDays.map((day, idx) => ({
     date: day.date,
     md: day.md,
@@ -96,8 +123,11 @@ function buildReportData(weekInput) {
     windowGroups: day.windowGroups,
     halt: buildDayHaltCard(day, extraBarsByIndex[idx], borrowedNotesByIndex[idx], spilloverNotesByIndex[idx]),
     events: day.events,
+    // 週末スピルオーバーのイベント自体（金曜のみ、存在する場合）。html-renderer.jsのdateGroup()が
+    // 金曜の通常イベント一覧の後ろに別枠として描画する（「▲翌日」表記、しょうさん指示2026-10-11）
+    weekendSpilloverEvents: idx === fridayIdx ? (weekInput.days[fridayIdx]?.weekendSpilloverEvents || []) : [],
   }));
-  const star3Total = days.reduce((sum, d) => sum + d.events.filter((e) => e.importance === 3).length, 0);
+  const star3Total = days.reduce((sum, d) => sum + d.events.filter((e) => e.importance === 3).length + d.weekendSpilloverEvents.filter((e) => e.importance === 3).length, 0);
   // 発表枠数（ヒーロー統計）: ★★★イベントを「同日・同時刻」でグルーピングした数（同時刻の複数系列＝1枠）。
   // これは停止バー用のwindowGroups（例: RBA 13:30の政策金利＆声明＋SOMPと14:30の記者会見を
   // 停止目安の連続性の観点で1つにまとめたもの）とは独立に、公表時刻ベースで数え直す
@@ -106,6 +136,10 @@ function buildReportData(weekInput) {
   for (const d of days) {
     for (const e of d.events) {
       if (e.importance === 3) releaseWindowKeys.add(`${d.date}|${e.time}`);
+    }
+    // 週末スピルオーバーは別日（土）の発表のため、金曜の枠キーと衝突しないよう別の日付キーで数える
+    for (const e of d.weekendSpilloverEvents) {
+      if (e.importance === 3) releaseWindowKeys.add(`${weekInput.days[fridayIdx]?.weekendSpilloverDate}|${e.time}`);
     }
   }
   const releaseWindowCount = releaseWindowKeys.size;

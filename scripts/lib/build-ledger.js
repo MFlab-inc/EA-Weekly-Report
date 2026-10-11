@@ -260,6 +260,10 @@ function candidateToLedgerEvent(candidate, usedIds, officials) {
     halt_window_end_jst: haltEnd,
     bundle_id: null,
     speaker_named: isVerifiedSpeakerDisplayName(candidate, officials),
+    // 週末スピルオーバー（しょうさん指示2026-10-11）: 対象週の金曜(JST)市場クローズ前にかかる
+    // ため、対象週の翌日(土)として追加で取り込まれた候補かどうか（harness.mjsのisWeekendSpillover
+    // 参照）。ledger-to-week-input.js側がこのフラグを使い、金曜カードへの「▲翌日」表示へ振り分ける
+    is_weekend_spillover: Boolean(candidate.isWeekendSpillover),
   };
 }
 
@@ -378,6 +382,18 @@ function checkTimeAmbiguousWarning(candidate, officials) {
   return `${candidate.sourceId}: タイムゾーンの記載が無く開催地も英国内と判断できないため時刻未確定として扱った（停止目安の計算対象外）${starNote}: speaker="${speaker}" date=${candidate.date}${rawTime}`;
 }
 
+// 地名（London等）ではなく「Bank of England」「Threadneedle Street」等のBOE関連語のみを
+// 根拠に英国時間と確定した候補への情報用WARN（resolve-candidate.jsのukHintInstitutionalOnly。
+// しょうさん指示2026-10-11フォローアップ）。海外開催のイベントの説明文にたまたまBOEへの言及が
+// 含まれているだけのケースに気づけるようにする。確定自体（掲載・停止目安）は変えない、
+// 情報提供のみのWARNのため、timeAmbiguousのWARNとは独立に出す（両方trueにはならない設計:
+// ukHintInstitutionalOnlyはrule2確定[timeAmbiguous:false]の場合のみ立つ）
+function checkInstitutionalHintOnlyWarning(candidate) {
+  if (!candidate.ukHintInstitutionalOnly) return null;
+  const speaker = candidate.speakerLastName || '(話者不明)';
+  return `${candidate.sourceId}: 地名ではなく「Bank of England」等の語のみを根拠に英国時間と判定した（情報WARN、海外開催の言及混入の可能性を確認してください）: speaker="${speaker}" date=${candidate.date}`;
+}
+
 function buildEventsSection(candidates, officials) {
   const usedIds = new Set();
   const { kept, warnings: filterWarnings } = filterUnregisteredSpeakers(candidates, officials);
@@ -385,6 +401,8 @@ function buildEventsSection(candidates, officials) {
   const adjusted = kept.map((c) => {
     const timeAmbiguousWarning = checkTimeAmbiguousWarning(c, officials);
     if (timeAmbiguousWarning) warnings.push(timeAmbiguousWarning);
+    const institutionalHintWarning = checkInstitutionalHintOnlyWarning(c);
+    if (institutionalHintWarning) warnings.push(institutionalHintWarning);
     const { importance, warning } = resolveOfficialSpeechImportance(c, officials);
     if (warning) warnings.push(warning);
     return importance === c.importance ? c : { ...c, importance };
@@ -493,6 +511,7 @@ module.exports = {
   resolveOfficialSpeechImportance,
   filterUnregisteredSpeakers,
   checkTimeAmbiguousWarning,
+  checkInstitutionalHintOnlyWarning,
   computeBundleIds,
   makeEventId,
   minutesToJstIso,
