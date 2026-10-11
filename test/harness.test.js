@@ -952,3 +952,43 @@ test('checkWeeklyScrapeSource: au_absは月またぎ週で両月の月指定ペ�
   assert.equal(r.ok, true);
   assert.equal(r.allCandidatesCount, 2, '同一fixtureを2ページ分解析するため1件×2ページ=2件になるはず');
 });
+
+// 2026-10-11新設（しょうさん指摘で発覚した実バグの回帰テスト）: gb_boe_calendarのtoRow
+// マッピングがtimeAmbiguous/ambiguousTimeRawをrowからtoRowの戻り値へ渡し忘れており、
+// extractBoeCalendar側でフラグを立てても実パイプライン（checkWeeklyScrapeSource経由）では
+// 一切伝わらない状態になっていた（scripts/checkers/extractors/boe-calendar.jsの単体テストや
+// resolveCandidateEvent単体テストはtoRowを経由しないため、この配線漏れを検出できなかった）。
+// 実fixture＋実WEEKLY_SCRAPE_EXTRACTORS登録（toRow含む）を経由して、確定イベント・
+// 時刻未確定イベントの両方が最終candidateまで正しく伝わることを確認する
+test('checkWeeklyScrapeSource: gb_boe_calendarはtoRow経由でもtimeAmbiguous/ambiguousTimeRawが最終candidateまで伝わる（toRow配線漏れの回帰テスト）', async () => {
+  const { readFileSync } = require('node:fs');
+  const { join } = require('node:path');
+  const { checkWeeklyScrapeSource } = await loadHarness();
+  const html = readFileSync(join(__dirname, 'fixtures', 'official-sources', 'gb_boe_calendar', 'upcoming-events.html'), 'utf8');
+  const source = {
+    id: 'gb_boe_calendar', status: 'active', country: 'GB', kinds: ['official_speech'], type: 'weekly_scrape',
+    access: { robots_check: true, provides_exact_time: true, targets: [{ label: 'upcoming_events', url: 'https://www.bankofengland.co.uk/events/upcoming-events' }] },
+    announce_time_by_kind: { official_speech: { tz: 'Europe/London' } },
+  };
+  const robotsChecker = { isAllowed: async () => ({ allowed: true }) };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const targetWeek = { targetWeekStart: '2026-09-28', targetWeekEnd: '2026-10-02' };
+  const r = await checkWeeklyScrapeSource(source, targetWeek, { fetchImpl, robotsChecker, eventNames: [] });
+  assert.equal(r.ok, true);
+
+  // Dave Ramsden（説明文に「Bank of England, London」）: タイムゾーン表記は無いが
+  // ルール2で時刻確定になるはず。toRow配線漏れがあると候補自体がok:falseで脱落していた
+  const ramsden = r.thisWeek.find((c) => c.speakerLastName === 'Dave Ramsden');
+  assert.ok(ramsden, JSON.stringify(r.thisWeek));
+  assert.equal(ramsden.time, '19:00'); // 11:00 BST(UTC+1、9月) = 10:00 UTC → 19:00 JST
+  assert.equal(ramsden.timeAmbiguous, false);
+
+  // Catherine L Mann（9/29、McKinselパネル、説明文に地名無し）: ルール3で時刻未確定になり、
+  // candidate.time:null・timeAmbiguous:true・ambiguousTimeRaw:'4pm'がtoRow経由でも
+  // 保持されているはず（修正前はtoRowがこれらのフィールドを渡していなかった）
+  const mann = r.thisWeek.find((c) => c.speakerLastName === 'Catherine L Mann' && c.date === '2026-09-29');
+  assert.ok(mann, JSON.stringify(r.thisWeek));
+  assert.equal(mann.time, null);
+  assert.equal(mann.timeAmbiguous, true);
+  assert.equal(mann.ambiguousTimeRaw, '4pm');
+});

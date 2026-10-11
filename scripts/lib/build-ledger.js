@@ -360,11 +360,31 @@ function filterUnregisteredSpeakers(candidates, officials) {
 // warningsも合わせて返す（呼び出し側[buildLedger]がmeta.warningsへ合流させる）。
 // filterUnregisteredSpeakers（上記）はSOURCES_REQUIRING_REGISTERED_SPEAKER対象ソースの
 // 未登録話者を先に除外する（resolveOfficialSpeechImportanceより前段の処理）
+// タイムゾーン不明・開催地も英国内と判断できないため時刻未確定として扱った候補
+// （resolve-candidate.jsのtimeAmbiguous。現時点ではgb_boe_calendarのみが発生させるが、
+// kind/ソースを問わない汎用の仕組みとする）。しょうさん指示2026-10-10/11: 海外会場での発言に
+// BOE自身がBST等のタイムゾーンを明記しない行があり、ロンドン時間として推測変換するのは
+// 安全でないため、推測せず時刻未確定（停止目安の計算対象外）として掲載し、WARNで気づけるように
+// する。話者がofficials.json照合でgovernor/deputy_governor（★★★相当）と判定できる場合は、
+// 土曜監査での見落としを防ぐためWARN文言に「★★★・要確認」を明記する（しょうさん指示2026-10-11。
+// board_member[★★]や未登録話者の場合は明記しない。officials:省略時[テスト簡略化用]は常に未明記）
+function checkTimeAmbiguousWarning(candidate, officials) {
+  if (!candidate.timeAmbiguous) return null;
+  const speaker = candidate.speakerLastName || '(話者不明)';
+  const rawTime = candidate.ambiguousTimeRaw ? ` raw_time="${candidate.ambiguousTimeRaw}"` : '';
+  const official = officials ? naming.resolveOfficialBySurname(officials, candidate.speakerLastName, candidate.country) : null;
+  const rank = official && official.verified ? official.role_rank : null;
+  const starNote = rank === 'governor' || rank === 'deputy_governor' ? '【★★★・要確認】' : '';
+  return `${candidate.sourceId}: タイムゾーンの記載が無く開催地も英国内と判断できないため時刻未確定として扱った（停止目安の計算対象外）${starNote}: speaker="${speaker}" date=${candidate.date}${rawTime}`;
+}
+
 function buildEventsSection(candidates, officials) {
   const usedIds = new Set();
   const { kept, warnings: filterWarnings } = filterUnregisteredSpeakers(candidates, officials);
   const warnings = [...filterWarnings];
   const adjusted = kept.map((c) => {
+    const timeAmbiguousWarning = checkTimeAmbiguousWarning(c, officials);
+    if (timeAmbiguousWarning) warnings.push(timeAmbiguousWarning);
     const { importance, warning } = resolveOfficialSpeechImportance(c, officials);
     if (warning) warnings.push(warning);
     return importance === c.importance ? c : { ...c, importance };
@@ -472,6 +492,7 @@ module.exports = {
   resolveRuleGeneratedName,
   resolveOfficialSpeechImportance,
   filterUnregisteredSpeakers,
+  checkTimeAmbiguousWarning,
   computeBundleIds,
   makeEventId,
   minutesToJstIso,

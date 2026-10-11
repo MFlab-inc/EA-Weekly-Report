@@ -57,6 +57,13 @@ function resolveCandidateEvent(row, ctx) {
     // のTIME_EXEMPT_KINDSと同一基準）。TZ変換は行わずソース側の日付をそのまま採用する
     // （observation-run.mjsのannualEntryToCandidateと同じ「time:null」方針）
     jst = { date: row.date, time: null };
+  } else if (row.date && row.timeAmbiguous) {
+    // 抽出元ページに時刻は書かれているが、どのタイムゾーンかを明記していないため推測せず
+    // 時刻未確定として扱う行（例: gb_boe_calendar、海外会場での発言にBST等の明記が無い場合。
+    // しょうさん指示2026-10-10）。time:nullによりtime_status=unpublished・halt_window対象外
+    // となる（build-ledger.jsのcandidateToLedgerEvent参照）。現地時刻の文字列はtz不明のまま
+    // 台帳に出すと確定時刻と誤認されかねないため、localTime/tzともnullにする（下記参照）
+    jst = { date: row.date, time: null };
   } else {
     return { ok: false, reason: `時刻情報が不足（utcInstantまたはdate+localTime+tzが必要）: title="${row.title}"` };
   }
@@ -65,7 +72,7 @@ function resolveCandidateEvent(row, ctx) {
   // ctx.tz（発表元の設定済みタイムゾーン）が分かっていればそこから現地表記を復元する
   // （tzだけ設定されlocalTimeがnullのまま、という不整合を避ける）
   let localDate = row.date || null;
-  let localTime = row.localTime || null;
+  let localTime = row.timeAmbiguous ? null : (row.localTime || null);
   if (row.utcInstant && !localTime && ctx.tz) {
     const zoned = utcToZonedParts(new Date(row.utcInstant), ctx.tz);
     localDate = zoned.date;
@@ -91,13 +98,18 @@ function resolveCandidateEvent(row, ctx) {
     // 台帳（data/ledger/）のsource_evidence・date_local/time_local/tz用に、変換前の現地情報も保持する
     localDate,
     localTime,
-    tz: ctx.tz || null,
+    // timeAmbiguousな行はtzも不明として扱う（「Europe/Londonのはず」という推測を台帳に残さない）
+    tz: row.timeAmbiguous ? null : (ctx.tz || null),
     utcInstant: row.utcInstant || null,
     // SPEC §4.2の規則生成命名（scripts/lib/build-ledger.jsのresolveRuleGeneratedName）向けの
     // kind別追加コンテキスト。該当しないkindのrowには含まれないためundefined→nullで正規化する
     // （bond_auction: mof.js/us-treasury.jsが抽出。official_speech: frb-speeches.jsが抽出）
     tenorJa: row.tenorJa || null,
     speakerLastName: row.speakerLastName || null,
+    // タイムゾーン不明により時刻未確定として扱った行かどうか（build-ledger.jsのbuildEventsSectionが
+    // WARN生成に使う。しょうさん指示2026-10-10）
+    timeAmbiguous: Boolean(row.timeAmbiguous),
+    ambiguousTimeRaw: row.ambiguousTimeRaw || null,
   };
 }
 
