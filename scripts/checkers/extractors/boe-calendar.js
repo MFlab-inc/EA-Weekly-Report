@@ -34,19 +34,58 @@
 // ―実測例: 「(11.25am) - text to be released on Thursday 1 October at 10am.」の"10am"―を
 // 誤って拾わないため）。
 //
-// タイムゾーンの扱い（しょうさん指摘2026-10-10）: このページは通常「11am」のように現地時刻を
-// 書くだけでタイムゾーンを明記しないが、海外会場での発言（実測2026-10-12週: バンコクIMF年次総会
-// 関連のGreene/Pill/Breeden/Bailey）には「(10.30am BST)」のようにBST（または将来GMTの可能性も
-// ある）を明記する運用が確認できた。一方、同じ海外会場でもCatherine L Mann（NABE年次総会、米国）・
-// Victoria Cleland（デンマークらしき表記）の2件はタイムゾーン表記が無いまま掲載されており、
-// この時刻がロンドン時間なのか会場現地時間なのか判別できない。この構造的な不整合を安全側で
-// 扱うため、本抽出器は「括弧内にBST/GMTの明記が無い行は、ロンドン開催かどうかに関わらず
-// 全て時刻未確定として扱う」方針を採用した（しょうさん承認済み。ロンドン開催の大半の既存項目も
-// 同様に時刻未確定になるが、これまでBOE自身が一切タイムゾーンを明記していなかった以上、
-// 「ロンドン時間のはず」という前提自体が推測であり、明記が無い限り確定とは扱わない）。
-// 時刻未確定の行はlocalTime:nullかつtimeAmbiguous:true・ambiguousTimeRaw（元の時刻表記）を
-// 持つ形でitemsに含める（除外はしない。resolveCandidateEvent/build-ledger.js側でtime_status=
-// unpublished・停止目安[halt_window]対象外・WARN付きのイベントとして扱われる）。
+// タイムゾーンの扱い（しょうさん指摘2026-10-10、2026-10-11に範囲を修正）: このページは通常
+// 「11am」のように現地時刻を書くだけでタイムゾーンを明記しないが、海外会場での発言（実測
+// 2026-10-12週: バンコクIMF年次総会関連のGreene/Pill/Breeden/Bailey）には「(10.30am BST)」の
+// ようにBST（または将来GMTの可能性もある）を明記する運用が確認できた。一方、同じ海外会場でも
+// Catherine L Mann（NABE年次総会、米国）・Victoria Cleland（デンマークらしき表記）の2件は
+// タイムゾーン表記が無いまま掲載されており、この時刻がロンドン時間なのか会場現地時間なのか
+// 判別できない。
+//
+// 当初は「タイムゾーン表記が無い行は全て時刻未確定」という単純な規則を採用したが、しょうさん
+// 指摘（2026-10-11）: これはロンドン開催のBOE総裁・副総裁の講演（★★★）の多くにも当たるため
+// 範囲が広すぎる（実例: 9/28 ラムスデン副総裁の「11.00am-12.00pm」はロンドンのBOE本店での
+// 講演だが表記はタイムゾーン無し）。そのため以下の3段階の判定に変更した:
+//
+//   1. 括弧内にBST/GMTの明記がある → その時刻帯で確定（従来どおり）
+//   2. 明記は無いが、説明文（項目本文）にLondon等の英国内の地名・「Bank of England」等の
+//      BOE主催を示す語がある → 英国時間（Europe/London）として確定
+//   3. 明記も無く、英国内と判断できる手がかりも本文に無い → 時刻未確定（停止目安の計算対象外）
+//      ＋WARN。officials.json照合で話者がgovernor/deputy_governor（★★★）と分かる場合は
+//      build-ledger.js側のWARN文言に「★★★・要確認」を明記する（UK_PLACE_HINTS参照）
+//
+// 個別イベントページ（/speech/...）を追加取得して開催地を判定する案も検討したが、実測
+// （Victoria Clelandの/speech/2026/october/victoria-cleland-intergraf-currency-identity-
+// conference-demarkページ、2026-10-11実測）で、ページ本文には開催地情報が無く、むしろ
+// フッターのBOE自身の所在地表記（「Threadneedle Street, London」）が常に「London」を含んで
+// しまうため、ページ全体をそのまま走査すると海外会場でも常に誤って「ロンドン」と判定してしまう
+// （Cleland自身の講演はデンマークらしき地名だが、ページ全体を見るとLondonが混入する）。
+// BOE側に開催地を明示する構造化フィールドが無い現状では、個別ページ取得は精度向上につながらず
+// 誤判定リスクをむしろ高めるため、本抽出器はカレンダーページ自身の説明文のみで判定する
+// （しょうさん報告・承認済み、2026-10-11）。
+//
+// UK_PLACE_HINTSは既知の英国内地名・BOE関連語の一覧（完全な網羅ではない。新しい地名が
+// 出てきた場合は追記すること）。時刻未確定の行はlocalTime:nullかつtimeAmbiguous:true・
+// ambiguousTimeRaw（元の時刻表記）を持つ形でitemsに含める（除外はしない。
+// resolveCandidateEvent/build-ledger.js側でtime_status=unpublished・停止目安[halt_window]
+// 対象外・WARN付きのイベントとして扱われる）。
+
+// 英国内と判断する手がかり（2026-10-11新設）。完全な網羅ではなく既知の地名・BOE関連語のみ。
+// 新しい地名（例: 新しい開催都市）が出てきたら追記すること
+const UK_PLACE_HINTS = [
+  'london', 'bank of england', 'threadneedle street',
+  'edinburgh', 'glasgow', 'cardiff', 'belfast', 'birmingham', 'manchester',
+  'liverpool', 'leeds', 'bristol', 'newcastle', 'coventry', 'nottingham',
+  'sheffield', 'oxford', 'cambridge', 'cotswolds',
+  'west midlands', 'east midlands', 'yorkshire',
+  'united kingdom', 'great britain',
+  'england', 'scotland', 'wales', 'northern ireland',
+];
+
+function hasUkPlaceHint(text) {
+  const lower = text.toLowerCase();
+  return UK_PLACE_HINTS.some((k) => lower.includes(k));
+}
 
 const MONTHS = {
   january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
@@ -215,7 +254,9 @@ function extractBoeCalendar(html, ctx) {
       const localTime = parseBoeCalendarTime(timeMatches[0][0]);
       if (!localTime) continue;
       const hasTzMarker = /\b(?:BST|GMT)\b/i.test(parenContent);
-      if (hasTzMarker) {
+      if (hasTzMarker || hasUkPlaceHint(chunkText)) {
+        // 1) タイムゾーン明記あり、または 2) 明記は無いが説明文に英国内の地名・BOE主催を
+        // 示す語がある → 英国時間として確定する（上記コメント参照、しょうさん指示2026-10-11）
         items.push({
           date: currentDate,
           localTime,
@@ -223,8 +264,8 @@ function extractBoeCalendar(html, ctx) {
           title: chunkText,
         });
       } else {
-        // タイムゾーン表記が無いため、ロンドン時間かどうかを推測せず時刻未確定として扱う
-        // （上記コメント参照、しょうさん指示2026-10-10）
+        // 3) タイムゾーン明記が無く、英国内と判断できる手がかりも説明文に無い → 推測せず
+        // 時刻未確定として扱う（上記コメント参照、しょうさん指示2026-10-11）
         items.push({
           date: currentDate,
           localTime: null,

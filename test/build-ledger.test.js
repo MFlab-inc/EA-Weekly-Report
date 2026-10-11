@@ -259,25 +259,54 @@ test('filterUnregisteredSpeakers: 話者未指定（speakerLastName null）のgb
 
 // 2026-10-10新設（しょうさん指摘: gb_boe_calendarで海外会場の発言にタイムゾーンの明記が無い行が
 // ロンドン時間として推測変換されていた問題。resolve-candidate.jsのtimeAmbiguousフラグを受けて
-// WARNを生成する関数の単体テスト）
-test('checkTimeAmbiguousWarning: timeAmbiguous=trueの候補は話者名・日付・元の時刻表記を含むWARNを返す', () => {
+// WARNを生成する関数の単体テスト）。2026-10-11、officials引数と★★★・要確認の明記を追加
+test('checkTimeAmbiguousWarning: timeAmbiguous=trueの候補は話者名・日付・元の時刻表記を含むWARNを返す（board_member=Catherine L Mannは★★★明記無し）', () => {
   const w = checkTimeAmbiguousWarning({
-    sourceId: 'gb_boe_calendar', speakerLastName: 'Catherine L Mann', date: '2026-10-12', timeAmbiguous: true, ambiguousTimeRaw: '1.50pm',
-  });
+    sourceId: 'gb_boe_calendar', country: 'GB', speakerLastName: 'Catherine L Mann', date: '2026-10-12', timeAmbiguous: true, ambiguousTimeRaw: '1.50pm',
+  }, officials);
   assert.match(w, /gb_boe_calendar/);
   assert.match(w, /Catherine L Mann/);
   assert.match(w, /2026-10-12/);
   assert.match(w, /1\.50pm/);
   assert.match(w, /時刻未確定/);
+  assert.doesNotMatch(w, /★★★/, 'Catherine L Mannはboard_member（★★）のため★★★・要確認は明記しない');
+});
+
+test('checkTimeAmbiguousWarning: governor（Andrew Bailey）がtimeAmbiguousになった場合はWARNに「★★★・要確認」を明記する', () => {
+  const w = checkTimeAmbiguousWarning({
+    sourceId: 'gb_boe_calendar', country: 'GB', speakerLastName: 'Andrew Bailey', date: '2026-10-16', timeAmbiguous: true, ambiguousTimeRaw: '3am',
+  }, officials);
+  assert.match(w, /★★★・要確認/);
+});
+
+test('checkTimeAmbiguousWarning: deputy_governor（Sarah Breeden）がtimeAmbiguousになった場合もWARNに「★★★・要確認」を明記する', () => {
+  const w = checkTimeAmbiguousWarning({
+    sourceId: 'gb_boe_calendar', country: 'GB', speakerLastName: 'Sarah Breeden', date: '2026-10-12', timeAmbiguous: true, ambiguousTimeRaw: '10.30am',
+  }, officials);
+  assert.match(w, /★★★・要確認/);
+});
+
+test('checkTimeAmbiguousWarning: officials未登録の話者は★★★・要確認を明記しない（officials.json未登録WARNは別の仕組みが担う）', () => {
+  const w = checkTimeAmbiguousWarning({
+    sourceId: 'gb_boe_calendar', country: 'GB', speakerLastName: 'Phil Evans', date: '2026-09-30', timeAmbiguous: true, ambiguousTimeRaw: '2.50pm',
+  }, officials);
+  assert.doesNotMatch(w, /★★★/);
+});
+
+test('checkTimeAmbiguousWarning: officials省略時は★★★・要確認を明記しない（エラーにもしない）', () => {
+  const w = checkTimeAmbiguousWarning({
+    sourceId: 'gb_boe_calendar', country: 'GB', speakerLastName: 'Andrew Bailey', date: '2026-10-16', timeAmbiguous: true, ambiguousTimeRaw: '3am',
+  });
+  assert.doesNotMatch(w, /★★★/);
 });
 
 test('checkTimeAmbiguousWarning: timeAmbiguousが無い（false/undefined）候補はnullを返す', () => {
-  assert.equal(checkTimeAmbiguousWarning({ sourceId: 'gb_boe_calendar', speakerLastName: 'Sarah Breeden', timeAmbiguous: false }), null);
-  assert.equal(checkTimeAmbiguousWarning({ sourceId: 'gb_boe_calendar', speakerLastName: 'Sarah Breeden' }), null);
+  assert.equal(checkTimeAmbiguousWarning({ sourceId: 'gb_boe_calendar', speakerLastName: 'Sarah Breeden', timeAmbiguous: false }, officials), null);
+  assert.equal(checkTimeAmbiguousWarning({ sourceId: 'gb_boe_calendar', speakerLastName: 'Sarah Breeden' }, officials), null);
 });
 
 test('checkTimeAmbiguousWarning: 話者名未設定（speakerLastName null）でも「(話者不明)」でWARNを返す', () => {
-  const w = checkTimeAmbiguousWarning({ sourceId: 'gb_boe_calendar', speakerLastName: null, date: '2026-10-15', timeAmbiguous: true, ambiguousTimeRaw: '8.50am' });
+  const w = checkTimeAmbiguousWarning({ sourceId: 'gb_boe_calendar', speakerLastName: null, date: '2026-10-15', timeAmbiguous: true, ambiguousTimeRaw: '8.50am' }, officials);
   assert.match(w, /\(話者不明\)/);
 });
 
@@ -308,7 +337,7 @@ test('buildLedger: timeAmbiguousな候補はイベントとして掲載される
   assert.equal(ledger.events[0].time_status, 'unpublished');
   assert.equal(ledger.events[0].halt_window_start_jst, null);
   assert.equal(ledger.events[0].halt_window_end_jst, null);
-  assert.ok(ledger.meta.warnings.some((w) => /タイムゾーンの記載が無いため時刻未確定/.test(w) && /Catherine L Mann/.test(w)));
+  assert.ok(ledger.meta.warnings.some((w) => /タイムゾーンの記載が無く開催地も英国内と判断できないため時刻未確定/.test(w) && /Catherine L Mann/.test(w)));
 });
 
 // 2026-09-19発見の実バグの回帰テスト（task #94フォローアップ）: manual-events.json由来の
