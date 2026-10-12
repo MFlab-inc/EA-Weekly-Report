@@ -1,0 +1,34 @@
+# 一時調査用ワークフロー（しょうさん指示2026-10-12、PR #47フォローアップ）。
+# census.gov（calendar-listview.html・foreign-trade/reference/release_schedule.html）への
+# 実ネットワークアクセスが必要な調査のため、GitHub Actions上で実行する。本番パス（data/・
+# output/）には一切書き込まない。調査完了後は削除する（committees-events-recon等の既存の
+# 一時workflow方針）。
+name: census-recon
+on:
+  workflow_dispatch:
+  # workflow_dispatchはワークフローファイルがデフォルトブランチ（main）に存在しないと
+  # API経由で起動できない（本ブランチは未マージのため404になる）。このファイル自体の追加
+  # pushで初回実行できるよう、該当パス限定のpushトリガーも併用する
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths:
+      - '.github/workflows/census-recon.yml'
+      - 'scripts/phase1/census-recon-year-rollover-2026-10-12.mjs'
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: census.gov 年ロールオーバー調査実行
+        run: node scripts/phase1/census-recon-year-rollover-2026-10-12.mjs
+      - name: 結果をartifactとしてアップロード
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: census-recon-year-rollover-result
+          path: phase1-out/census-recon-year-rollover/
+          retention-days: 14
+          if-no-files-found: ignore
