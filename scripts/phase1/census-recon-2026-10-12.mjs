@@ -59,6 +59,20 @@ async function main() {
       const html = await res.text();
       writeFileSync(`${OUT_DIR}/release-schedule.html`, html);
       result.releaseSchedule.byteLength = html.length;
+      // artifactダウンロードがこの実行環境から到達できないホスト（Azure Blob Storage）経由のため、
+      // ジョブログ（stdout）からも内容を読めるよう、タグを除去した本文テキストを残す
+      const text = html
+        .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/[ \t]+/g, ' ')
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .join('\n');
+      writeFileSync(`${OUT_DIR}/release-schedule.txt`, text);
+      result.releaseSchedule.text = text;
     }
   } catch (e) {
     result.releaseSchedule = { error: String(e?.message || e) };
