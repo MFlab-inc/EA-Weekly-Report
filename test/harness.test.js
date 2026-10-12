@@ -880,6 +880,13 @@ test('runChecks: us_censusが対象週のretail_salesを検出できない週は
   assert.equal(report.outcome.status, 'OK', 'us_census自体はok:trueのためHOLDにはならない');
   assert.equal(report.recurringMissingWarnings.length, 1);
   assert.ok(report.recurringMissingWarnings.some((w) => w.includes('米小売売上高')));
+  // 2026-10-12追加（しょうさん指摘）: ページ自体は1行読めている（rawRowCount:1）が、
+  // その行はretail_sales/trade_balance以外（New Residential Construction）のため
+  // 対象週該当件数（thisWeek.length）は0。「ページが読めていなかった」のではなく
+  // 「対象週に該当行が無かった」ケースであることをraw_row_countで区別できる
+  const usCensusResult = report.results.find((r) => r.id === 'us_census');
+  assert.equal(usCensusResult.rawRowCount, 1);
+  assert.equal(usCensusResult.thisWeek.length, 0);
 });
 
 test('runChecks: us_censusが対象週でretail_salesを検出できた場合はWARNが出ない（偽陽性防止）', async () => {
@@ -907,6 +914,42 @@ test('runChecks: us_censusが対象週でretail_salesを検出できた場合は
   const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
   const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
   assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
+});
+
+// 2026-10-12追加（しょうさん指摘）: calendar-listview.htmlはCensusの全経済指標の予定一覧
+// であり、ページ全体で1行も解析できない状況は通常ありえない（サイト構造変化の疑い）。
+// extractCensusCalendar自体は既に「<tr height="20">行が1件も解析できない＝ok:false」を
+// 実装済みだが、この構造的失敗がcheckWeeklyScrapeSource経由でも正しくHOLD/WARNへ
+// 接続されることをgb_boe_calendarの抽出0件ルールと同じ考え方の回帰テストとして確認する
+test('runChecks: us_censusがページ全体で1行も解析できない場合は構造的失敗（ok:false）としてHOLD/WARNへ接続する（gb_boe_calendarの抽出0件ルールと同じ考え方）', async () => {
+  const { runChecks } = await loadHarness();
+  // <tr height="20">自体が1件も存在しない（サイト構造変化を想定）
+  const html = '<html><body>no rows here</body></html>';
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'us_census', status: 'active', country: 'US', kinds: ['retail_sales', 'trade_balance'], type: 'weekly_scrape',
+        access: { targets: [{ label: 'calendar_listview', url: 'https://example.invalid/census' }] },
+        announce_time_by_kind: { retail_sales: { local_time: '08:30', tz: 'America/New_York' }, trade_balance: { local_time: '08:30', tz: 'America/New_York' } },
+        recurring_check_refs: [],
+      },
+    ],
+  };
+  const importanceRules = { recurring_checks: [] };
+  const targetWeek = {
+    collectionDate: '2026-10-10', targetWeekStart: '2026-10-12', targetWeekEnd: '2026-10-16',
+    dates: [
+      { date: '2026-10-12', md: '10/12', weekday: '月' }, { date: '2026-10-13', md: '10/13', weekday: '火' },
+      { date: '2026-10-14', md: '10/14', weekday: '水' }, { date: '2026-10-15', md: '10/15', weekday: '木' },
+      { date: '2026-10-16', md: '10/16', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  const usCensusResult = report.results.find((r) => r.id === 'us_census');
+  assert.equal(usCensusResult.ok, false);
+  assert.match(usCensusResult.reason, /構造変化の疑い/);
+  assert.ok(report.failures.some((f) => f.sourceId === 'us_census'));
 });
 
 // 2026-09-19追加（しょうさん指摘、9/21週監査で発覚した実バグの回帰テスト）: au_absの

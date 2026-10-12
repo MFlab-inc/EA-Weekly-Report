@@ -628,6 +628,13 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
   return {
     ok: true,
     fetched: fetched.map(({ body, ...rest }) => rest),
+    // 2026-10-12追加（しょうさん指摘、米小売売上高欠落インシデントのフォローアップ）:
+    // 「ページ全体で解析できた行数」（抽出器のtoRow通過後、kind分類・対象週フィルタ前）を
+    // allCandidatesCount（kind分類後）・thisWeek（対象週フィルタ後）とは別に残す。
+    // extractor_result_count（=thisWeek.length）だけでは「対象週に該当行が無かった」のか
+    // 「ページ自体がほぼ読めていなかった」のかが台帳から区別できなかったため、build-ledger.jsの
+    // buildSourcesSection経由でraw_row_countとして台帳のsourcesへ記録する
+    rawRowCount: rawRows.length,
     allCandidatesCount: candidates.length,
     thisWeek,
     unregistered,

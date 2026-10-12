@@ -327,6 +327,14 @@ function buildSourcesSection(report, sourcesConfig, generatedAt) {
       ok: r.skipped ? true : Boolean(r.ok),
       http_status: null,
       extractor_result_count: (r.thisWeek?.length ?? r.matchedEntries?.length ?? 0),
+      // 2026-10-12追加（しょうさん指摘、米小売売上高欠落インシデントのフォローアップ）:
+      // 「ページ全体で解析できた行数」（kind分類・対象週フィルタより前の生の行数。
+      // harness.mjsのcheckWeeklyScrapeSourceのrawRowCount）をextractor_result_count
+      // （対象週・対象kindに該当した件数）とは別に記録する。「対象週に該当行が無かった」のか
+      // 「ページ自体がほぼ読めていなかった」のかを台帳だけで区別できるようにする。
+      // weekly_scrape以外（date_api_fred・annual_schedule_config・manual）はこの概念を
+      // 持たないためnull
+      raw_row_count: typeof r.rawRowCount === 'number' ? r.rawRowCount : null,
       robots_checked: Boolean(source?.access?.robots_check),
       fail_closed_decision: failClosedDecision,
     });

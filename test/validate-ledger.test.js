@@ -236,3 +236,36 @@ test('validateLedger: coverage.expected_coverageが無ければエラー', () =>
   delete ledger.coverage.expected_coverage;
   assert.equal(validateLedger(ledger).ok, false);
 });
+
+// raw_row_count: 2026-10-12追加（しょうさん指摘、米小売売上高欠落インシデントのフォローアップ）。
+// 「ページ全体で解析できた行数」。weekly_scrape以外の型やこのフィールド追加以前の台帳は
+// 未設定のままで良い（baseLedger()の2件がまさにその例＝既に妥当な台帳として合格している）
+test('validateLedger: raw_row_countが未設定（undefined）でもエラーにならない（追加以前の台帳との後方互換）', () => {
+  const ledger = baseLedger();
+  assert.equal(ledger.sources[0].raw_row_count, undefined);
+  assert.equal(validateLedger(ledger).ok, true);
+});
+
+test('validateLedger: raw_row_countがnullでもエラーにならない（weekly_scrape以外の型の既定値）', () => {
+  const ledger = baseLedger();
+  ledger.sources[0].raw_row_count = null;
+  assert.equal(validateLedger(ledger).ok, true);
+});
+
+test('validateLedger: raw_row_countが0以上の数値ならエラーにならない', () => {
+  const ledger = baseLedger();
+  ledger.sources[0].raw_row_count = 178;
+  assert.equal(validateLedger(ledger).ok, true);
+});
+
+test('validateLedger: raw_row_countが負の数値はエラー', () => {
+  const ledger = baseLedger();
+  ledger.sources[0].raw_row_count = -1;
+  assert.equal(validateLedger(ledger).ok, false);
+});
+
+test('validateLedger: raw_row_countが数値以外（文字列等）はエラー', () => {
+  const ledger = baseLedger();
+  ledger.sources[0].raw_row_count = '178';
+  assert.equal(validateLedger(ledger).ok, false);
+});

@@ -565,6 +565,65 @@ test('buildLedger: 実データに近い合成入力からスキーマに合格�
   assert.ok(ledger.sources.some((s) => s.source_id === 'manual'), '手動イベント用のmanualソースが常に追加される');
 });
 
+// raw_row_count: 2026-10-12追加（しょうさん指摘、米小売売上高欠落インシデントのフォローアップ）。
+// harness.mjsのcheckWeeklyScrapeSourceが返すrawRowCount（ページ全体で解析できた行数、
+// kind分類・対象週フィルタより前）が、extractor_result_count（対象週・対象kindに該当した件数）
+// とは別にledger.sources[].raw_row_countへそのまま反映されることを確認する。実インシデント
+// （us_censusがextractor_result_count:0のまま無警告で欠落）では「ページ自体が読めていなかった
+// のか、対象週に該当行が無かっただけなのか」が台帳から区別できなかった。この2値が別々に
+// 記録されることで、今後は台帳だけで区別できるようになる
+test('buildLedger: report.results[].rawRowCountがsources[].raw_row_countへ反映される（ページ全体の行数と対象週該当件数を区別できる）', () => {
+  const report = syntheticReport({
+    results: [
+      { id: 'au_rba', ok: true, skipped: false, rawRowCount: 0, thisWeek: [] },
+    ],
+  });
+  const sourcesConfig = syntheticSourcesConfig();
+  const ledger = buildLedger({
+    report, sourcesConfig, manualEventsConfig: { entries: [] }, candidates: [],
+    expectedCoverageResult: { required: new Array(8).fill(0), missing: [] },
+    recurringChecksStatus: [], pipelineVersion: 'test-pipeline-1', generatedAt: '2026-08-15T08:06:00+09:00',
+  });
+  const auRba = ledger.sources.find((s) => s.source_id === 'au_rba');
+  assert.equal(auRba.extractor_result_count, 0, '対象週に該当した件数は0件（us_censusの実インシデントと同じ状況）');
+  assert.equal(auRba.raw_row_count, 0, 'ページ全体で解析できた行数も0件＝構造的な異常が疑われる状況として区別できる');
+
+  const r = validateLedger(ledger);
+  assert.deepEqual(r.errors, []);
+});
+
+test('buildLedger: ページ全体では多数の行が読めたが対象週該当は0件の場合、raw_row_countとextractor_result_countが異なる値になる（「対象週に該当行が無かっただけ」を示す）', () => {
+  const report = syntheticReport({
+    results: [
+      { id: 'au_rba', ok: true, skipped: false, rawRowCount: 178, thisWeek: [] },
+    ],
+  });
+  const sourcesConfig = syntheticSourcesConfig();
+  const ledger = buildLedger({
+    report, sourcesConfig, manualEventsConfig: { entries: [] }, candidates: [],
+    expectedCoverageResult: { required: new Array(8).fill(0), missing: [] },
+    recurringChecksStatus: [], pipelineVersion: 'test-pipeline-1', generatedAt: '2026-08-15T08:06:00+09:00',
+  });
+  const auRba = ledger.sources.find((s) => s.source_id === 'au_rba');
+  assert.equal(auRba.extractor_result_count, 0);
+  assert.equal(auRba.raw_row_count, 178);
+});
+
+test('buildLedger: rawRowCountを返さないsource（date_api_fred等）はraw_row_count:nullになる（後方互換・該当なしの既定値）', () => {
+  const report = syntheticReport();
+  const sourcesConfig = syntheticSourcesConfig();
+  const candidates = [
+    { ...report.results[0].thisWeek[0], sourceId: 'au_rba', sourceEvidence: 'Cash Rate（ground truth一致確認済み）' },
+  ];
+  const ledger = buildLedger({
+    report, sourcesConfig, manualEventsConfig: { entries: [] }, candidates,
+    expectedCoverageResult: { required: new Array(8).fill(0), missing: [] },
+    recurringChecksStatus: [], pipelineVersion: 'test-pipeline-1', generatedAt: '2026-08-15T08:06:00+09:00',
+  });
+  const auRba = ledger.sources.find((s) => s.source_id === 'au_rba');
+  assert.equal(auRba.raw_row_count, null);
+});
+
 // 2026-08-29追加（しょうさん指摘: weekly.ymlの冪等ガードが「対象週ファイルの存在有無」だけを見て
 // いたため、手動実行が先取り生成した週をコード修正後も永久にスキップしてしまう不具合があった）。
 // meta.generated_from_commitはこの冪等判定の材料になるため、渡した値がそのままmetaに載ること、

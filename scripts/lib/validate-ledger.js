@@ -72,6 +72,12 @@ function validateSource(source, index, errors, seenIds) {
   if (typeof source.extractor_result_count !== 'number' || source.extractor_result_count < 0) {
     errors.push(`${tag}.extractor_result_count: 0以上の数値が必要です`);
   }
+  // raw_row_count: 2026-10-12追加（しょうさん指摘）。「ページ全体で解析できた行数」
+  // （kind分類・対象週フィルタより前）。weekly_scrape以外の型やこのフィールド追加より前に
+  // 生成された台帳はこの概念を持たないため、null・未設定（undefined）とも許容する
+  if (source.raw_row_count != null && (typeof source.raw_row_count !== 'number' || source.raw_row_count < 0)) {
+    errors.push(`${tag}.raw_row_count: 0以上の数値またはnull/未設定が必要です`);
+  }
   if (typeof source.robots_checked !== 'boolean') errors.push(`${tag}.robots_checked: 真偽値が必要です`);
   if (!FAIL_CLOSED_DECISIONS.has(source.fail_closed_decision)) {
     errors.push(`${tag}.fail_closed_decision: ${[...FAIL_CLOSED_DECISIONS].join('|')}のいずれかが必要です`);
