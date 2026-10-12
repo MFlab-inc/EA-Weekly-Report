@@ -81,10 +81,13 @@ const RECURRING_CHECK_MATCH = {
   '豪州貿易収支（ABS）': { kind: 'trade_balance', sourceId: 'au_abs' },
   // 2026-10-12新設（しょうさん指摘: 10/12週の米小売売上高[9月分、10/15発表]がus_censusで
   // 無警告のまま欠落していた。recurring_check_refsではなくRECURRING_CHECK_MATCH＋
-  // importance-rules.jsonの登録が実際のWARN生成経路のため、ここに追加する。retail_salesは
-  // CA/GB/AU/NZ等他国のソースも同kindを使うため、sourceId指定なしでは他国の該当が
-  // us_census側の欠落を覆い隠してしまう。中国PMI等と同じ理由でsourceId: 'us_census'を指定する）
-  米小売売上高: { kind: 'retail_sales', sourceId: 'us_census' },
+  // importance-rules.jsonの登録が実際のWARN生成経路のため、ここに追加する）。
+  // 同日改訂: retail_salesはus_census（weekly_scrape、calendar-listview.html）から
+  // us_census_retail_sales（annual_schedule_config、Census公式の年間発表予定）へ担当を
+  // 切り替えた（us_census.kindsからretail_salesを除外済み）ため、sourceIdもそちらへ変更する。
+  // CA/GB/AU/NZ等他国のソースも同kind=retail_salesを使うため、sourceId指定なしでは他国の
+  // 該当がus_census_retail_sales側の欠落（設定ミス等）を覆い隠してしまう点は変わらない
+  米小売売上高: { kind: 'retail_sales', sourceId: 'us_census_retail_sales' },
 };
 
 // jp_mof向け: auction_calendar_index.htmは月別ローリング公表（年次一括ではない）ため、対象週が
@@ -628,6 +631,13 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
   return {
     ok: true,
     fetched: fetched.map(({ body, ...rest }) => rest),
+    // 2026-10-12追加（しょうさん指摘、米小売売上高欠落インシデントのフォローアップ）:
+    // 「ページ全体で解析できた行数」（抽出器のtoRow通過後、kind分類・対象週フィルタ前）を
+    // allCandidatesCount（kind分類後）・thisWeek（対象週フィルタ後）とは別に残す。
+    // extractor_result_count（=thisWeek.length）だけでは「対象週に該当行が無かった」のか
+    // 「ページ自体がほぼ読めていなかった」のかが台帳から区別できなかったため、build-ledger.jsの
+    // buildSourcesSection経由でraw_row_countとして台帳のsourcesへ記録する
+    rawRowCount: rawRows.length,
     allCandidatesCount: candidates.length,
     thisWeek,
     unregistered,
@@ -641,9 +651,23 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
 // recurringMissingWarnings算出と同じ照合ロジックだが、こちらはWARN文字列化する前の
 // 生ステータス全件を返す。scripts/lib/build-ledger.jsのbuildLedger()へcoverage.recurring_checks
 // としてそのまま渡せる形。CLIエントリ[scripts/build-ledger.mjs、task #31]向けに公開する）
-export function computeRecurringChecksStatus(results, importanceRules, targetWeek) {
+// recurring_checksのルールが対象週に該当するかを判定する。rule.schedule_source_idが
+// 設定されている場合（2026-10-12新設、しょうさん指示: 「毎月中旬」等の粗い文言ヒューリスティック
+// ではなく、annual_schedule_config型ソースの確定済みschedule[]の日付そのものに基づいて判定したい
+// ＝米小売売上高のように発表日が月により大きく変動するケースで、粗い日範囲だと該当月なのに
+// 判定漏れする問題を解消する）、そのソースのschedule[]に対象週内の日付があるかで判定する。
+// 未設定の場合は従来どおり自由記述のrule.ruleをmatchesRecurringRule（キーワード一致）で判定する
+function ruleAppliesThisWeek(rule, targetWeek, sourcesConfig) {
+  if (rule.schedule_source_id) {
+    const source = sourcesConfig?.sources?.find((s) => s.id === rule.schedule_source_id);
+    return (source?.schedule || []).some((e) => isWithinWeek(e.date, targetWeek.targetWeekStart, targetWeek.targetWeekEnd));
+  }
+  return matchesRecurringRule(rule, targetWeek.dates.map((d) => d.date));
+}
+
+export function computeRecurringChecksStatus(results, importanceRules, targetWeek, sourcesConfig) {
   return (importanceRules?.recurring_checks || []).map((rule) => {
-    const appliesThisWeek = matchesRecurringRule(rule, targetWeek.dates.map((d) => d.date));
+    const appliesThisWeek = ruleAppliesThisWeek(rule, targetWeek, sourcesConfig);
     const match = RECURRING_CHECK_MATCH[rule.name];
     let found = false;
     if (match) {
@@ -672,7 +696,7 @@ export async function runChecks({ sourcesConfig, importanceRules, eventNames, ta
     }
     const recurringCheckMatches = (source.recurring_check_refs || []).some((name) => {
       const rule = (importanceRules?.recurring_checks || []).find((r) => r.name === name);
-      return rule && matchesRecurringRule(rule, targetWeek.dates.map((d) => d.date));
+      return rule && ruleAppliesThisWeek(rule, targetWeek, sourcesConfig);
     });
     results.push({ id: source.id, ...result, recurringCheckMatches: result.recurringCheckMatches || recurringCheckMatches });
   }
@@ -719,7 +743,7 @@ export async function runChecks({ sourcesConfig, importanceRules, eventNames, ta
   const recurringMissingWarnings = checkRecurringMissing(
     importanceRules?.recurring_checks,
     targetWeek,
-    (rule) => matchesRecurringRule(rule, targetWeek.dates.map((d) => d.date)),
+    (rule) => ruleAppliesThisWeek(rule, targetWeek, sourcesConfig),
     (rule) => {
       const match = RECURRING_CHECK_MATCH[rule.name];
       if (!match) return false;
