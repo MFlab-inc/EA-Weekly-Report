@@ -335,12 +335,11 @@
     },
     {
       "id": "us_census",
-      "name_ja": "米国勢調査局（Census Bureau）",
+      "name_ja": "米国勢調査局（Census Bureau・calendar-listview健全性センチネル）",
       "status": "active",
       "country": "US",
-      "kinds": [
-        "trade_balance"
-      ],
+      "kinds": [],
+      "structural_health_sentinel": true,
       "type": "weekly_scrape",
       "recurring_check_refs": [],
       "access": {
@@ -352,13 +351,7 @@
           }
         ]
       },
-      "announce_time_by_kind": {
-        "trade_balance": {
-          "local_time": "08:30",
-          "tz": "America/New_York"
-        }
-      },
-      "notes": "抽出はscripts/checkers/extractors/census.js（calendar-listview.htmlの<tr height=\"20\">行をパースし、リンクテキスト＋sorttable_customkey属性から確定日時を取得）。2026-08-14実測fixtureでground truth 2件（us_trade_20260804=貿易収支・us-retail-sales-20260814=小売売上高）と日付・時刻とも完全一致を確認。indicators_rss.xml（econcards/assets/xml/indicator.xml）は2021年の古いデータ要約フィードでありスケジュール情報を含まないと判明（2026-08-14実測で確認）したため対象URLから除外した | 2026-10-12変更（しょうさん指摘、10/12週の米小売売上高欠落インシデントのフォローアップ）: kindsからretail_salesを外しus_census_retail_sales（annual_schedule_config）へ切り替えた。経緯: calendar-listview.htmlは全経済指標が1ページに混在するローリング掲載のため、週次スクレイプだけでは対象週に該当行が無い場合に「ページが読めていなかった」のか「本当に対象週に無かった」のかを機械的に区別しづらく、かつCensus自身が年間の確定発表予定（retail/release_schedule.html）を公表しているため、他国CPI等と同じ年次確定schedule方式の方が構造的に堅牢と判断した。trade_balanceは対応する年間予定ページを未確認のため、従来どおりこのソース（weekly_scrape）のまま残す"
+      "notes": "抽出はscripts/checkers/extractors/census.js（calendar-listview.htmlの<tr height=\"20\">行をパースし、リンクテキスト＋sorttable_customkey属性から確定日時を取得）。2026-08-14実測fixtureでground truth 2件（us_trade_20260804=貿易収支・us-retail-sales-20260814=小売売上高）と日付・時刻とも完全一致を確認。indicators_rss.xml（econcards/assets/xml/indicator.xml）は2021年の古いデータ要約フィードでありスケジュール情報を含まないと判明（2026-08-14実測で確認）したため対象URLから除外した | 2026-10-12変更（しょうさん指摘、10/12週の米小売売上高欠落インシデントのフォローアップ）: kindsからretail_salesを外しus_census_retail_sales（annual_schedule_config）へ切り替えた | 2026-10-12追記（同日、しょうさん指摘で真因判明）: calendar-listview.html自体が、ある時点で「翌年の予定表」へ切り替わる仕様と判明した（2026-09-19実測fixtureは2026年の行を含んでいたが、2026-10-12実測のライブページは164行全てが2027年の行で2026年の行が0件だった＝これが10/15の米小売売上高取りこぼしの真因と判断。census-recon-year-rollover-2026-10-12.mjs参照）。これを受けtrade_balanceもus_census_trade_balance（annual_schedule_config）へ切り替え、kinds:[]になった（行数0件の構造的失敗とは別に、対象週近辺の行が1件も無い＝別の年を表示している疑いもextractCensusCalendar側で検知するようになった）。us_census自体は削除せず、calendar-listview.htmlの構造的健全性（0行失敗・年ロールオーバー失敗）を監視するセンチネルとして残す。kinds:[]のためisExpectedThisWeekは常にfalseとなり、このソース単独の失敗はWARNに留まる（decideRunOutcomeは失敗が1件のみならfalseでWARN、2件以上の同時失敗でのみHOLD＝既存の広域障害時フェールクローズ規則のまま）"
     },
     {
       "id": "us_census_retail_sales",
@@ -400,6 +393,61 @@
         { "date": "2026-10-15", "kind": "retail_sales", "note": "2026年9月分。10/12週で欠落・manual-events.json経由で訂正した回（PR #46参照）。retail/release_schedule.htmlで2026-10-12確認" },
         { "date": "2026-11-17", "kind": "retail_sales", "note": "2026年10月分。同上" },
         { "date": "2026-12-16", "kind": "retail_sales", "note": "2026年11月分。同上" }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
+      "id": "us_census_trade_balance",
+      "name_ja": "米国勢調査局（Census Bureau・貿易収支）",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "trade_balance"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "trade_release_schedule",
+            "url": "https://www.census.gov/foreign-trade/reference/release_schedule.html"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "trade_balance": {
+          "local_time": "08:30",
+          "tz": "America/New_York"
+        }
+      },
+      "notes": "2026-10-12新設（しょうさん指摘、retail_salesと同じ真因＝calendar-listview.htmlの年ロールオーバーで貿易収支[trade_balance]も黙って取りこぼすリスクがあると判明。us_census_retail_salesと同じ方式で年次確定schedule化した）。2026-01-08〜2026-12-08の13件は2026-09-19実測fixture（test/fixtures/official-sources/us_census/calendar_listview.html）から収録（当時のcalendar-listview.htmlは2026年の行を含んでいた）。2027-01-07〜2027-12-07の12件はCensus公式の貿易統計年間発表予定ページ（foreign-trade/reference/release_schedule.html、『FT900 U.S. International Trade in Goods and Services』表、Monthly Press Release Schedule、全releases 8:30am Eastern）を2026-10-12にGitHub Actions上の一時調査ワークフロー（census-recon.yml）で直接取得して確認した。双方の収録ソースは2026年9月分（2026-11-04発表）・2026年10月分（2026-12-08発表）の2件で重複し、日付が完全一致することを確認済み（相互裏付け）。2027年11月分・12月分は同ページ本文に『TBD』（To Be Determined）と明記されており未確定のため、推測で埋めず収録していない（しょうさん指示）。曜日表記（公式ページのDay列）は全件、実際の曜日と一致することを検算済み",
+      "schedule": [
+        { "date": "2026-01-08", "kind": "trade_balance", "note": "2025年10月分。2026-09-19実測fixtureで確認" },
+        { "date": "2026-01-29", "kind": "trade_balance", "note": "2025年11月分。同上" },
+        { "date": "2026-02-19", "kind": "trade_balance", "note": "2025年12月分。同上" },
+        { "date": "2026-03-12", "kind": "trade_balance", "note": "2026年1月分。同上" },
+        { "date": "2026-04-02", "kind": "trade_balance", "note": "2026年2月分。同上" },
+        { "date": "2026-05-05", "kind": "trade_balance", "note": "2026年3月分。同上" },
+        { "date": "2026-06-09", "kind": "trade_balance", "note": "2026年4月分。同上" },
+        { "date": "2026-07-07", "kind": "trade_balance", "note": "2026年5月分。同上" },
+        { "date": "2026-08-04", "kind": "trade_balance", "note": "2026年6月分。ground truth us_trade_20260804と一致確認済み" },
+        { "date": "2026-09-03", "kind": "trade_balance", "note": "2026年7月分。2026-09-19実測fixtureで確認" },
+        { "date": "2026-10-06", "kind": "trade_balance", "note": "2026年8月分。同上" },
+        { "date": "2026-11-04", "kind": "trade_balance", "note": "2026年9月分。2026-09-19実測fixture・foreign-trade/reference/release_schedule.html（2026-10-12確認）の双方で日付一致" },
+        { "date": "2026-12-08", "kind": "trade_balance", "note": "2026年10月分。同上（双方で日付一致）" },
+        { "date": "2027-01-07", "kind": "trade_balance", "note": "2026年11月分。foreign-trade/reference/release_schedule.htmlで2026-10-12確認（しょうさん指摘: この週以降はcalendar-listview.htmlの年ロールオーバーにより従来のweekly_scrapeでは取りこぼす）" },
+        { "date": "2027-02-04", "kind": "trade_balance", "note": "2026年12月分。同上" },
+        { "date": "2027-03-09", "kind": "trade_balance", "note": "2027年1月分。同上" },
+        { "date": "2027-04-06", "kind": "trade_balance", "note": "2027年2月分。同上" },
+        { "date": "2027-05-05", "kind": "trade_balance", "note": "2027年3月分。同上" },
+        { "date": "2027-06-09", "kind": "trade_balance", "note": "2027年4月分。同上" },
+        { "date": "2027-07-07", "kind": "trade_balance", "note": "2027年5月分。同上" },
+        { "date": "2027-08-05", "kind": "trade_balance", "note": "2027年6月分。同上" },
+        { "date": "2027-09-08", "kind": "trade_balance", "note": "2027年7月分。同上" },
+        { "date": "2027-10-06", "kind": "trade_balance", "note": "2027年8月分。同上" },
+        { "date": "2027-11-04", "kind": "trade_balance", "note": "2027年9月分。同上" },
+        { "date": "2027-12-07", "kind": "trade_balance", "note": "2027年10月分。同上" }
       ],
       "residual_monitor_weeks": 4
     },

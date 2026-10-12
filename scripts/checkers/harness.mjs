@@ -88,6 +88,10 @@ const RECURRING_CHECK_MATCH = {
   // CA/GB/AU/NZ等他国のソースも同kind=retail_salesを使うため、sourceId指定なしでは他国の
   // 該当がus_census_retail_sales側の欠落（設定ミス等）を覆い隠してしまう点は変わらない
   米小売売上高: { kind: 'retail_sales', sourceId: 'us_census_retail_sales' },
+  // 2026-10-12新設（しょうさん指摘: calendar-listview.htmlの年ロールオーバーにより
+  // trade_balanceもweekly_scrapeからannual_schedule_config（us_census_trade_balance）へ
+  // 切り替えたため、米小売売上高と同じsourceId指定のrecurring_checkを追加する）
+  米貿易収支: { kind: 'trade_balance', sourceId: 'us_census_trade_balance' },
 };
 
 // jp_mof向け: auction_calendar_index.htmは月別ローリング公表（年次一括ではない）ため、対象週が
@@ -169,9 +173,14 @@ function buildFrbCalendarMonthTargets(source, targetWeek) {
 // toRow: 抽出結果の1行 → { title, date?, localTime?, utcInstant?, kind? }（resolveCandidateEventの入力形。
 // kindを含めるとSPEC §4.2の規則生成命名kind向けのruleGenerated分岐が効く。他行分類classifyRowKindより優先）
 const WEEKLY_SCRAPE_EXTRACTORS = {
+  // 2026-10-12改訂（しょうさん指摘）: retail_sales・trade_balanceとも年次確定schedule型
+  // （us_census_retail_sales・us_census_trade_balance）へ移行したためkinds:[]（配線の都合で
+  // us_census自体は削除せず残す）。calendar-listview.htmlの構造的健全性（0行失敗・年ロールオーバー
+  // 失敗）を監視するセンチネルとしての役割のみ持つ。ctx.targetWeekを渡し、年ロールオーバー検知
+  // （census.jsのextractCensusCalendar参照）を有効にする
   us_census: {
     primaryLabel: 'calendar_listview',
-    parseFn: extractCensusCalendar,
+    parseFn: (body, ctx) => extractCensusCalendar(body, ctx.targetWeek),
     toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime }),
   },
   // 2026-10-03変更（しょうさん指摘、9/28週の貿易収支取りこぼし対応）: デフォルトページ単体

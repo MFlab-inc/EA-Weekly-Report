@@ -42,7 +42,11 @@ function gt(id) {
   return e;
 }
 
-test('Census(us_census): 貿易収支(8/4)が既刊と日時・重要度・名称とも完全一致', async () => {
+// 2026-10-12改訂（しょうさん指摘、10/12週の米小売売上高欠落インシデントの真因判明）:
+// us_census（weekly_scrape）はkinds:[]のcalendar-listview.html健全性センチネルとなった
+// （trade_balanceもus_census_trade_balanceへ移行済み）。この既刊fixtureが対象週（8/3週）の
+// 近辺に行を含んでおり、センチネル自体がok:trueになることを確認する（構造的失敗を誤検知しない）
+test('Census(us_census・健全性センチネル): 既刊fixtureは対象週近辺に行を含むためok:trueになる', async () => {
   const { checkWeeklyScrapeSource } = await import('../scripts/checkers/harness.mjs');
   const censusHtml = readFixture('us_census', 'calendar_listview.html');
   const fetchImpl = fixtureFetch({ 'calendar-listview.html': censusHtml });
@@ -50,8 +54,23 @@ test('Census(us_census): 貿易収支(8/4)が既刊と日時・重要度・名�
 
   const r0804 = await checkWeeklyScrapeSource(source, WEEK_20260803, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
   assert.equal(r0804.ok, true);
+  assert.equal(r0804.thisWeek.length, 0, 'kinds:[]のためcandidateは生成されない（健全性監視のみ）');
+});
 
-  const trade = r0804.thisWeek.find((c) => c.kind === 'trade_balance');
+// retail_salesと同じ真因・同じ理由でtrade_balanceもus_census_trade_balance
+// （annual_schedule_config）へ切り替えたため、貿易収支(8/4)の既刊ground truth一致確認は
+// こちらのソース・経路（checkAnnualScheduleSource→annualEntryToCandidate）で検証する
+test('Census(us_census_trade_balance): 貿易収支(8/4)が既刊と日時・重要度・名称とも完全一致（annual_schedule_config経由）', async () => {
+  const { checkAnnualScheduleSource } = await import('../scripts/checkers/harness.mjs');
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = sourcesConfig.sources.find((s) => s.id === 'us_census_trade_balance');
+  assert.ok(source, 'us_census_trade_balanceがconfig/official-sources.jsonに登録されていない');
+
+  const r0804 = checkAnnualScheduleSource(source, WEEK_20260803);
+  assert.equal(r0804.ok, true);
+  assert.equal(r0804.matchedEntries.length, 1, '2026-08-04が対象週（8/3週）のscheduleに1件登録されている必要がある');
+
+  const trade = annualEntryToCandidate(r0804.matchedEntries[0], source, importanceRules, eventNames);
   const gtTrade = gt('us_trade_20260804');
   assert.equal(trade.date, gtTrade.date);
   assert.equal(trade.time, gtTrade.time);

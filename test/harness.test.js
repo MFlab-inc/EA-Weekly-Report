@@ -931,6 +931,62 @@ test('runChecks: us_census_retail_salesのscheduleに対象週内の日付が無
   assert.equal(status[0].applies_this_week, false, '12月分はscheduleに無いためapplies_this_week自体がfalseになる（旧「毎月中旬」方式のような判定漏れではなく、そもそも該当しない週として扱われる）');
 });
 
+// 2026-10-12追加（しょうさん指摘: calendar-listview.htmlの年ロールオーバーによりtrade_balanceも
+// us_census_trade_balance（annual_schedule_config）へ切り替えた）。米小売売上高と同じ
+// schedule_source_id方式のrecurring_checkが正しく機能することを確認する
+test('runChecks: us_census_trade_balanceのscheduleに対象週内の日付があればrecurring_checks経由でWARNが出ない', async () => {
+  const { runChecks } = await loadHarness();
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'us_census_trade_balance', status: 'active', country: 'US', kinds: ['trade_balance'], type: 'annual_schedule_config',
+        announce_time_by_kind: { trade_balance: { local_time: '08:30', tz: 'America/New_York' } },
+        schedule: [{ date: '2027-01-07', kind: 'trade_balance', note: '2026年11月分' }],
+      },
+    ],
+  };
+  const importanceRules = {
+    recurring_checks: [{ name: '米貿易収支', schedule_source_id: 'us_census_trade_balance', rule: 'scheduleの日付に基づく', action: 'WARN' }],
+  };
+  const targetWeek = {
+    collectionDate: '2027-01-02', targetWeekStart: '2027-01-04', targetWeekEnd: '2027-01-08',
+    dates: [
+      { date: '2027-01-04', md: '1/4', weekday: '月' }, { date: '2027-01-05', md: '1/5', weekday: '火' },
+      { date: '2027-01-06', md: '1/6', weekday: '水' }, { date: '2027-01-07', md: '1/7', weekday: '木' },
+      { date: '2027-01-08', md: '1/8', weekday: '金' },
+    ],
+  };
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
+});
+
+test('runChecks: us_census_trade_balanceのscheduleに対象週内の日付が無い週（例: 2027年11月分未公表）はWARNが出ない', async () => {
+  const { runChecks } = await loadHarness();
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'us_census_trade_balance', status: 'active', country: 'US', kinds: ['trade_balance'], type: 'annual_schedule_config',
+        announce_time_by_kind: { trade_balance: { local_time: '08:30', tz: 'America/New_York' } },
+        // 2027年11月分・12月分はTBDのため収録していない想定（しょうさん指示: 推測で埋めない）
+        schedule: [{ date: '2027-10-06', kind: 'trade_balance', note: '2027年8月分' }],
+      },
+    ],
+  };
+  const importanceRules = {
+    recurring_checks: [{ name: '米貿易収支', schedule_source_id: 'us_census_trade_balance', rule: 'scheduleの日付に基づく', action: 'WARN' }],
+  };
+  const targetWeek = {
+    collectionDate: '2027-11-29', targetWeekStart: '2027-12-01', targetWeekEnd: '2027-12-05',
+    dates: [
+      { date: '2027-12-01', md: '12/1', weekday: '月' }, { date: '2027-12-02', md: '12/2', weekday: '火' },
+      { date: '2027-12-03', md: '12/3', weekday: '水' }, { date: '2027-12-04', md: '12/4', weekday: '木' },
+      { date: '2027-12-05', md: '12/5', weekday: '金' },
+    ],
+  };
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
+});
+
 // 2026-10-12追加（しょうさん指摘）: calendar-listview.htmlはCensusの全経済指標の予定一覧
 // であり、ページ全体で1行も解析できない状況は通常ありえない（サイト構造変化の疑い）。
 // extractCensusCalendar自体は既に「<tr height="20">行が1件も解析できない＝ok:false」を
@@ -943,9 +999,8 @@ test('runChecks: us_censusがページ全体で1行も解析できない場合�
   const sourcesConfig = {
     sources: [
       {
-        id: 'us_census', status: 'active', country: 'US', kinds: ['trade_balance'], type: 'weekly_scrape',
+        id: 'us_census', status: 'active', country: 'US', kinds: [], structural_health_sentinel: true, type: 'weekly_scrape',
         access: { targets: [{ label: 'calendar_listview', url: 'https://example.invalid/census' }] },
-        announce_time_by_kind: { trade_balance: { local_time: '08:30', tz: 'America/New_York' } },
         recurring_check_refs: [],
       },
     ],
@@ -965,6 +1020,43 @@ test('runChecks: us_censusがページ全体で1行も解析できない場合�
   assert.equal(usCensusResult.ok, false);
   assert.match(usCensusResult.reason, /構造変化の疑い/);
   assert.ok(report.failures.some((f) => f.sourceId === 'us_census'));
+});
+
+// 2026-10-12追加（しょうさん指摘、実インシデントの真因の回帰テスト）: calendar-listview.html
+// 自体が別の年（2027年）の予定表へ切り替わっていた実測状態（census-recon-year-rollover-
+// 2026-10-12.mjs参照。164行全てが2027年、2026年の行は0件）を再現し、checkWeeklyScrapeSource
+// 経由でも構造的失敗（ok:false）として検知されることを確認する
+test('runChecks: us_censusのページが別の年（2027年）のみを表示している場合も構造的失敗として検知する（実インシデントの真因の回帰テスト）', async () => {
+  const { runChecks } = await loadHarness();
+  const rows2027 = Array.from({ length: 12 }, (_, i) => {
+    const mm = String(i + 1).padStart(2, '0');
+    return `<tr height="20"><td height="20"><a href="/retail">Advance Monthly Sales for Retail and Food Services</a></td><td sorttable_customkey="2027${mm}150830">2027</td><td>8:30 AM</td><td>2026</td></tr>`;
+  }).join('\n');
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'us_census', status: 'active', country: 'US', kinds: [], structural_health_sentinel: true, type: 'weekly_scrape',
+        access: { targets: [{ label: 'calendar_listview', url: 'https://example.invalid/census' }] },
+        recurring_check_refs: [],
+      },
+    ],
+  };
+  const importanceRules = { recurring_checks: [] };
+  const targetWeek = {
+    collectionDate: '2026-10-10', targetWeekStart: '2026-10-12', targetWeekEnd: '2026-10-16',
+    dates: [
+      { date: '2026-10-12', md: '10/12', weekday: '月' }, { date: '2026-10-13', md: '10/13', weekday: '火' },
+      { date: '2026-10-14', md: '10/14', weekday: '水' }, { date: '2026-10-15', md: '10/15', weekday: '木' },
+      { date: '2026-10-16', md: '10/16', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => rows2027 });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  const usCensusResult = report.results.find((r) => r.id === 'us_census');
+  assert.equal(usCensusResult.ok, false);
+  assert.match(usCensusResult.reason, /別の年を表示している疑い/);
+  // kinds:[]のためisExpectedThisWeekはfalseになり、単独失敗ならWARNに留まる（HOLDにしない）
+  assert.equal(report.outcome.status, 'WARN');
 });
 
 // 2026-09-19追加（しょうさん指摘、9/21週監査で発覚した実バグの回帰テスト）: au_absの
