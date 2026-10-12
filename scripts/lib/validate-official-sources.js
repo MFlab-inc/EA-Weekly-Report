@@ -22,7 +22,13 @@ function validateOfficialSources(config) {
     if (!s.name_ja) errors.push(`${tag} name_jaが必須です`);
     if (!VALID_STATUS.includes(s.status)) errors.push(`${tag} status不正: ${s.status}`);
     if (!VALID_TYPES.includes(s.type)) errors.push(`${tag} type不正: ${s.type}`);
-    if (!Array.isArray(s.kinds) || s.kinds.length === 0) errors.push(`${tag} kindsは1件以上必要`);
+    // structural_health_sentinel: true（2026-10-12新設。us_census参照）は例外的にkinds:[]を
+    // 許可する。全kindを他ソース（annual_schedule_config等）へ移し、ページ自体の構造的健全性
+    // （0行失敗・対象週近辺の行の有無）のみを監視するセンチネルとして残すソース向け。
+    // 明示フラグが無い限り、通常のソースはkinds 1件以上を必須とする既存ルールのまま
+    if (!Array.isArray(s.kinds) || (s.kinds.length === 0 && !s.structural_health_sentinel)) {
+      errors.push(`${tag} kindsは1件以上必要（structural_health_sentinel:trueの場合のみ空配列可）`);
+    }
 
     if (s.type === 'date_api_fred') {
       if (!s.fred || !s.fred.api_base) errors.push(`${tag} fred.api_baseが必須です`);

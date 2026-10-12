@@ -69,3 +69,18 @@ test('validateOfficialSources: date_api_fredにfred.releasesが無ければエ�
   });
   assert.ok(errors.some((e) => e.includes('fred.releases')));
 });
+
+// structural_health_sentinel: 2026-10-12新設（しょうさん指摘、米小売売上高欠落インシデントの
+// フォローアップ）。全kindを他ソースへ移し、ページ自体の構造的健全性のみを監視するセンチネル
+// （us_census参照）向けの例外。明示フラグが無い限りkinds:[]は通常どおりエラーのままであることも確認する
+test('validateOfficialSources: kinds:[]は通常エラーだが、structural_health_sentinel:trueなら許可される', () => {
+  const withoutFlag = validateOfficialSources({
+    sources: [{ id: 'x', name_ja: 'X', status: 'active', type: 'weekly_scrape', kinds: [], access: { targets: [] } }],
+  });
+  assert.ok(withoutFlag.some((e) => e.includes('kindsは1件以上必要')));
+
+  const withFlag = validateOfficialSources({
+    sources: [{ id: 'x', name_ja: 'X', status: 'active', type: 'weekly_scrape', kinds: [], structural_health_sentinel: true, access: { targets: [] } }],
+  });
+  assert.deepEqual(withFlag, []);
+});

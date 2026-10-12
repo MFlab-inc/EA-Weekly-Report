@@ -32,6 +32,51 @@ test('extractCensusCalendar: テーブル行が無い入力は構造的失敗を
   assert.match(r.reason, /構造変化/);
 });
 
+// 2026-10-12追加（しょうさん指摘、米小売売上高欠落インシデントの真因判明）: calendar-listview.html
+// 自体が、ある時点で「翌年の予定表」へ切り替わる（2026-10-12実測: 164行全てが2027年の行で
+// 2026年の行が0件だった）。行数は0ではないため既存の「0行＝構造的失敗」判定では検知できない。
+// targetWeekを渡し、対象週の4週前〜8週後に該当する行が1件も無い場合に構造的失敗を返すことを確認する
+test('extractCensusCalendar: 対象週から大きく外れた年のみの行はtargetWeek指定で構造的失敗（別の年を表示している疑い）を返す', () => {
+  const html = fx('us_census', 'calendar_listview.html');
+  // fixtureは2026年の行のみ（2026-01-08〜2026-12-27想定）。2026年から十分離れた2030年を
+  // 対象週に指定することで「別の年を表示している」状態を再現する
+  const targetWeek = { targetWeekStart: '2030-10-14', targetWeekEnd: '2030-10-18' };
+  const r = extractCensusCalendar(html, targetWeek);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /別の年を表示している疑い/);
+});
+
+test('extractCensusCalendar: 対象週の4週前〜8週後に該当する行があればtargetWeek指定でもok:trueのまま', () => {
+  const html = fx('us_census', 'calendar_listview.html');
+  // fixtureの小売売上高(8/14)・貿易収支(8/4)を含む8/10週・8/3週なら正常
+  const targetWeek = { targetWeekStart: '2026-08-10', targetWeekEnd: '2026-08-14' };
+  const r = extractCensusCalendar(html, targetWeek);
+  assert.equal(r.ok, true);
+});
+
+test('extractCensusCalendar: targetWeek省略時は年ロールオーバー検知を行わない（既存の2引数省略呼び出しとの後方互換）', () => {
+  const html = fx('us_census', 'calendar_listview.html');
+  const r = extractCensusCalendar(html);
+  assert.equal(r.ok, true);
+});
+
+// 2026-10-12実測の生データ（calendar-listview.htmlが2027年の予定表のみになっていた状態）を
+// 再現した回帰テスト。実際にこのインシデントで起きた状況そのものを固定フィクスチャとして残す
+test('extractCensusCalendar: 実測した年ロールオーバー状態（2027年のみ164行）は対象週2026-10-12週で構造的失敗になる', () => {
+  const rows2027 = [];
+  for (let m = 1; m <= 12; m++) {
+    const mm = String(m).padStart(2, '0');
+    rows2027.push(
+      `<tr height="20"><td height="20"><a href="/retail">Advance Monthly Sales for Retail and Food Services</a></td><td sorttable_customkey="2027${mm}150830">2027</td><td>8:30 AM</td><td>2026</td></tr>`
+    );
+  }
+  const html = rows2027.join('\n');
+  const targetWeek = { targetWeekStart: '2026-10-12', targetWeekEnd: '2026-10-16' };
+  const r = extractCensusCalendar(html, targetWeek);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /別の年を表示している疑い/);
+});
+
 test('extractAbsCalendar: 実fixtureからground truth（貿易収支8/6 10:30 JST相当）を抽出できる', () => {
   const r = extractAbsCalendar(fx('au_abs', 'future_releases_calendar.html'));
   assert.equal(r.ok, true);
