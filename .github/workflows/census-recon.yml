@@ -1,0 +1,25 @@
+# 一時調査用ワークフロー（しょうさん指示2026-10-12、PR #46フォローアップ）。
+# census.gov（calendar-listview.html・retail/release_schedule.html）への実ネットワーク
+# アクセスが必要な調査のため、GitHub Actions上で実行する。本番パス（data/・output/）には
+# 一切書き込まない。調査完了後は削除する（committees-events-recon等の既存の一時workflow方針）。
+name: census-recon
+on:
+  workflow_dispatch:
+jobs:
+  recon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: census.gov 調査実行
+        run: node scripts/phase1/census-recon-2026-10-12.mjs
+      - name: 結果をartifactとしてアップロード
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: census-recon-result
+          path: phase1-out/census-recon/
+          retention-days: 14
+          if-no-files-found: ignore
