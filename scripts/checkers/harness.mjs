@@ -79,6 +79,12 @@ const RECURRING_CHECK_MATCH = {
   // その週に見つけられたかを機械的に可視化する
   '豪州GDP（ABS）': { kind: 'gdp', sourceId: 'au_abs' },
   '豪州貿易収支（ABS）': { kind: 'trade_balance', sourceId: 'au_abs' },
+  // 2026-10-12新設（しょうさん指摘: 10/12週の米小売売上高[9月分、10/15発表]がus_censusで
+  // 無警告のまま欠落していた。recurring_check_refsではなくRECURRING_CHECK_MATCH＋
+  // importance-rules.jsonの登録が実際のWARN生成経路のため、ここに追加する。retail_salesは
+  // CA/GB/AU/NZ等他国のソースも同kindを使うため、sourceId指定なしでは他国の該当が
+  // us_census側の欠落を覆い隠してしまう。中国PMI等と同じ理由でsourceId: 'us_census'を指定する）
+  米小売売上高: { kind: 'retail_sales', sourceId: 'us_census' },
 };
 
 // jp_mof向け: auction_calendar_index.htmは月別ローリング公表（年次一括ではない）ため、対象週が

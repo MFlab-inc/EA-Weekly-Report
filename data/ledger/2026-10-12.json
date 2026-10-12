@@ -14,7 +14,8 @@
       "残量監視WARN: us_ism — 年次スケジュールconfigに対象週(2026-10-12)から4週先(2026-11-09)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
       "残量監視WARN: jp_esri_gdp — 年次スケジュールconfigに対象週(2026-10-12)から4週先(2026-11-09)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
       "残量監視WARN: cn_nbs_data — 年次スケジュールconfigに対象週(2026-10-12)から4週先(2026-11-09)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
-      "gb_boe_calendar: officials.json未登録の話者のため掲載対象外とした: speaker=\"Victoria Cleland\" date=2026-10-15"
+      "gb_boe_calendar: officials.json未登録の話者のため掲載対象外とした: speaker=\"Victoria Cleland\" date=2026-10-15",
+      "定例欠落: 「米小売売上高」（毎月中旬）が対象週に該当する見込みだが検出されなかった。対象週に該当し得るのに us_census で retail_sales の検出なしならWARN（2026-10-12新設。しょうさん指摘: 10/12週の米小売売上高[9月分、10/15発表、★★★]がus_censusの抽出漏れで無警告のまま欠落していた[原因調査の結論は該当PR参照。再現テストではcalendar-listview.htmlの行自体は現行コードで正しく解釈できることを確認済みで、ライブページ側の掲載状態が生成時点で変化していたと見られる]。recurring_checksに本kind・ソースの安全網が無かったため追加した。既刊実績の発表日は月により大きく変動する（1/14・2/10・3/6・4/1・4/21・5/14・6/17・7/16・8/14・9/16・10/15・11/17・12/16）ため、「毎月中旬」（10〜19日、matchesRecurringRuleの既存分岐）では3月・4月のように日範囲外になる月はこの安全網で検出できない既知の限界がある（しょうさんへ要報告）。米CPIのように日範囲を絞るとむしろ検出漏れが広がるため、見落とし防止を優先し中旬のまま広めに残した）"
     ],
     "holds": []
   },
@@ -532,7 +533,7 @@
       "url": "config/manual-events.json",
       "ok": true,
       "http_status": null,
-      "extractor_result_count": 0,
+      "extractor_result_count": 1,
       "robots_checked": false,
       "fail_closed_decision": "OK"
     }
@@ -623,27 +624,6 @@
       "speaker_named": true
     },
     {
-      "event_id": "jp-bond_auction-2026-10-14",
-      "date_local": "2026-10-14",
-      "time_local": null,
-      "tz": null,
-      "date_jst": "2026-10-14",
-      "datetime_jst": null,
-      "time_status": "unpublished",
-      "country": "JP",
-      "currency": "JPY",
-      "kind": "bond_auction",
-      "name_ja": "5年利付国債（2026年10月債）の入札",
-      "importance": 2,
-      "source_id": "jp_mof",
-      "source_evidence": "5-year",
-      "name_resolution": "rule_generated",
-      "halt_window_start_jst": null,
-      "halt_window_end_jst": null,
-      "bundle_id": null,
-      "speaker_named": false
-    },
-    {
       "event_id": "gb-official_speech-2026-10-14",
       "date_local": "2026-10-14",
       "time_local": "07:00",
@@ -704,6 +684,27 @@
       "halt_window_start_jst": "2026-10-14T09:30:00+09:00",
       "halt_window_end_jst": "2026-10-14T17:30:00+09:00",
       "bundle_id": "us-cpi-2026-10-14",
+      "speaker_named": false
+    },
+    {
+      "event_id": "jp-bond_auction-2026-10-14",
+      "date_local": "2026-10-14",
+      "time_local": null,
+      "tz": null,
+      "date_jst": "2026-10-14",
+      "datetime_jst": null,
+      "time_status": "unpublished",
+      "country": "JP",
+      "currency": "JPY",
+      "kind": "bond_auction",
+      "name_ja": "5年利付国債（2026年10月債）の入札",
+      "importance": 2,
+      "source_id": "jp_mof",
+      "source_evidence": "5-year",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": null,
+      "halt_window_end_jst": null,
+      "bundle_id": null,
       "speaker_named": false
     },
     {
@@ -917,6 +918,28 @@
       "speaker_named": false
     },
     {
+      "event_id": "us-retail_sales-2026-10-15",
+      "date_local": "2026-10-15",
+      "time_local": "08:30",
+      "tz": "America/New_York",
+      "date_jst": "2026-10-15",
+      "datetime_jst": "2026-10-15T21:30:00+09:00",
+      "time_status": "published",
+      "country": "US",
+      "currency": "USD",
+      "kind": "retail_sales",
+      "name_ja": "小売売上高＆【除自動車】",
+      "importance": 3,
+      "source_id": "manual",
+      "source_evidence": "2026-10-12、しょうさん指摘: 公開済みの10/12週レポートに米小売売上高（9月分、10/15発表）が欠落していたことが判明。Census公式の発表予定ページ https://www.census.gov/retail/release_schedule.html で2026-10-15 8:30 ET（=21:30 JST）の『Advance Monthly Sales for Retail and Food Services』（9月分）を確認し、この時刻・対象期間で登録する。原因調査: 担当ソースus_census（calendar-listview.html）が2026-10-10の生成時点でこの週のretail_sales/trade_balanceを1件も検出できず（extractor_result_count=0）、無警告のまま欠落した。再現テストでは、この同じ行（タイトル・日時とも）を現行の抽出・分類コードに通すと正しく2026-10-15 08:30 ET/★★★として検出できることを確認済み（コード側の不具合ではない）。ライブページが生成時点で実際にどう表示されていたかはこの環境からcensus.govへ到達できず直接確認できていない（org policyでegressが拒否される。未確認）。再発防止として、recurring_checksへ「米小売売上高」（us_census×retail_sales）を追加した。他のデータは再収集せず、本エントリの追加のみで10/12週の台帳・HTMLを訂正する（対象週2026-10-12に限定され、date列により翌週以降には影響しない）",
+      "name_resolution": "dictionary",
+      "halt_window_start_jst": "2026-10-15T09:30:00+09:00",
+      "halt_window_end_jst": "2026-10-15T17:30:00+09:00",
+      "bundle_id": null,
+      "speaker_named": false,
+      "is_weekend_spillover": false
+    },
+    {
       "event_id": "us-oil_inventories-2026-10-16",
       "date_local": "2026-10-15",
       "time_local": "12:00",
@@ -1030,6 +1053,11 @@
         "name": "米新規失業保険申請件数",
         "applies_this_week": true,
         "found": true
+      },
+      {
+        "name": "米小売売上高",
+        "applies_this_week": true,
+        "found": false
       }
     ]
   }
