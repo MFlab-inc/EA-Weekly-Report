@@ -10,7 +10,9 @@ function isExpectedThisWeek({ annualConfigHasTargetWeek = false, recurringCheckM
 }
 
 // 全ソースの成否から最終判定を下す（SPEC §3.4）。
-// failures: [{ sourceId, expected: boolean }, ...]（失敗したソースのみを渡す）
+// failures: [{ sourceId, expected: boolean, reason? }, ...]（失敗したソースのみを渡す。
+//   reasonは2026-10-12追加・しょうさん指摘: us_censusセンチネルの「別の年を表示している疑い」等、
+//   個別ソースの失敗理由をWARN/HOLD文言に含められるようにした。省略可・後方互換）
 // 戻り値: { status: 'OK'|'WARN'|'HOLD', reasons: string[] }
 function decideRunOutcome(failures) {
   if (!failures || failures.length === 0) {
@@ -23,10 +25,11 @@ function decideRunOutcome(failures) {
     };
   }
   const [f] = failures;
+  const reasonSuffix = f.reason ? `: ${f.reason}` : '';
   if (f.expected) {
-    return { status: 'HOLD', reasons: [`見込みあり: ${f.sourceId} が失敗し、対象週の発生が示唆されているためHOLD`] };
+    return { status: 'HOLD', reasons: [`見込みあり: ${f.sourceId} が失敗し、対象週の発生が示唆されているためHOLD${reasonSuffix}`] };
   }
-  return { status: 'WARN', reasons: [`見込みなし: ${f.sourceId} が失敗したが対象週の発生シグナルなし（WARNのみ）`] };
+  return { status: 'WARN', reasons: [`見込みなし: ${f.sourceId} が失敗したが対象週の発生シグナルなし（WARNのみ）${reasonSuffix}`] };
 }
 
 // 年次スケジュールconfig型ソースの残量監視（SPEC §3.5）。

@@ -58,7 +58,11 @@ function extractCensusCalendar(html, targetWeek) {
       const max = rows.reduce((a, r) => (a === null || r.date > a ? r.date : a), null);
       return {
         ok: false,
-        reason: `ページに対象週(${targetWeek.targetWeekStart}〜${targetWeek.targetWeekEnd})の4週前〜8週後(${windowStart}〜${windowEnd})に該当する行が1件も無い（実測: 全${rows.length}行の日付範囲は${min}〜${max}）。別の年を表示している疑い（2026-10-12実測: calendar-listview.htmlが2027年の予定表へ切り替わっており、2026年の行が0件だったことが原因と判明）`,
+        // 2026-10-12追記（しょうさん指摘）: 土曜監査がこのWARNを毎回「要確認」として扱わずに済むよう、
+        // 小売売上高・貿易収支への影響が無いことを文言に明記する（ops/SATURDAY_AUDIT.md「既知の恒常WARN」
+        // 参照。年間予定[us_census_retail_sales／us_census_trade_balance]側の該当月の日付が
+        // 登録済みであることは監査で別途確認する前提）
+        reason: `ページに対象週(${targetWeek.targetWeekStart}〜${targetWeek.targetWeekEnd})の4週前〜8週後(${windowStart}〜${windowEnd})に該当する行が1件も無い（実測: 全${rows.length}行の日付範囲は${min}〜${max}）。別の年を表示している疑い（2026-10-12実測: calendar-listview.htmlが2027年の予定表へ切り替わっており、2026年の行が0件だったことが原因と判明）。小売売上高・貿易収支は年間予定（us_census_retail_sales／us_census_trade_balance）から取得済みのため掲載への影響なし`,
       };
     }
   }

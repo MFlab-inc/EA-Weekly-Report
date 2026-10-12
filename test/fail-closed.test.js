@@ -29,6 +29,28 @@ test('decideRunOutcome: 単一失敗・見込みなしならWARN', () => {
   assert.match(r.reasons[0], /見込みなし/);
 });
 
+// reason: 2026-10-12追加（しょうさん指摘）。us_censusセンチネルの「別の年を表示している疑い」等、
+// 個別ソースの失敗理由をWARN/HOLD文言に含められるようにした（土曜監査が文言だけで
+// 「小売売上高・貿易収支への影響なし」等を判断できるようにする目的）
+test('decideRunOutcome: reasonを渡すとWARN文言に含まれる', () => {
+  const r = decideRunOutcome([{ sourceId: 'us_census', expected: false, reason: '別の年を表示している疑い。小売売上高・貿易収支への影響なし' }]);
+  assert.equal(r.status, 'WARN');
+  assert.match(r.reasons[0], /見込みなし/);
+  assert.match(r.reasons[0], /別の年を表示している疑い。小売売上高・貿易収支への影響なし/);
+});
+
+test('decideRunOutcome: reasonを渡すとHOLD文言にも含まれる', () => {
+  const r = decideRunOutcome([{ sourceId: 'us_bls_fred', expected: true, reason: 'API応答がタイムアウトした' }]);
+  assert.equal(r.status, 'HOLD');
+  assert.match(r.reasons[0], /見込みあり/);
+  assert.match(r.reasons[0], /API応答がタイムアウトした/);
+});
+
+test('decideRunOutcome: reasonを省略しても従来どおりの文言になる（後方互換）', () => {
+  const r = decideRunOutcome([{ sourceId: 'au_abs', expected: false }]);
+  assert.equal(r.reasons[0], '見込みなし: au_abs が失敗したが対象週の発生シグナルなし（WARNのみ）');
+});
+
 test('decideRunOutcome: 複数同時失敗は見込み判定に関わらず無条件HOLD', () => {
   const r = decideRunOutcome([
     { sourceId: 'a', expected: false },
