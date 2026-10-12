@@ -339,7 +339,6 @@
       "status": "active",
       "country": "US",
       "kinds": [
-        "retail_sales",
         "trade_balance"
       ],
       "type": "weekly_scrape",
@@ -354,16 +353,55 @@
         ]
       },
       "announce_time_by_kind": {
-        "retail_sales": {
-          "local_time": "08:30",
-          "tz": "America/New_York"
-        },
         "trade_balance": {
           "local_time": "08:30",
           "tz": "America/New_York"
         }
       },
-      "notes": "抽出はscripts/checkers/extractors/census.js（calendar-listview.htmlの<tr height=\"20\">行をパースし、リンクテキスト＋sorttable_customkey属性から確定日時を取得）。2026-08-14実測fixtureでground truth 2件（us_trade_20260804=貿易収支・us-retail-sales-20260814=小売売上高）と日付・時刻とも完全一致を確認。indicators_rss.xml（econcards/assets/xml/indicator.xml）は2021年の古いデータ要約フィードでありスケジュール情報を含まないと判明（2026-08-14実測で確認）したため対象URLから除外した"
+      "notes": "抽出はscripts/checkers/extractors/census.js（calendar-listview.htmlの<tr height=\"20\">行をパースし、リンクテキスト＋sorttable_customkey属性から確定日時を取得）。2026-08-14実測fixtureでground truth 2件（us_trade_20260804=貿易収支・us-retail-sales-20260814=小売売上高）と日付・時刻とも完全一致を確認。indicators_rss.xml（econcards/assets/xml/indicator.xml）は2021年の古いデータ要約フィードでありスケジュール情報を含まないと判明（2026-08-14実測で確認）したため対象URLから除外した | 2026-10-12変更（しょうさん指摘、10/12週の米小売売上高欠落インシデントのフォローアップ）: kindsからretail_salesを外しus_census_retail_sales（annual_schedule_config）へ切り替えた。経緯: calendar-listview.htmlは全経済指標が1ページに混在するローリング掲載のため、週次スクレイプだけでは対象週に該当行が無い場合に「ページが読めていなかった」のか「本当に対象週に無かった」のかを機械的に区別しづらく、かつCensus自身が年間の確定発表予定（retail/release_schedule.html）を公表しているため、他国CPI等と同じ年次確定schedule方式の方が構造的に堅牢と判断した。trade_balanceは対応する年間予定ページを未確認のため、従来どおりこのソース（weekly_scrape）のまま残す"
+    },
+    {
+      "id": "us_census_retail_sales",
+      "name_ja": "米国勢調査局（Census Bureau・小売売上高）",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "retail_sales"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          {
+            "label": "release_schedule",
+            "url": "https://www.census.gov/retail/release_schedule.html"
+          }
+        ]
+      },
+      "announce_time_by_kind": {
+        "retail_sales": {
+          "local_time": "08:30",
+          "tz": "America/New_York"
+        }
+      },
+      "notes": "2026-10-12新設（しょうさん指摘、10/12週の米小売売上高欠落インシデントのフォローアップ）: us_census（weekly_scrape、calendar-listview.html）が対象週のretail_salesを無警告で取りこぼした件を受け、Census公式の年間発表予定ページ（retail/release_schedule.html、『Advance Monthly Retail Trade Report』表、Release Date at 8:30 am）を年次確定schedule方式で登録した。2026-10-12にGitHub Actions上の一時調査ワークフロー（census-recon.yml、実ネットワーク経由）で同ページを直接取得し、リリース日が2026年に入る全13件（データ対象月は2025年11月分〜2026年11月分）を1件ずつ確認した（schedule[]のnote参照）。2026年12月分（データ対象月。リリース予定は2027年1月想定）はページ本文に『To be announced at a later date』と明記されており未確定のため、推測で埋めず収録していない（しょうさん指示。日程公表後に追記が必要）。2027年分の発表予定は同ページに未掲載（ページ見出し自体が『Release Dates for 2025/2026』であり2027年分のテーブルが存在しない）のため登録していない。なお『Monthly Retail Trade Report』（確定値、Advance発表の翌月相当）という別表も同ページに存在するが、config/event-names.jsonのus_census/retail_salesのmatchキーワード（advance monthly sales for retail）はAdvance表のタイトルのみを対象としているため、本scheduleもAdvance表の日付のみを収録している",
+      "schedule": [
+        { "date": "2026-01-14", "kind": "retail_sales", "note": "2025年11月分。retail/release_schedule.html『Advance Monthly Retail Trade Report』表で2026-10-12確認" },
+        { "date": "2026-02-10", "kind": "retail_sales", "note": "2025年12月分。同上" },
+        { "date": "2026-03-06", "kind": "retail_sales", "note": "2026年1月分。同上" },
+        { "date": "2026-04-01", "kind": "retail_sales", "note": "2026年2月分。同上" },
+        { "date": "2026-04-21", "kind": "retail_sales", "note": "2026年3月分。同上" },
+        { "date": "2026-05-14", "kind": "retail_sales", "note": "2026年4月分。同上" },
+        { "date": "2026-06-17", "kind": "retail_sales", "note": "2026年5月分。同上" },
+        { "date": "2026-07-16", "kind": "retail_sales", "note": "2026年6月分。同上" },
+        { "date": "2026-08-14", "kind": "retail_sales", "note": "2026年7月分。同上" },
+        { "date": "2026-09-16", "kind": "retail_sales", "note": "2026年8月分。同上" },
+        { "date": "2026-10-15", "kind": "retail_sales", "note": "2026年9月分。10/12週で欠落・manual-events.json経由で訂正した回（PR #46参照）。retail/release_schedule.htmlで2026-10-12確認" },
+        { "date": "2026-11-17", "kind": "retail_sales", "note": "2026年10月分。同上" },
+        { "date": "2026-12-16", "kind": "retail_sales", "note": "2026年11月分。同上" }
+      ],
+      "residual_monitor_weeks": 4
     },
     {
       "id": "gb_ons",

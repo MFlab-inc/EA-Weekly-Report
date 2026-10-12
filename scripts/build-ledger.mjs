@@ -24,7 +24,7 @@ const PIPELINE_VERSION = `ea-weekly-report@${require('../package.json').version}
 // 読み込んで渡す。dry-run-week.mjsも同様に渡せる）
 export function buildLedgerFromCollectResult({ collectResult, sourcesConfig, manualEventsConfig, officialsConfig, importanceRules, expectedCoverageConfig, generatedAt, generatedFromCommit, generatedFromCodeHash, previousLedger }) {
   const { targetWeek, report, candidates } = collectResult;
-  const recurringChecksStatus = computeRecurringChecksStatus(report.results, importanceRules, targetWeek);
+  const recurringChecksStatus = computeRecurringChecksStatus(report.results, importanceRules, targetWeek, sourcesConfig);
   const expectedCoverageResult = validateExpectedCoverage(sourcesConfig, officialsConfig, expectedCoverageConfig);
   const recurringMissingWarnings = suppressRepeatRecurringWarnings(
     report.recurringMissingWarnings, importanceRules?.recurring_checks, targetWeek.targetWeekEnd, previousLedger,

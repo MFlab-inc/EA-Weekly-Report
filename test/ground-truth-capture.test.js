@@ -42,16 +42,14 @@ function gt(id) {
   return e;
 }
 
-test('Census(us_census): 貿易収支(8/4)・小売売上高(8/14)が既刊と日時・重要度・名称とも完全一致', async () => {
+test('Census(us_census): 貿易収支(8/4)が既刊と日時・重要度・名称とも完全一致', async () => {
   const { checkWeeklyScrapeSource } = await import('../scripts/checkers/harness.mjs');
   const censusHtml = readFixture('us_census', 'calendar_listview.html');
   const fetchImpl = fixtureFetch({ 'calendar-listview.html': censusHtml });
   const source = sourcesConfig.sources.find((s) => s.id === 'us_census');
 
   const r0804 = await checkWeeklyScrapeSource(source, WEEK_20260803, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
-  const r0814 = await checkWeeklyScrapeSource(source, WEEK_20260810, { fetchImpl, robotsChecker: ALLOW_ROBOTS, eventNames, importanceRules });
   assert.equal(r0804.ok, true);
-  assert.equal(r0814.ok, true);
 
   const trade = r0804.thisWeek.find((c) => c.kind === 'trade_balance');
   const gtTrade = gt('us_trade_20260804');
@@ -59,11 +57,28 @@ test('Census(us_census): 貿易収支(8/4)・小売売上高(8/14)が既刊と�
   assert.equal(trade.time, gtTrade.time);
   assert.equal(trade.displayName, '貿易収支');
   assert.equal(trade.importance, gtTrade.stars);
+});
 
-  const retail = r0814.thisWeek.find((c) => c.kind === 'retail_sales');
+// 2026-10-12改訂（しょうさん指摘、10/12週の米小売売上高欠落インシデントのフォローアップ）:
+// retail_salesの担当はus_census（weekly_scrape）からus_census_retail_sales
+// （annual_schedule_config、Census公式の年間発表予定）へ切り替えたため、小売売上高(8/14)の
+// 既刊ground truth一致確認はこちらのソース・経路（checkAnnualScheduleSource→
+// annualEntryToCandidate）で検証する
+test('Census(us_census_retail_sales): 小売売上高(8/14)が既刊と日時・重要度・名称とも完全一致（annual_schedule_config経由）', async () => {
+  const { checkAnnualScheduleSource } = await import('../scripts/checkers/harness.mjs');
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = sourcesConfig.sources.find((s) => s.id === 'us_census_retail_sales');
+  assert.ok(source, 'us_census_retail_salesがconfig/official-sources.jsonに登録されていない');
+
+  const r0814 = checkAnnualScheduleSource(source, WEEK_20260810);
+  assert.equal(r0814.ok, true);
+  assert.equal(r0814.matchedEntries.length, 1, '2026-08-14が対象週（8/10週）のscheduleに1件登録されている必要がある');
+
+  const retail = annualEntryToCandidate(r0814.matchedEntries[0], source, importanceRules, eventNames);
   const gtRetail = gt('us-retail-sales-2026-08-14');
   assert.equal(retail.date, gtRetail.date);
   assert.equal(retail.time, gtRetail.time);
+  assert.equal(retail.displayName, gtRetail.name_ja);
   assert.equal(retail.importance, gtRetail.stars);
 });
 
