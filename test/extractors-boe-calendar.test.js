@@ -105,6 +105,34 @@ test('extractBoeCalendar: タイムゾーン表記が無く、説明文の地名
   assert.equal(item.ambiguousTimeRaw, '3pm');
 });
 
+// 2026-10-11新設（しょうさん指摘フォローアップ）: 地名ではなく「Bank of England」等のBOE
+// 関連語のみを根拠に英国時間と判定した場合は、情報用WARN向けのフラグ(ukHintInstitutionalOnly)
+// を立てる。地名（London）も併記されている場合は立てない（Dave Ramsdenの実例と同型）
+test('extractBoeCalendar: 地名が無く「Bank of England」のみが根拠の場合はukHintInstitutionalOnly:trueを立てる', () => {
+  const html = [
+    '<title>Upcoming events - w/b 12 October 2026 and 19 October 2026</title>',
+    '<div class="page-content">',
+    '<h3>Monday 12 October</h3>',
+    '<p>Someone Else: <a href="/speech">Speech co-hosted with the Bank of England</a> (3pm)</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-10-12' } });
+  assert.equal(r.ok, true);
+  const item = r.items.find((i) => i.speakerLastName === 'Someone Else');
+  assert.ok(item, JSON.stringify(r.items));
+  assert.equal(item.localTime, '15:00');
+  assert.equal(item.timeAmbiguous, undefined);
+  assert.equal(item.ukHintInstitutionalOnly, true);
+});
+
+test('extractBoeCalendar: 「Bank of England」と地名（London）が両方ある場合はukHintInstitutionalOnlyを立てない（Dave Ramsdenの実例と同型）', () => {
+  const r = extractBoeCalendar(fx(), { targetWeek: { targetWeekStart: '2026-09-28' } });
+  const ramsden = r.items.find((i) => i.speakerLastName === 'Dave Ramsden');
+  assert.ok(ramsden, JSON.stringify(r.items));
+  assert.equal(ramsden.ukHintInstitutionalOnly, undefined);
+});
+
 // 2026-10-10追加（しょうさん指摘: BOEの予定ページで、海外会場での発言にBST等のタイムゾーンを
 // 明記する運用が確認できた一方、明記が無い項目はロンドン時間として推測変換されていた）
 test('extractBoeCalendar: 括弧内に「BST」の明記がある項目は時刻確定として扱う（バンコクIMF年次総会関連の実例と同型）', () => {

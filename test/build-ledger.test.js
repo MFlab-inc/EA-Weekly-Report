@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, resolveOfficialSpeechImportance, filterUnregisteredSpeakers, checkTimeAmbiguousWarning, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
+const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, resolveOfficialSpeechImportance, filterUnregisteredSpeakers, checkTimeAmbiguousWarning, checkInstitutionalHintOnlyWarning, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
 const { validateLedger } = require('../scripts/lib/validate-ledger');
 
 const officials = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'officials.json'), 'utf8')).officials;
@@ -310,6 +310,21 @@ test('checkTimeAmbiguousWarning: 話者名未設定（speakerLastName null）で
   assert.match(w, /\(話者不明\)/);
 });
 
+// 2026-10-11新設（しょうさん指摘フォローアップ）: 地名ではなく「Bank of England」等のBOE関連語
+// のみを根拠に英国時間と判定した候補への情報用WARN
+test('checkInstitutionalHintOnlyWarning: ukHintInstitutionalOnly=trueの候補は話者名・日付を含む情報WARNを返す', () => {
+  const w = checkInstitutionalHintOnlyWarning({ sourceId: 'gb_boe_calendar', speakerLastName: 'Someone Else', date: '2026-10-12', ukHintInstitutionalOnly: true });
+  assert.match(w, /gb_boe_calendar/);
+  assert.match(w, /Someone Else/);
+  assert.match(w, /2026-10-12/);
+  assert.match(w, /Bank of England/);
+});
+
+test('checkInstitutionalHintOnlyWarning: ukHintInstitutionalOnlyが無い（false/undefined）候補はnullを返す', () => {
+  assert.equal(checkInstitutionalHintOnlyWarning({ sourceId: 'gb_boe_calendar', ukHintInstitutionalOnly: false }), null);
+  assert.equal(checkInstitutionalHintOnlyWarning({ sourceId: 'gb_boe_calendar' }), null);
+});
+
 // buildLedger()を通した統合テスト: timeAmbiguousな候補が最終的にtime_status=unpublished・
 // halt_window無し（停止目安の計算対象外）のイベントとしてそのまま掲載され、meta.warningsに
 // タイムゾーン未確定WARNが載ることを確認する
@@ -471,6 +486,36 @@ test('candidateToLedgerEvent: importance=2はhalt_windowを計算しない', () 
   const ev = candidateToLedgerEvent(candidate, used);
   assert.equal(ev.halt_window_start_jst, null);
   assert.equal(ev.halt_window_end_jst, null);
+});
+
+// 2026-10-11新設（しょうさん指示: 週末スピルオーバー。Katharine Braddick副総裁の10/23金21:00
+// BST＝JST10/24土05:00の実例）。harness.mjsがisWeekendSpillover:trueを付けた候補は、
+// is_weekend_spillover:trueとして台帳へ記録され、halt_windowはcandidate.date（真の日付＝土）を
+// 基準に計算されるため金曜側へ正しく跨る
+test('candidateToLedgerEvent: isWeekendSpillover=trueの候補はis_weekend_spillover:trueを記録し、halt_windowは金曜側へ跨って計算される', () => {
+  const used = new Set();
+  const candidate = {
+    date: '2026-10-24', time: '05:00', kind: 'official_speech', country: 'GB', importance: 3,
+    displayName: null, sourceId: 'gb_boe_calendar', sourceEvidence: 'BOE events/upcoming-events',
+    speakerLastName: 'Katharine Braddick', isWeekendSpillover: true,
+  };
+  const ev = candidateToLedgerEvent(candidate, used);
+  assert.equal(ev.is_weekend_spillover, true);
+  assert.equal(ev.date_jst, '2026-10-24');
+  assert.equal(ev.time_status, 'published');
+  assert.equal(ev.halt_window_start_jst, '2026-10-23T17:00:00+09:00'); // 05:00-12h=前日17:00（金曜）
+  assert.equal(ev.halt_window_end_jst, '2026-10-24T01:00:00+09:00'); // 05:00-4h=当日01:00（土曜）
+});
+
+test('candidateToLedgerEvent: isWeekendSpilloverが無い通常の候補はis_weekend_spillover:falseになる', () => {
+  const used = new Set();
+  const candidate = {
+    date: '2026-10-20', time: '18:00', kind: 'official_speech', country: 'GB', importance: 3,
+    displayName: null, sourceId: 'gb_boe_calendar', sourceEvidence: 'BOE events/upcoming-events',
+    speakerLastName: 'Megan Greene',
+  };
+  const ev = candidateToLedgerEvent(candidate, used);
+  assert.equal(ev.is_weekend_spillover, false);
 });
 
 function syntheticReport(overrides = {}) {

@@ -110,6 +110,10 @@ function resolveCandidateEvent(row, ctx) {
     // WARN生成に使う。しょうさん指示2026-10-10）
     timeAmbiguous: Boolean(row.timeAmbiguous),
     ambiguousTimeRaw: row.ambiguousTimeRaw || null,
+    // 地名による根拠が無く「Bank of England」等のBOE関連語のみを根拠に英国時間と確定した行か
+    // どうか（build-ledger.jsのcheckInstitutionalHintOnlyWarningが情報用WARN生成に使う。
+    // しょうさん指示2026-10-11フォローアップ）
+    ukHintInstitutionalOnly: Boolean(row.ukHintInstitutionalOnly),
   };
 }
 

@@ -22,6 +22,7 @@ import { decideRunOutcome, isExpectedThisWeek, checkResidualMonitoring, checkRec
 import { matchesRecurringRule } from '../lib/recurring-rules.js';
 import { createRobotsChecker } from '../lib/robots.js';
 import { resolveCandidateEvent, resolveKindCandidates } from '../lib/resolve-candidate.js';
+import { weekendSpilloverCutoffJst } from '../lib/tz-convert.js';
 import { extractCensusCalendar } from './extractors/census.js';
 import { extractAbsCalendar } from './extractors/abs.js';
 import { extractOnsReleases } from './extractors/ons.js';
@@ -258,7 +259,7 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     // ここで渡し忘れるとrowに付いていても後段に伝わらない（2026-10-11に発覚・修正）
     toRow: (r) => ({
       title: r.title, date: r.date, localTime: r.localTime, kind: 'official_speech', speakerLastName: r.speakerLastName,
-      timeAmbiguous: r.timeAmbiguous, ambiguousTimeRaw: r.ambiguousTimeRaw,
+      timeAmbiguous: r.timeAmbiguous, ambiguousTimeRaw: r.ambiguousTimeRaw, ukHintInstitutionalOnly: r.ukHintInstitutionalOnly,
     }),
   },
   // BOC/RBA/ECB/SNB講演: task #72（2026-09-19）で新設。いずれもpubDate/dc:date/cb:occurrenceDateが
@@ -604,7 +605,19 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
     };
   }
 
-  const thisWeek = candidates.filter((c) => isWithinWeek(c.date, targetWeek.targetWeekStart, targetWeek.targetWeekEnd));
+  // 週末スピルオーバー（しょうさん指示2026-10-11）: 対象週は日本時間の月〜金だが、金曜の取引時間
+  // （ニューヨーク市場クローズ＝金17:00現地時間まで）にかかる発表は、JST換算すると対象週の金曜の
+  // 翌日（土）早朝になることがある（例: BOE副総裁の金21:00 BST講演＝JST土05:00）。これを
+  // isWithinWeekだけで除外すると、金曜の停止目安に関わる★★★発表が週をまたいで丸ごと
+  // 取りこぼされる。対象週の金曜（JST）からNY金17:00のJST換算時刻までの候補を追加で含め、
+  // isWeekendSpilloverフラグを立てる（build-ledger.js・レンダラー側がこのフラグを使って
+  // 金曜カードへの「▲翌日」表示に振り分ける）。時刻未確定（candidate.time===null）の候補は
+  // 推測で含めない
+  const spilloverCutoff = weekendSpilloverCutoffJst(targetWeek.targetWeekEnd);
+  const thisWeek = candidates
+    .filter((c) => isWithinWeek(c.date, targetWeek.targetWeekStart, targetWeek.targetWeekEnd)
+      || (c.time && c.date === spilloverCutoff.date && c.time <= spilloverCutoff.time))
+    .map((c) => (c.date === spilloverCutoff.date ? { ...c, isWeekendSpillover: true } : c));
 
   return {
     ok: true,

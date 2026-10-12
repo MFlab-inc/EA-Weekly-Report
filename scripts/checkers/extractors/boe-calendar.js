@@ -64,16 +64,21 @@
 // 誤判定リスクをむしろ高めるため、本抽出器はカレンダーページ自身の説明文のみで判定する
 // （しょうさん報告・承認済み、2026-10-11）。
 //
-// UK_PLACE_HINTSは既知の英国内地名・BOE関連語の一覧（完全な網羅ではない。新しい地名が
-// 出てきた場合は追記すること）。時刻未確定の行はlocalTime:nullかつtimeAmbiguous:true・
-// ambiguousTimeRaw（元の時刻表記）を持つ形でitemsに含める（除外はしない。
+// UK_GEOGRAPHIC_HINTS/UK_INSTITUTIONAL_HINTSは既知の英国内地名・BOE関連語の一覧（完全な
+// 網羅ではない。新しい地名が出てきた場合は追記すること）。時刻未確定の行はlocalTime:nullかつ
+// timeAmbiguous:true・ambiguousTimeRaw（元の時刻表記）を持つ形でitemsに含める（除外はしない。
 // resolveCandidateEvent/build-ledger.js側でtime_status=unpublished・停止目安[halt_window]
 // 対象外・WARN付きのイベントとして扱われる）。
-
-// 英国内と判断する手がかり（2026-10-11新設）。完全な網羅ではなく既知の地名・BOE関連語のみ。
-// 新しい地名（例: 新しい開催都市）が出てきたら追記すること
-const UK_PLACE_HINTS = [
-  'london', 'bank of england', 'threadneedle street',
+//
+// 地名（UK_GEOGRAPHIC_HINTS）とBOE関連語（UK_INSTITUTIONAL_HINTS）を分けている理由
+// （しょうさん指示2026-10-11フォローアップ）: 「Bank of England」等のBOE関連語だけを根拠に
+// 英国時間と判定すると、海外開催のイベントの説明文にたまたまBOEへの言及が含まれるだけで
+// 誤って英国時間と判定するリスクが地名による判定より高い（地名は会場そのものを指すのに対し、
+// BOE関連語は会場ではなく主催・言及先を指す場合があるため）。地名による根拠が無く、BOE関連語
+// のみで確定した項目には情報用WARNを出す（ukHintInstitutionalOnly、build-ledger.js
+// checkInstitutionalHintOnlyWarning参照）。確定自体は変えない（掲載・停止目安は従来どおり）
+const UK_GEOGRAPHIC_HINTS = [
+  'london',
   'edinburgh', 'glasgow', 'cardiff', 'belfast', 'birmingham', 'manchester',
   'liverpool', 'leeds', 'bristol', 'newcastle', 'coventry', 'nottingham',
   'sheffield', 'oxford', 'cambridge', 'cotswolds',
@@ -81,10 +86,20 @@ const UK_PLACE_HINTS = [
   'united kingdom', 'great britain',
   'england', 'scotland', 'wales', 'northern ireland',
 ];
+const UK_INSTITUTIONAL_HINTS = ['bank of england', 'threadneedle street'];
 
-function hasUkPlaceHint(text) {
+function hasGeographicHint(text) {
+  let lower = text.toLowerCase();
+  // 「Bank of England」はUK_GEOGRAPHIC_HINTSの'england'を部分文字列として含んでしまうため、
+  // 先にBOE関連語の一致箇所を取り除いてから地名判定する（「Bank of England」のみの説明文が
+  // 誤って地名ありと判定されるのを防ぐ。しょうさん指示2026-10-11フォローアップで発覚）
+  for (const k of UK_INSTITUTIONAL_HINTS) lower = lower.split(k).join(' ');
+  return UK_GEOGRAPHIC_HINTS.some((k) => lower.includes(k));
+}
+
+function hasInstitutionalHint(text) {
   const lower = text.toLowerCase();
-  return UK_PLACE_HINTS.some((k) => lower.includes(k));
+  return UK_INSTITUTIONAL_HINTS.some((k) => lower.includes(k));
 }
 
 const MONTHS = {
@@ -254,14 +269,19 @@ function extractBoeCalendar(html, ctx) {
       const localTime = parseBoeCalendarTime(timeMatches[0][0]);
       if (!localTime) continue;
       const hasTzMarker = /\b(?:BST|GMT)\b/i.test(parenContent);
-      if (hasTzMarker || hasUkPlaceHint(chunkText)) {
+      const hasGeoHint = hasGeographicHint(chunkText);
+      const hasInstHint = hasInstitutionalHint(chunkText);
+      if (hasTzMarker || hasGeoHint || hasInstHint) {
         // 1) タイムゾーン明記あり、または 2) 明記は無いが説明文に英国内の地名・BOE主催を
-        // 示す語がある → 英国時間として確定する（上記コメント参照、しょうさん指示2026-10-11）
+        // 示す語がある → 英国時間として確定する（上記コメント参照、しょうさん指示2026-10-11）。
+        // 地名による根拠が無くBOE関連語のみで確定した場合はukHintInstitutionalOnly:trueを
+        // 付け、build-ledger.js側で情報用WARNを出す（しょうさん指示2026-10-11フォローアップ）
         items.push({
           date: currentDate,
           localTime,
           speakerLastName: speakerM[1].trim(),
           title: chunkText,
+          ...(!hasTzMarker && !hasGeoHint && hasInstHint ? { ukHintInstitutionalOnly: true } : {}),
         });
       } else {
         // 3) タイムゾーン明記が無く、英国内と判断できる手がかりも説明文に無い → 推測せず
