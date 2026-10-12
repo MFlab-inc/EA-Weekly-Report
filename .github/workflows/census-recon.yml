@@ -5,6 +5,14 @@
 name: census-recon
 on:
   workflow_dispatch:
+  # workflow_dispatchはワークフローファイルがデフォルトブランチに存在しないとAPI経由で
+  # 起動できない（本ブランチはまだmainに未マージのため404になる）。このファイル自体の追加
+  # pushで初回実行できるよう、該当パス限定のpushトリガーも併用する
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths:
+      - '.github/workflows/census-recon.yml'
+      - 'scripts/phase1/census-recon-2026-10-12.mjs'
 jobs:
   recon:
     runs-on: ubuntu-latest
