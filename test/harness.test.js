@@ -847,6 +847,68 @@ test('runChecks: 12月週でau_absがGDPを検出できない場合はrecurring_
   assert.ok(report.recurringMissingWarnings.some((w) => w.includes('豪州GDP（ABS）')));
 });
 
+// 2026-10-12追加（しょうさん指摘の実インシデント回帰テスト）: 10/12週（9月分、10/15発表の
+// 米小売売上高★★★）で、us_censusのcalendar-listview.htmlが抽出自体は成功（ok:true）しつつ
+// 対象週に該当する行を1件も検出できず（extractor_result_count=0相当）、recurring_check_refsも
+// 当時空だったため無警告のまま欠落した。中国PMI・au_absと同じsourceId指定のrecurring_checksで
+// この種の「ok:trueだが対象週の該当行が無い」ケースも可視化できることを確認する
+test('runChecks: us_censusが対象週のretail_salesを検出できない週はrecurring_checks経由でWARN可視化する（10/12週の実インシデント回帰）', async () => {
+  const { runChecks } = await loadHarness();
+  // retail_sales/trade_balanceとは無関係な行のみ（抽出自体は成功するcalendar-listview.html）
+  const html = `<tr height="20"><td height="20"><a href="/construction/nrc">New Residential Construction</a></td><td sorttable_customkey="202610200830">October 20, 2026</td><td>8:30 AM</td><td>September 2026</td></tr>`;
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'us_census', status: 'active', country: 'US', kinds: ['retail_sales', 'trade_balance'], type: 'weekly_scrape',
+        access: { targets: [{ label: 'calendar_listview', url: 'https://example.invalid/census' }] },
+        announce_time_by_kind: { retail_sales: { local_time: '08:30', tz: 'America/New_York' }, trade_balance: { local_time: '08:30', tz: 'America/New_York' } },
+        recurring_check_refs: [],
+      },
+    ],
+  };
+  const importanceRules = { recurring_checks: [{ name: '米小売売上高', rule: '毎月中旬', action: 'WARN' }] };
+  const targetWeek = {
+    collectionDate: '2026-10-10', targetWeekStart: '2026-10-12', targetWeekEnd: '2026-10-16',
+    dates: [
+      { date: '2026-10-12', md: '10/12', weekday: '月' }, { date: '2026-10-13', md: '10/13', weekday: '火' },
+      { date: '2026-10-14', md: '10/14', weekday: '水' }, { date: '2026-10-15', md: '10/15', weekday: '木' },
+      { date: '2026-10-16', md: '10/16', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.outcome.status, 'OK', 'us_census自体はok:trueのためHOLDにはならない');
+  assert.equal(report.recurringMissingWarnings.length, 1);
+  assert.ok(report.recurringMissingWarnings.some((w) => w.includes('米小売売上高')));
+});
+
+test('runChecks: us_censusが対象週でretail_salesを検出できた場合はWARNが出ない（偽陽性防止）', async () => {
+  const { runChecks } = await loadHarness();
+  const html = `<tr height="20"><td height="20"><a href="/retail">Advance Monthly Sales for Retail and Food Services</a></td><td sorttable_customkey="202610150830">October 15, 2026</td><td>8:30 AM</td><td>September 2026</td></tr>`;
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'us_census', status: 'active', country: 'US', kinds: ['retail_sales', 'trade_balance'], type: 'weekly_scrape',
+        access: { targets: [{ label: 'calendar_listview', url: 'https://example.invalid/census' }] },
+        announce_time_by_kind: { retail_sales: { local_time: '08:30', tz: 'America/New_York' }, trade_balance: { local_time: '08:30', tz: 'America/New_York' } },
+        recurring_check_refs: [],
+      },
+    ],
+  };
+  const importanceRules = { recurring_checks: [{ name: '米小売売上高', rule: '毎月中旬', action: 'WARN' }] };
+  const targetWeek = {
+    collectionDate: '2026-10-10', targetWeekStart: '2026-10-12', targetWeekEnd: '2026-10-16',
+    dates: [
+      { date: '2026-10-12', md: '10/12', weekday: '月' }, { date: '2026-10-13', md: '10/13', weekday: '火' },
+      { date: '2026-10-14', md: '10/14', weekday: '水' }, { date: '2026-10-15', md: '10/15', weekday: '木' },
+      { date: '2026-10-16', md: '10/16', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
+});
+
 // 2026-09-19追加（しょうさん指摘、9/21週監査で発覚した実バグの回帰テスト）: au_absの
 // future-releases-calendarに「Australian National Accounts: Finance and Wealth」
 // （家計・法人の資産・負債＝国富統計。GDPとは別のABSリリース）が掲載されている場合、
