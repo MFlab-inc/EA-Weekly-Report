@@ -728,6 +728,9 @@ export async function runChecks({ sourcesConfig, importanceRules, eventNames, ta
     .filter((r) => !r.skipped && !r.ok)
     .map((r) => ({
       sourceId: r.id,
+      // 2026-10-12追加（しょうさん指摘）: decideRunOutcome()のWARN/HOLD文言へ個別ソースの
+      // 失敗理由を含められるようにする（us_censusセンチネルの「別の年を表示している疑い」等）
+      reason: r.reason,
       expected: isExpectedThisWeek({
         annualConfigHasTargetWeek: r.annualConfigHasTargetWeek,
         recurringCheckMatches: r.recurringCheckMatches,

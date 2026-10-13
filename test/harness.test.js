@@ -1057,6 +1057,10 @@ test('runChecks: us_censusのページが別の年（2027年）のみを表示�
   assert.match(usCensusResult.reason, /別の年を表示している疑い/);
   // kinds:[]のためisExpectedThisWeekはfalseになり、単独失敗ならWARNに留まる（HOLDにしない）
   assert.equal(report.outcome.status, 'WARN');
+  // 2026-10-12追加（しょうさん指摘: 土曜監査がこのWARNを毎回「要確認」として扱わずに済むよう、
+  // 小売売上高・貿易収支への影響が無いことをWARN文言自体に明記する）。meta.warningsへそのまま
+  // 載るreport.outcome.reasonsに、この説明文が実際に含まれることを確認する
+  assert.match(report.outcome.reasons[0], /小売売上高・貿易収支は年間予定（us_census_retail_sales／us_census_trade_balance）から取得済みのため掲載への影響なし/);
 });
 
 // 2026-09-19追加（しょうさん指摘、9/21週監査で発覚した実バグの回帰テスト）: au_absの
