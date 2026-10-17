@@ -87,6 +87,7 @@
       "tz": "Europe/London",
       "country": "GB",
       "kind": "official_speech",
+      "speaker_last_name": "Andrew Bailey",
       "display_name": "ベイリーBOE総裁の発言",
       "importance": 3,
       "source_note": "2026-10-17、10/19週パイプライン失敗（weekly-report run #49/#50、Issue #50）の原因調査にて発覚。gb_boe_calendar（events/upcoming-events）が構造的失敗を起こした: ページ<title>がw/b 17 October 2026 and 26 October 2026（9日間隔）を宣言しており、抽出器の『表示ウィンドウの2週は必ず7日間隔』という前提（2026-09-26実測で確立・以後も妥当）が崩れていた。GitHub Actions経由で同ページの生データを直接確認（User-Agentは本番harness.mjsと同じ自己開示UA、偽装なし）したところ、実際の予定一覧には対象週(2026-10-19〜23)分も正しく掲載されていた。該当行: 『Andrew Bailey: Fireside Chat at OMFIF, \"Central bank independence in an era of financial instability\", London , (2pm).』（見出し日付と対応する暦日=2026-10-21・水曜）。officials.jsonでBOE総裁（governor・★★★）と確認済み。表示ウィンドウの宣言文自体が通常と異なる一度限りの状態か恒常的な変化かは1回の観測だけでは未確認（2026-09-26の実測では正常な7日間隔だったため、少なくとも一時的な逸脱である可能性が高い）。抽出器の安全チェック自体は変更せず（サイト側の前提逸脱を正しく検知しているため）、本件は対象週限定の手動バックストップとして登録する",
@@ -100,10 +101,25 @@
       "tz": "Europe/London",
       "country": "GB",
       "kind": "official_speech",
+      "speaker_last_name": "Katharine Braddick",
       "display_name": "ブラディックBOE副総裁（プルーデンス規制担当）の発言",
       "importance": 3,
       "source_note": "2026-10-17、gb-speech-bailey-2026-10-21と同じ調査・同じ実データ確認。該当行: 『Katharine Braddick: Mansion House, City Regulators Dinner, London , (9pm).』（見出し日付と対応する暦日=2026-10-22・木曜）。officials.jsonでBOE副総裁（プルーデンス規制担当・deputy_governor・★★★）と確認済み",
       "registered_by": "Claude Code（GitHub Actions実データ確認済み。要しょうさん確認）",
+      "registered_at": "2026-10-17"
+    },
+    {
+      "id": "gb-speech-greene-2026-10-20",
+      "date": "2026-10-20",
+      "local_time": "18:00",
+      "tz": "Europe/London",
+      "country": "GB",
+      "kind": "official_speech",
+      "speaker_last_name": "Megan Greene",
+      "display_name": "グリーンBOE金融政策委員会外部委員の発言",
+      "importance": 2,
+      "source_note": "2026-10-17、gb-speech-bailey-2026-10-21と同じ調査・同じ実データ確認（しょうさん指摘、2026-10-17追加登録）。該当行: 『Megan Greene: Speech at LSE Economics Society, London , (6pm).』（見出し日付と対応する暦日=2026-10-20・火曜）。officials.jsonでBOE金融政策委員会外部委員（board_member・★★）と確認済み。同ページの未登録話者（Sasha Mills・David Bailey）は通常運用（SOURCES_REQUIRING_REGISTERED_SPEAKER対象、officials.json未登録は掲載対象外＋WARN）と同じ扱いのため登録しない",
+      "registered_by": "Claude Code（GitHub Actions実データ確認済み、しょうさん指摘により追加。要しょうさん確認）",
       "registered_at": "2026-10-17"
     }
   ]

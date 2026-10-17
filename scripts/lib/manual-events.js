@@ -32,6 +32,14 @@ function validateManualEvents(config) {
       errors.push(`${tag} local_time/tzは両方指定するか両方省略する必要があります（省略時は時刻未定扱い）`);
     }
     if (hasLocalTime && !/^\d{2}:\d{2}$/.test(e.local_time)) errors.push(`${tag} local_timeはHH:MM形式が必須です`);
+    // 2026-10-17新設（しょうさん指摘）: speaker_last_nameは省略可の任意フィールド（official_speech
+    // 系の一時的な手動バックストップが、後日gb_boe_calendar等の自動取得側と重複しないようにする
+    // 二重掲載防止チェック[build-ledger.js filterDuplicateManualCandidates]専用の照合用）。
+    // 指定する場合は自動取得側のspeakerLastName（抽出器が返すフルネーム）と文字列として
+    // 完全一致させる必要がある
+    if (e.speaker_last_name != null && (typeof e.speaker_last_name !== 'string' || !e.speaker_last_name.trim())) {
+      errors.push(`${tag} speaker_last_nameは空でない文字列である必要があります（省略可）`);
+    }
   }
   return errors;
 }
@@ -46,6 +54,10 @@ function manualEntryToCandidate(entry) {
     importance: entry.importance,
     displayName: entry.display_name,
     sourceId: 'manual',
+    // 2026-10-17新設（しょうさん指摘、二重掲載防止）: build-ledger.jsのfilterDuplicateManualCandidatesが
+    // 自動取得側のspeakerLastNameと照合するための任意フィールド。未指定ならnull（従来どおり
+    // 常に掲載され、二重掲載チェックの対象にはならない）
+    speakerLastName: entry.speaker_last_name || null,
     note: entry.source_note,
     sourceEvidence: entry.source_note,
     localDate: entry.date,
