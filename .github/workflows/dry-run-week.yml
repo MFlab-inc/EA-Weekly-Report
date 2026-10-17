@@ -19,7 +19,11 @@ on:
         required: false
 jobs:
   dry-run:
-    runs-on: ubuntu-latest
+    # 2026-10-17固定（しょうさん指摘: GitHub通知「The ubuntu-latest label will migrate to
+    # Ubuntu 26 beginning October 19, 2026」）。weekly.ymlのbuildジョブと同じ理由
+    # （npx playwright install --with-deps chromiumがOS未対応で依存パッケージを
+    # 取得し損なう恐れ）。詳細はweekly.yml buildジョブのコメント参照
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
