@@ -402,10 +402,36 @@ function checkInstitutionalHintOnlyWarning(candidate) {
   return `${candidate.sourceId}: 地名ではなく「Bank of England」等の語のみを根拠に英国時間と判定した（情報WARN、海外開催の言及混入の可能性を確認してください）: speaker="${speaker}" date=${candidate.date}`;
 }
 
+// 2026-10-17新設（しょうさん指摘、10/19週インシデントのフォローアップ）: gb_boe_calendarが
+// 構造的失敗を起こした週の一時的な手動バックストップ（manual-events.json、speaker_last_name付き）を、
+// 後日gb_boe_calendarが復旧した状態で再実行すると、自動取得側にも同じ発言が候補化され二重掲載になる
+// （buildObservationSummaryはmanual候補を重複確認なしで追加するため）。manual側のofficial_speech候補が
+// 自動取得側の候補と「国・kind・JST日時（date+time）・話者（speakerLastName）」全て一致する場合、
+// manual側を除外し情報WARNを出す。speaker_last_name未指定のmanualエントリ（従来の大多数・突発会見等）は
+// 対象外のまま常に掲載する（後方互換）。現時点ではofficial_speechのみを対象とする
+function filterDuplicateManualCandidates(candidates) {
+  const warnings = [];
+  const autoCandidates = candidates.filter((c) => c.sourceId !== 'manual');
+  const kept = candidates.filter((c) => {
+    if (c.sourceId !== 'manual' || c.kind !== 'official_speech' || !c.speakerLastName) return true;
+    const dup = autoCandidates.find((a) =>
+      a.kind === c.kind && a.country === c.country && a.date === c.date &&
+      a.time && c.time && a.time === c.time && a.speakerLastName === c.speakerLastName
+    );
+    if (!dup) return true;
+    warnings.push(
+      `二重掲載防止: manual-events.jsonのエントリ（speaker="${c.speakerLastName}" country=${c.country} date=${c.date} time=${c.time}）が自動取得(${dup.sourceId})と重複するため、manual側を掲載から除外した`
+    );
+    return false;
+  });
+  return { kept, warnings };
+}
+
 function buildEventsSection(candidates, officials) {
   const usedIds = new Set();
-  const { kept, warnings: filterWarnings } = filterUnregisteredSpeakers(candidates, officials);
-  const warnings = [...filterWarnings];
+  const { kept: deduped, warnings: dedupWarnings } = filterDuplicateManualCandidates(candidates);
+  const { kept, warnings: filterWarnings } = filterUnregisteredSpeakers(deduped, officials);
+  const warnings = [...dedupWarnings, ...filterWarnings];
   const adjusted = kept.map((c) => {
     const timeAmbiguousWarning = checkTimeAmbiguousWarning(c, officials);
     if (timeAmbiguousWarning) warnings.push(timeAmbiguousWarning);
@@ -518,6 +544,7 @@ module.exports = {
   resolveRuleGeneratedName,
   resolveOfficialSpeechImportance,
   filterUnregisteredSpeakers,
+  filterDuplicateManualCandidates,
   checkTimeAmbiguousWarning,
   checkInstitutionalHintOnlyWarning,
   computeBundleIds,

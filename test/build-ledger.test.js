@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, resolveOfficialSpeechImportance, filterUnregisteredSpeakers, checkTimeAmbiguousWarning, checkInstitutionalHintOnlyWarning, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
+const { buildLedger, candidateToLedgerEvent, resolveRuleGeneratedName, resolveOfficialSpeechImportance, filterUnregisteredSpeakers, filterDuplicateManualCandidates, checkTimeAmbiguousWarning, checkInstitutionalHintOnlyWarning, computeBundleIds, makeEventId, minutesToJstIso } = require('../scripts/lib/build-ledger');
 const { validateLedger } = require('../scripts/lib/validate-ledger');
 
 const officials = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'officials.json'), 'utf8')).officials;
@@ -255,6 +255,87 @@ test('filterUnregisteredSpeakers: 話者未指定（speakerLastName null）のgb
   const { kept, warnings } = filterUnregisteredSpeakers(candidates, officials);
   assert.deepEqual(kept, []);
   assert.match(warnings[0], /\(話者不明\)/);
+});
+
+// filterDuplicateManualCandidates: 2026-10-17新設（しょうさん指摘、10/19週インシデントの
+// フォローアップ）。gb_boe_calendarが構造的失敗を起こした週の一時的なmanualバックストップ
+// （speaker_last_name付き）が、同じ週に自動取得側（gb_boe_calendar）が復旧して同じ発言を
+// 候補化した場合、二重掲載にならないことを確認する
+test('filterDuplicateManualCandidates: 国・kind・JST日時・話者が全て一致する自動取得候補があればmanual側を除外し情報WARNを出す', () => {
+  const candidates = [
+    { kind: 'official_speech', country: 'GB', sourceId: 'manual', speakerLastName: 'Andrew Bailey', date: '2026-10-21', time: '22:00', importance: 3 },
+    { kind: 'official_speech', country: 'GB', sourceId: 'gb_boe_calendar', speakerLastName: 'Andrew Bailey', date: '2026-10-21', time: '22:00', importance: 3 },
+  ];
+  const { kept, warnings } = filterDuplicateManualCandidates(candidates);
+  assert.deepEqual(kept.map((c) => c.sourceId), ['gb_boe_calendar']);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /二重掲載防止/);
+  assert.match(warnings[0], /Andrew Bailey/);
+  assert.match(warnings[0], /gb_boe_calendar/);
+});
+
+test('filterDuplicateManualCandidates: 話者が異なれば重複とみなさず両方残す（同日同時刻でも）', () => {
+  const candidates = [
+    { kind: 'official_speech', country: 'GB', sourceId: 'manual', speakerLastName: 'Andrew Bailey', date: '2026-10-21', time: '22:00', importance: 3 },
+    { kind: 'official_speech', country: 'GB', sourceId: 'gb_boe_calendar', speakerLastName: 'Katharine Braddick', date: '2026-10-21', time: '22:00', importance: 3 },
+  ];
+  const { kept, warnings } = filterDuplicateManualCandidates(candidates);
+  assert.equal(kept.length, 2);
+  assert.deepEqual(warnings, []);
+});
+
+test('filterDuplicateManualCandidates: 日時・国いずれかが異なれば重複とみなさない', () => {
+  const sameSpeakerDifferentDate = [
+    { kind: 'official_speech', country: 'GB', sourceId: 'manual', speakerLastName: 'Andrew Bailey', date: '2026-10-21', time: '22:00', importance: 3 },
+    { kind: 'official_speech', country: 'GB', sourceId: 'gb_boe_calendar', speakerLastName: 'Andrew Bailey', date: '2026-10-22', time: '22:00', importance: 3 },
+  ];
+  assert.equal(filterDuplicateManualCandidates(sameSpeakerDifferentDate).kept.length, 2);
+  const sameSpeakerDifferentCountry = [
+    { kind: 'official_speech', country: 'GB', sourceId: 'manual', speakerLastName: 'Andrew Bailey', date: '2026-10-21', time: '22:00', importance: 3 },
+    { kind: 'official_speech', country: 'US', sourceId: 'us_frb_calendar', speakerLastName: 'Andrew Bailey', date: '2026-10-21', time: '22:00', importance: 3 },
+  ];
+  assert.equal(filterDuplicateManualCandidates(sameSpeakerDifferentCountry).kept.length, 2);
+});
+
+test('filterDuplicateManualCandidates: speaker_last_name未指定（speakerLastName null）のmanual候補は対象外のまま常に残す（既存エントリとの後方互換）', () => {
+  const candidates = [
+    { kind: 'official_speech', country: 'CA', sourceId: 'manual', speakerLastName: null, displayName: 'マックレムBOC総裁の発言', date: '2026-09-21', time: '20:20', importance: 3 },
+    { kind: 'official_speech', country: 'CA', sourceId: 'ca_boc_speeches', speakerLastName: 'Tiff Macklem', date: '2026-09-21', time: '20:20', importance: 3 },
+  ];
+  const { kept, warnings } = filterDuplicateManualCandidates(candidates);
+  assert.equal(kept.length, 2);
+  assert.deepEqual(warnings, []);
+});
+
+test('filterDuplicateManualCandidates: official_speech以外のkindのmanual候補は対象外のまま常に残す', () => {
+  const candidates = [
+    { kind: 'retail_sales', country: 'US', sourceId: 'manual', speakerLastName: null, date: '2026-10-15', time: '21:30', importance: 3 },
+    { kind: 'retail_sales', country: 'US', sourceId: 'us_census', date: '2026-10-15', time: '21:30', importance: 3 },
+  ];
+  const { kept, warnings } = filterDuplicateManualCandidates(candidates);
+  assert.equal(kept.length, 2);
+  assert.deepEqual(warnings, []);
+});
+
+test('buildLedger経由: 二重掲載防止フィルタがfilterUnregisteredSpeakersより前段で効き、最終的なeventsに重複が残らない', () => {
+  const report = {
+    targetWeek: { start: '2026-10-19', end: '2026-10-23' },
+    outcome: { status: 'WARN', reasons: [] },
+    results: [{ id: 'gb_boe_calendar', ok: true, raw_row_count: 7 }],
+    residualWarnings: [], recurringMissingWarnings: [], catalogAuditWarnings: [],
+  };
+  const candidates = [
+    { kind: 'official_speech', country: 'GB', sourceId: 'manual', speakerLastName: 'Andrew Bailey', displayName: 'ベイリーBOE総裁の発言', date: '2026-10-21', time: '22:00', importance: 3, sourceEvidence: 'manual登録' },
+    { kind: 'official_speech', country: 'GB', sourceId: 'gb_boe_calendar', speakerLastName: 'Andrew Bailey', date: '2026-10-21', time: '22:00', importance: 3, sourceEvidence: '自動取得' },
+  ];
+  const ledger = buildLedger({
+    report, sourcesConfig: { sources: [] }, manualEventsConfig: { entries: [] }, officialsConfig: { officials },
+    candidates, expectedCoverageResult: { required: [], missing: [] }, recurringChecksStatus: [],
+    pipelineVersion: 'test', generatedAt: '2026-10-17T00:00:00+09:00',
+  });
+  assert.equal(ledger.events.length, 1);
+  assert.equal(ledger.events[0].source_id, 'gb_boe_calendar');
+  assert.ok(ledger.meta.warnings.some((w) => /二重掲載防止/.test(w)));
 });
 
 // 2026-10-10新設（しょうさん指摘: gb_boe_calendarで海外会場の発言にタイムゾーンの明記が無い行が
