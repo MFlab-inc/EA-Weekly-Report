@@ -1063,6 +1063,84 @@ test('runChecks: us_censusのページが別の年（2027年）のみを表示�
   assert.match(report.outcome.reasons[0], /小売売上高・貿易収支は年間予定（us_census_retail_sales／us_census_trade_balance）から取得済みのため掲載への影響なし/);
 });
 
+// 2026-10-17追加（しょうさん指摘、10/19週パイプライン失敗の実インシデントの回帰テスト）:
+// us_census（structural_health_sentinel、kinds:[]でコンテンツ掲載に寄与しない）の恒常WARNと、
+// コンテンツに寄与する通常ソース1件の失敗が同じ週に同時発生した場合、従来は
+// 「2件以上同時失敗＝無条件HOLD」に格上げされ配信が完全に止まっていた（実際に2026-10-19週で
+// us_census＋gb_boe_calendarの同時失敗により発生）。センチネルの失敗をこのカウントから
+// 除外したことで、通常ソース1件の単独失敗として扱われWARNに留まる（配信は続行される）ことを確認する
+test('runChecks: structural_health_sentinel（us_census）の恒常WARNと通常ソース1件の失敗が同時発生してもHOLDに格上げされずWARNに留まる（10/19週実インシデントの回帰テスト）', async () => {
+  const { runChecks } = await loadHarness();
+  const rows2027 = Array.from({ length: 12 }, (_, i) => {
+    const mm = String(i + 1).padStart(2, '0');
+    return `<tr height="20"><td height="20"><a href="/retail">Advance Monthly Sales for Retail and Food Services</a></td><td sorttable_customkey="2027${mm}150830">2027</td><td>8:30 AM</td><td>2026</td></tr>`;
+  }).join('\n');
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'us_census', status: 'active', country: 'US', kinds: [], structural_health_sentinel: true, type: 'weekly_scrape',
+        access: { targets: [{ label: 'calendar_listview', url: 'https://example.invalid/census' }] },
+        recurring_check_refs: [],
+      },
+      {
+        // 抽出ルール未登録の通常ソース（WEEKLY_SCRAPE_EXTRACTORSに無いid）。structural_health_sentinel
+        // ではないため、コンテンツ掲載に寄与する通常ソースの失敗として扱われる
+        id: 'other_source_unimplemented', status: 'active', country: 'GB', kinds: ['official_speech'], type: 'weekly_scrape',
+        access: { targets: [{ label: 'main', url: 'https://example.invalid/other' }] },
+        recurring_check_refs: [],
+      },
+    ],
+  };
+  const importanceRules = { recurring_checks: [] };
+  const targetWeek = {
+    collectionDate: '2026-10-17', targetWeekStart: '2026-10-19', targetWeekEnd: '2026-10-23',
+    dates: [
+      { date: '2026-10-19', md: '10/19', weekday: '月' }, { date: '2026-10-20', md: '10/20', weekday: '火' },
+      { date: '2026-10-21', md: '10/21', weekday: '水' }, { date: '2026-10-22', md: '10/22', weekday: '木' },
+      { date: '2026-10-23', md: '10/23', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => rows2027 });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.failures.length, 2, '両ソースとも失敗として計上される（WARN文言としては両方残る）');
+  assert.equal(report.outcome.status, 'WARN', 'センチネルを除外すれば通常ソース1件の単独失敗なのでWARNに留まる（従来はHOLDへ格上げされていた）');
+  assert.ok(report.outcome.reasons.some((r) => /other_source_unimplemented/.test(r)));
+});
+
+// 2026-10-17追加: センチネルを同時失敗カウントから除外しても、コンテンツに寄与する通常ソースが
+// 2件以上同時失敗した場合の広域障害フェールクローズ（無条件HOLD）は従来どおり効くことを確認する
+// （安全側の仕組み自体を弱めていないことの回帰テスト）
+test('runChecks: structural_health_sentinelを除外しても、通常ソースが2件以上同時失敗すれば従来どおり無条件HOLDになる', async () => {
+  const { runChecks } = await loadHarness();
+  const sourcesConfig = {
+    sources: [
+      {
+        id: 'other_source_a', status: 'active', country: 'GB', kinds: ['official_speech'], type: 'weekly_scrape',
+        access: { targets: [{ label: 'main', url: 'https://example.invalid/a' }] },
+        recurring_check_refs: [],
+      },
+      {
+        id: 'other_source_b', status: 'active', country: 'GB', kinds: ['official_speech'], type: 'weekly_scrape',
+        access: { targets: [{ label: 'main', url: 'https://example.invalid/b' }] },
+        recurring_check_refs: [],
+      },
+    ],
+  };
+  const importanceRules = { recurring_checks: [] };
+  const targetWeek = {
+    collectionDate: '2026-10-17', targetWeekStart: '2026-10-19', targetWeekEnd: '2026-10-23',
+    dates: [
+      { date: '2026-10-19', md: '10/19', weekday: '月' }, { date: '2026-10-20', md: '10/20', weekday: '火' },
+      { date: '2026-10-21', md: '10/21', weekday: '水' }, { date: '2026-10-22', md: '10/22', weekday: '木' },
+      { date: '2026-10-23', md: '10/23', weekday: '金' },
+    ],
+  };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => '<html>no rows</html>' });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.outcome.status, 'HOLD');
+  assert.match(report.outcome.reasons[0], /判定不能/);
+});
+
 // 2026-09-19追加（しょうさん指摘、9/21週監査で発覚した実バグの回帰テスト）: au_absの
 // future-releases-calendarに「Australian National Accounts: Finance and Wealth」
 // （家計・法人の資産・負債＝国富統計。GDPとは別のABSリリース）が掲載されている場合、

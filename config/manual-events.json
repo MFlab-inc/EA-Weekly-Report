@@ -79,6 +79,32 @@
       "source_note": "2026-10-12、しょうさん指摘: 公開済みの10/12週レポートに米小売売上高（9月分、10/15発表）が欠落していたことが判明。Census公式の発表予定ページ https://www.census.gov/retail/release_schedule.html で2026-10-15 8:30 ET（=21:30 JST）の『Advance Monthly Sales for Retail and Food Services』（9月分）を確認し、この時刻・対象期間で登録する。原因調査: 担当ソースus_census（calendar-listview.html）が2026-10-10の生成時点でこの週のretail_sales/trade_balanceを1件も検出できず（extractor_result_count=0）、無警告のまま欠落した。再現テストでは、この同じ行（タイトル・日時とも）を現行の抽出・分類コードに通すと正しく2026-10-15 08:30 ET/★★★として検出できることを確認済み（コード側の不具合ではない）。ライブページが生成時点で実際にどう表示されていたかはこの環境からcensus.govへ到達できず直接確認できていない（org policyでegressが拒否される。未確認）。再発防止として、recurring_checksへ「米小売売上高」（us_census×retail_sales）を追加した。他のデータは再収集せず、本エントリの追加のみで10/12週の台帳・HTMLを訂正する（対象週2026-10-12に限定され、date列により翌週以降には影響しない）",
       "registered_by": "Claude Code（しょうさん指摘・Census公式発表予定で裏取り済み。10/12週の訂正登録）",
       "registered_at": "2026-10-12"
+    },
+    {
+      "id": "gb-speech-bailey-2026-10-21",
+      "date": "2026-10-21",
+      "local_time": "14:00",
+      "tz": "Europe/London",
+      "country": "GB",
+      "kind": "official_speech",
+      "display_name": "ベイリーBOE総裁の発言",
+      "importance": 3,
+      "source_note": "2026-10-17、10/19週パイプライン失敗（weekly-report run #49/#50、Issue #50）の原因調査にて発覚。gb_boe_calendar（events/upcoming-events）が構造的失敗を起こした: ページ<title>がw/b 17 October 2026 and 26 October 2026（9日間隔）を宣言しており、抽出器の『表示ウィンドウの2週は必ず7日間隔』という前提（2026-09-26実測で確立・以後も妥当）が崩れていた。GitHub Actions経由で同ページの生データを直接確認（User-Agentは本番harness.mjsと同じ自己開示UA、偽装なし）したところ、実際の予定一覧には対象週(2026-10-19〜23)分も正しく掲載されていた。該当行: 『Andrew Bailey: Fireside Chat at OMFIF, \"Central bank independence in an era of financial instability\", London , (2pm).』（見出し日付と対応する暦日=2026-10-21・水曜）。officials.jsonでBOE総裁（governor・★★★）と確認済み。表示ウィンドウの宣言文自体が通常と異なる一度限りの状態か恒常的な変化かは1回の観測だけでは未確認（2026-09-26の実測では正常な7日間隔だったため、少なくとも一時的な逸脱である可能性が高い）。抽出器の安全チェック自体は変更せず（サイト側の前提逸脱を正しく検知しているため）、本件は対象週限定の手動バックストップとして登録する",
+      "registered_by": "Claude Code（GitHub Actions実データ確認済み。要しょうさん確認）",
+      "registered_at": "2026-10-17"
+    },
+    {
+      "id": "gb-speech-braddick-2026-10-22",
+      "date": "2026-10-22",
+      "local_time": "21:00",
+      "tz": "Europe/London",
+      "country": "GB",
+      "kind": "official_speech",
+      "display_name": "ブラディックBOE副総裁（プルーデンス規制担当）の発言",
+      "importance": 3,
+      "source_note": "2026-10-17、gb-speech-bailey-2026-10-21と同じ調査・同じ実データ確認。該当行: 『Katharine Braddick: Mansion House, City Regulators Dinner, London , (9pm).』（見出し日付と対応する暦日=2026-10-22・木曜）。officials.jsonでBOE副総裁（プルーデンス規制担当・deputy_governor・★★★）と確認済み",
+      "registered_by": "Claude Code（GitHub Actions実データ確認済み。要しょうさん確認）",
+      "registered_at": "2026-10-17"
     }
   ]
 }

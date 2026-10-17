@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isExpectedThisWeek, decideRunOutcome, checkResidualMonitoring, checkRecurringMissing } from '../scripts/lib/fail-closed.js';
+import { isExpectedThisWeek, decideRunOutcome, checkResidualMonitoring, checkRecurringMissing, combineOutcomes } from '../scripts/lib/fail-closed.js';
 
 test('isExpectedThisWeek: いずれのシグナルもfalseならfalse', () => {
   assert.equal(isExpectedThisWeek({}), false);
@@ -99,4 +99,29 @@ test('checkRecurringMissing: 対象週に該当しないルールは無視', () 
   const rules = [{ name: '米CPI', rule: '毎月中旬', action: '...' }];
   const warnings = checkRecurringMissing(rules, {}, () => false, () => false);
   assert.equal(warnings.length, 0);
+});
+
+// combineOutcomes: 2026-10-17新設（しょうさん指摘、10/19週パイプライン失敗対応）。
+// structural_health_sentinel（us_census等）の失敗をdecideRunOutcome()の「2件以上同時失敗」
+// カウントから分離するためharness.mjsが使う。OK<WARN<HOLDの順で最も重い状態を採る
+test('combineOutcomes: 全てOKならOK・reasonsは空', () => {
+  const r = combineOutcomes({ status: 'OK', reasons: [] }, { status: 'OK', reasons: [] });
+  assert.deepEqual(r, { status: 'OK', reasons: [] });
+});
+
+test('combineOutcomes: OK+WARNならWARN・WARN側のreasonsを含む', () => {
+  const r = combineOutcomes({ status: 'OK', reasons: [] }, { status: 'WARN', reasons: ['warn-a'] });
+  assert.equal(r.status, 'WARN');
+  assert.deepEqual(r.reasons, ['warn-a']);
+});
+
+test('combineOutcomes: WARN+HOLDならHOLD・両方のreasonsを連結', () => {
+  const r = combineOutcomes({ status: 'WARN', reasons: ['warn-a'] }, { status: 'HOLD', reasons: ['hold-b'] });
+  assert.equal(r.status, 'HOLD');
+  assert.deepEqual(r.reasons, ['warn-a', 'hold-b']);
+});
+
+test('combineOutcomes: 引数の順序に関わらず最も重い状態になる', () => {
+  const r = combineOutcomes({ status: 'HOLD', reasons: ['hold-a'] }, { status: 'OK', reasons: [] });
+  assert.equal(r.status, 'HOLD');
 });

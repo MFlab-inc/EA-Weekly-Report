@@ -73,4 +73,30 @@ function fmt(d) {
   return d.toISOString().slice(0, 10);
 }
 
-module.exports = { isExpectedThisWeek, decideRunOutcome, checkResidualMonitoring, checkRecurringMissing };
+// 複数のdecideRunOutcome()結果を1つに合成する（2026-10-17新設、しょうさん指摘の10/19週
+// パイプライン失敗対応）。OK<WARN<HOLDの順で最も重い状態を採用し、reasonsは全て連結する。
+// 用途: structural_health_sentinel（us_census等、kinds:[]でコンテンツ掲載に一切寄与しない
+// センチネル専用ソース）の失敗を、decideRunOutcome()の「2件以上同時失敗＝無条件HOLD」判定の
+// カウントに含めないようにするため。harness.mjsのrunChecks()が、failuresをセンチネル分と
+// それ以外（コンテンツ掲載に寄与する通常ソース）に分けてそれぞれdecideRunOutcome()にかけ、
+// 本関数で合成する。理由: us_censusはPR #48でretail_sales/trade_balanceの担当を年次
+// schedule（us_census_retail_sales/us_census_trade_balance）側へ完全移管済みのため、
+// us_census自身が失敗してもコンテンツ欠落リスクは無い。しかし年末まで毎週恒常的に失敗する
+// 設計（「別の年を表示している疑い」WARN）のため、他のソースがどれか1つでも同時に失敗すると
+// 「2件以上同時失敗」にカウントされ、本来なら単独WARNで済むはずの失敗が無条件HOLD（配信停止）に
+// 格上げされてしまう（2026-10-19週で実際に発生: us_census＋gb_boe_calendarの同時失敗）。
+// センチネルを合成対象の「同時失敗カウント」から除外することで、コンテンツに実害のある
+// 広域障害（通常ソース側の2件以上同時失敗）に対するフェールクローズ自体は従来どおり効かせつつ、
+// センチネル固有の恒常WARNが無関係の失敗と結託して誤ってHOLD化するのを防ぐ
+function combineOutcomes(...outcomes) {
+  const RANK = { OK: 0, WARN: 1, HOLD: 2 };
+  let status = 'OK';
+  const reasons = [];
+  for (const o of outcomes) {
+    if (RANK[o.status] > RANK[status]) status = o.status;
+    reasons.push(...o.reasons);
+  }
+  return { status, reasons };
+}
+
+module.exports = { isExpectedThisWeek, decideRunOutcome, checkResidualMonitoring, checkRecurringMissing, combineOutcomes };

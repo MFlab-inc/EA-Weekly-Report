@@ -18,7 +18,7 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getTargetWeek, formatYmd, parseYmd, addDays, isWithinWeek } from '../lib/dates.js';
-import { decideRunOutcome, isExpectedThisWeek, checkResidualMonitoring, checkRecurringMissing } from '../lib/fail-closed.js';
+import { decideRunOutcome, isExpectedThisWeek, checkResidualMonitoring, checkRecurringMissing, combineOutcomes } from '../lib/fail-closed.js';
 import { matchesRecurringRule } from '../lib/recurring-rules.js';
 import { createRobotsChecker } from '../lib/robots.js';
 import { resolveCandidateEvent, resolveKindCandidates } from '../lib/resolve-candidate.js';
@@ -738,7 +738,20 @@ export async function runChecks({ sourcesConfig, importanceRules, eventNames, ta
       }),
     }));
 
-  const outcome = decideRunOutcome(failures);
+  // 2026-10-17新設（しょうさん指摘、10/19週パイプライン失敗対応）: structural_health_sentinel
+  // ソース（us_census等、kinds:[]でコンテンツ掲載に一切寄与しない）の失敗は、decideRunOutcome()の
+  // 「2件以上同時失敗＝無条件HOLD」判定のカウントから除外する。コンテンツに寄与する通常ソース群
+  // （coverageFailures）とセンチネル群（sentinelFailures）をそれぞれ独立にdecideRunOutcome()へ
+  // かけ、combineOutcomes()で合成する（詳細はfail-closed.js combineOutcomesのコメント参照）。
+  // これにより: (a) 通常ソースが2件以上同時失敗した場合の広域障害フェールクローズは従来どおり効く
+  // (b) センチネル単独の失敗は従来どおり単独WARN/HOLD判定のまま変わらない (c) センチネルの恒常WARNが
+  // 無関係な通常ソース1件の失敗と結託して誤って無条件HOLD化することだけを防げる
+  const sentinelSourceIds = new Set(
+    sourcesConfig.sources.filter((s) => s.structural_health_sentinel).map((s) => s.id)
+  );
+  const sentinelFailures = failures.filter((f) => sentinelSourceIds.has(f.sourceId));
+  const coverageFailures = failures.filter((f) => !sentinelSourceIds.has(f.sourceId));
+  const outcome = combineOutcomes(decideRunOutcome(coverageFailures), decideRunOutcome(sentinelFailures));
 
   const residualWarnings = sourcesConfig.sources
     .filter((s) => s.type === 'annual_schedule_config')
