@@ -1,7 +1,8 @@
 name: diag-harness-temp
 # 一時調査用ワークフロー（10/19週パイプライン失敗の原因調査、しょうさん指示2026-10-17）。
-# 既存・変更なしのscripts/checkers/harness.mjsをそのまま実行し、collect.mjsが握ってしまう
-# 失敗詳細（report.failures: sourceId/reason/expected）をログへ出力する。調査終了後に削除する。
+# gb_boe_calendarの「表示ウィンドウが7日間隔でない」失敗の実際の原因を確認するため、
+# events/upcoming-eventsの生HTMLの<title>タグと"w/b"出現箇所を直接ダンプする。
+# User-Agentは本番harness.mjsと同じ自己開示UA（偽装なし）。調査終了後に削除する。
 on:
   push:
     branches: [claude/ea-weekly-report-automation-lw6cio]
@@ -17,6 +18,24 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: node scripts/checkers/harness.mjs
-        env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      - run: |
+          node --input-type=module -e "
+          const UA = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; checker-harness)';
+          const res = await fetch('https://www.bankofengland.co.uk/events/upcoming-events', { headers: { 'User-Agent': UA } });
+          console.log('HTTP status:', res.status);
+          const body = await res.text();
+          console.log('body length:', body.length);
+          const titleM = /<title>([\s\S]*?)<\/title>/.exec(body);
+          console.log('TITLE TAG:', JSON.stringify(titleM ? titleM[1] : null));
+          let idx = 0;
+          let n = 0;
+          while (true) {
+            idx = body.indexOf('w/b', idx);
+            if (idx === -1) break;
+            n += 1;
+            console.log('--- occurrence', n, 'at index', idx, '---');
+            console.log(JSON.stringify(body.slice(Math.max(0, idx - 100), idx + 150)));
+            idx += 3;
+          }
+          console.log('total w/b occurrences:', n);
+          "
