@@ -33,7 +33,15 @@ jobs:
     # 木曜等の平日にdeploy_pages_onlyなしでworkflow_dispatchすると対象週（次週）を
     # 先取り生成してしまうため、再デプロイだけしたい場合に生成を確実に回避する手段が必要）
     if: (github.event_name == 'workflow_dispatch' || github.event.schedule != '23 23 * * 0') && github.event.inputs.deploy_pages_only != 'true'
-    runs-on: ubuntu-latest
+    # 2026-10-17固定（しょうさん指摘: GitHub通知「The ubuntu-latest label will migrate to
+    # Ubuntu 26 beginning October 19, 2026」）。npx playwright install --with-deps chromium
+    # はOSディストリ・バージョンを検出してapt依存パッケージ一覧を決める仕組みのため、
+    # package-lock.json固定のplaywright@1.62.1がUbuntu 26を認識しないまま移行期に突入すると、
+    # 依存パッケージの取得漏れでChromium起動が失敗する恐れがある（過去のubuntu-latest移行でも
+    # 同種の事例があるパターン）。現時点で実際に動作確認済みのOS（実行ログで確認: Ubuntu 24.04.5
+    # LTS）へ明示的に固定し、自動移行による無警告の破損を防ぐ。Playwrightのバージョンアップ等で
+    # Ubuntu 26対応を確認できたら、このピンを外す（または26へ張り替える）こと
+    runs-on: ubuntu-24.04
     # 2026-10-03追加（しょうさん指摘: 10/5週の本番・保険cron両方がHOLDで失敗したが、通知の
     # 仕組みが無くしょうさんが自ら確認するまで誰も気づけなかった）。失敗時にIssueを自動作成する
     # ステップ（末尾、if: failure()）がissues: writeを必要とするため、job-level permissionsで
@@ -299,7 +307,10 @@ jobs:
   deploy-pages:
     needs: build
     if: always() && (needs.build.result == 'success' || github.event.inputs.deploy_pages_only == 'true')
-    runs-on: ubuntu-latest
+    # 2026-10-17固定（buildジョブと同じ理由。このジョブ自体はPlaywrightを使わないが、
+    # 同一workflow内でジョブごとにOSイメージの移行タイミングがばらつく事態を避けるため、
+    # 一貫してOSを固定する）
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pages: write
@@ -337,7 +348,8 @@ jobs:
   # workflow-levelとマージではなく置き換えのため、contents: readも明示する）
   monday-ff-cross-check:
     if: github.event.schedule == '23 23 * * 0'
-    runs-on: ubuntu-latest
+    # 2026-10-17固定（buildジョブと同じ理由。Playwrightは使わないが一貫性のため固定する）
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       issues: write
