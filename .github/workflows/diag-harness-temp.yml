@@ -1,0 +1,22 @@
+name: diag-harness-temp
+# 一時調査用ワークフロー（10/19週パイプライン失敗の原因調査、しょうさん指示2026-10-17）。
+# 既存・変更なしのscripts/checkers/harness.mjsをそのまま実行し、collect.mjsが握ってしまう
+# 失敗詳細（report.failures: sourceId/reason/expected）をログへ出力する。調査終了後に削除する。
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths:
+      - '.github/workflows/diag-harness-temp.yml'
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: node scripts/checkers/harness.mjs
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
