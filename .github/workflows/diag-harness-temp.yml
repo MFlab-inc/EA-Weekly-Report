@@ -1,0 +1,22 @@
+name: diag-harness-temp
+# 一時調査用ワークフロー（しょうさん指摘、PR #51フォローアップ: BOEページの正常形[w/b 12 Oct
+# and 19 Oct]での再評価のため、現在の実データを再取得する）。既存・変更なしの
+# scripts/checkers/harness.mjsをそのまま実行する。調査終了後に削除する。
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio]
+    paths:
+      - '.github/workflows/diag-harness-temp.yml'
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: node scripts/checkers/harness.mjs
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
