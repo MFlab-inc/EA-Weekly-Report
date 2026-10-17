@@ -18,24 +18,4 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: |
-          node --input-type=module -e "
-          const UA = 'MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; checker-harness)';
-          const res = await fetch('https://www.bankofengland.co.uk/events/upcoming-events', { headers: { 'User-Agent': UA } });
-          console.log('HTTP status:', res.status);
-          const body = await res.text();
-          console.log('body length:', body.length);
-          const titleM = /<title>([\s\S]*?)<\/title>/.exec(body);
-          console.log('TITLE TAG:', JSON.stringify(titleM ? titleM[1] : null));
-          let idx = 0;
-          let n = 0;
-          while (true) {
-            idx = body.indexOf('w/b', idx);
-            if (idx === -1) break;
-            n += 1;
-            console.log('--- occurrence', n, 'at index', idx, '---');
-            console.log(JSON.stringify(body.slice(Math.max(0, idx - 100), idx + 150)));
-            idx += 3;
-          }
-          console.log('total w/b occurrences:', n);
-          "
+      - run: node scripts/diag-boe-items.mjs
