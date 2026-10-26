@@ -59,6 +59,10 @@ function eventToWeekInputEvent(ev, eventComments) {
     currency: ev.currency,
     displayName: ev.name_ja,
     comment: commentFor(ev.kind, ev.importance, eventComments),
+    // 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経てjp_boj policy_rateに適用）:
+    // この時刻が公式の事前公表された確定値ではない（config側の推定値）ことをhtml-renderer.jsへ
+    // 伝える。他ソース・他kindはfalseのままのため表示は従来どおり
+    timeEstimated: Boolean(ev.time_is_estimated),
   };
 }
 

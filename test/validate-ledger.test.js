@@ -269,3 +269,31 @@ test('validateLedger: raw_row_countが数値以外（文字列等）はエラー
   ledger.sources[0].raw_row_count = '178';
   assert.equal(validateLedger(ledger).ok, false);
 });
+
+// time_is_estimated: 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経てjp_boj policy_rateに適用）。
+// 時刻が公式事前公表された確定値ではないことを示す任意の真偽値フラグ。未設定の既存台帳との後方互換を確認する
+test('validateLedger: time_is_estimatedが未設定（undefined）でもエラーにならない（追加以前の台帳との後方互換）', () => {
+  const ledger = baseLedger();
+  assert.equal(ledger.events[0].time_is_estimated, undefined);
+  assert.equal(validateLedger(ledger).ok, true);
+});
+
+test('validateLedger: time_is_estimatedがnullでもエラーにならない', () => {
+  const ledger = baseLedger();
+  ledger.events[0].time_is_estimated = null;
+  assert.equal(validateLedger(ledger).ok, true);
+});
+
+test('validateLedger: time_is_estimatedがtrue/falseならエラーにならない', () => {
+  const ledger = baseLedger();
+  ledger.events[0].time_is_estimated = true;
+  assert.equal(validateLedger(ledger).ok, true);
+  ledger.events[0].time_is_estimated = false;
+  assert.equal(validateLedger(ledger).ok, true);
+});
+
+test('validateLedger: time_is_estimatedが真偽値以外（文字列等）はエラー', () => {
+  const ledger = baseLedger();
+  ledger.events[0].time_is_estimated = 'true';
+  assert.equal(validateLedger(ledger).ok, false);
+});

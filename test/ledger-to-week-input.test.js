@@ -29,6 +29,27 @@ test('commentFor: importance=3のみコメントを返す。辞書未登録kind�
   assert.equal(commentFor('policy_rate', 3, undefined), undefined);
 });
 
+// timeEstimated: 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経てjp_boj policy_rateに適用）。
+// 台帳のtime_is_estimatedがweekInputイベントのtimeEstimatedへそのまま伝わること、
+// 未設定の既存イベントはfalseになる（他ソースへの影響なし）ことを確認する
+test('buildDays: 台帳のtime_is_estimated:trueはイベントのtimeEstimated:trueとして伝わる', () => {
+  const ledger = baseLedger([
+    { event_id: 'jp-policy_rate-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T12:00:00+09:00', country: 'JP', currency: 'JPY', kind: 'policy_rate', name_ja: '日銀政策金利＆声明発表', importance: 3, time_is_estimated: true },
+  ]);
+  const days = buildDays(ledger, undefined);
+  const ev = days.find((d) => d.date === '2026-08-11').events[0];
+  assert.equal(ev.timeEstimated, true);
+});
+
+test('buildDays: time_is_estimated未設定の既存イベントはtimeEstimated:falseになる（後方互換）', () => {
+  const ledger = baseLedger([
+    { event_id: 'au-policy_rate-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T13:30:00+09:00', country: 'AU', currency: 'AUD', kind: 'policy_rate', name_ja: 'RBA政策金利＆声明発表', importance: 3 },
+  ]);
+  const days = buildDays(ledger, undefined);
+  const ev = days.find((d) => d.date === '2026-08-11').events[0];
+  assert.equal(ev.timeEstimated, false);
+});
+
 test('buildDays: 対象週5日分（月〜金）を、イベントが無い日も含めてすべて生成する', () => {
   const ledger = baseLedger([]);
   const days = buildDays(ledger, undefined);

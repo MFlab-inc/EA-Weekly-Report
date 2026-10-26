@@ -121,6 +121,19 @@
       "source_note": "2026-10-17、gb-speech-bailey-2026-10-21と同じ調査・同じ実データ確認（しょうさん指摘、2026-10-17追加登録）。該当行: 『Megan Greene: Speech at LSE Economics Society, London , (6pm).』（見出し日付と対応する暦日=2026-10-20・火曜）。officials.jsonでBOE金融政策委員会外部委員（board_member・★★）と確認済み。同ページの未登録話者（Sasha Mills・David Bailey）は通常運用（SOURCES_REQUIRING_REGISTERED_SPEAKER対象、officials.json未登録は掲載対象外＋WARN）と同じ扱いのため登録しない",
       "registered_by": "Claude Code（GitHub Actions実データ確認済み、しょうさん指摘により追加。要しょうさん確認）",
       "registered_at": "2026-10-17"
+    },
+    {
+      "id": "jp-boj-press-conference-2026-10-30",
+      "date": "2026-10-30",
+      "local_time": "15:30",
+      "tz": "Asia/Tokyo",
+      "country": "JP",
+      "kind": "press_conference",
+      "display_name": "植田日銀総裁の記者会見",
+      "importance": 3,
+      "source_note": "2026-10-26、しょうさん指摘（GPTの指摘の検証・訂正）。日本銀行公式「公表予定」ページ https://www.boj.or.jp/about/calendar/index.htm （2026年10月23日更新、ページ本文冒頭に明記）のH2見出し「総裁定例記者会見（予定）」直下に『2026年10月30日（金）15:30～（ライブ配信予定）\\n（会見記録は2026年11月2日（月）にホームページ掲載予定）』と記載。生HTML（curl直接取得、2026-10-26確認）でも<h2 id=\"p03\">総裁定例記者会見（予定）</h2><p>2026年10月30日（金）15:30～（ライブ配信予定）<br>...</p>の構造で同内容を確認済み。同ページの本編テーブルでは同日の政策委員会・金融政策決定会合の決定内容は時刻「未定」（jp_boj.announce_time_by_kind.policy_rateのnote参照）。officials.jsonで日銀総裁（governor・★★★）と確認済み。本ソース（jp_boj_speeches、boj.or.jp/about/calendar/index.htm）は毎週取得対象だが、現行抽出器（extractBojSpeeches）は時刻セルが「未定」の行（記者会見の大半はこれ）を対象外とする設計のため、この見出し外テキスト形式の会見予定は自動検出できない（別PRで自動化を検討）。press_conferenceがjp_bojのkindsに未登録だったため今回まで総裁会見が一度も掲載されていなかった恒常的な欠落の、今週分の訂正登録",
+      "registered_by": "Claude Code（しょうさん指摘・日銀公式ページ生HTML直接確認済み。要しょうさん確認）",
+      "registered_at": "2026-10-26"
     }
   ]
 }

@@ -103,6 +103,11 @@ export function annualEntryToCandidate(entry, source, importanceRules, eventName
     localDate: entry.date,
     localTime: at?.local_time || null,
     tz: at?.tz || null,
+    // 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経てjp_boj policy_rateに適用）:
+    // entry.local_time（個別日程での時刻上書き。実際に確定した時刻とみなせる）がある場合は
+    // estimatedを継承しない。announce_time_by_kind側の汎用値を使う場合のみ、そのsource設定の
+    // estimated:trueフラグを候補へ伝える（build-ledger.js candidateToLedgerEvent参照）
+    timeEstimated: Boolean(!entry.local_time && sourceAt?.estimated),
   };
   if (!at) return { ...base, time: null, timeNote: 'announce_time_by_kind未設定' };
   const [y, mo, d] = entry.date.split('-').map(Number);

@@ -374,3 +374,64 @@ test('renderer: 週末スピルオーバーが無い通常週（weekDataEntirely
   const { bars } = barsAndTriangles(block);
   assert.deepEqual(bars, [], '週末スピルオーバーが無い週では金曜に余計な帯が出ない');
 });
+
+// timeEstimated: 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経てjp_boj policy_rateに適用）。
+// 時刻が公式事前公表された確定値ではないイベントは「HH:MM頃（目安）」＋短い注記で表示し、
+// 停止目安の計算（帯の位置・幅）自体は変わらないことを確認する。他国・他kindの表示に影響しないことも確認する
+const weekDataTimeEstimated = {
+  reportMeta: 'ea-weekly-test-time-estimated',
+  createdDateJa: '2026年10月24日（土）',
+  targetWeekStart: '2026-10-26',
+  targetWeekEnd: '2026-10-30',
+  heroSummary: '日銀政策決定を確認する週',
+  heroPills: ['日銀政策金利 10/30'],
+  days: [
+    { date: '2026-10-26', md: '10/26', weekday: '月', events: [], windowGroups: [] },
+    { date: '2026-10-27', md: '10/27', weekday: '火', events: [], windowGroups: [] },
+    { date: '2026-10-28', md: '10/28', weekday: '水', events: [], windowGroups: [] },
+    { date: '2026-10-29', md: '10/29', weekday: '木', events: [], windowGroups: [] },
+    {
+      date: '2026-10-30', md: '10/30', weekday: '金',
+      events: [
+        { id: 'jp-policy_rate-2026-10-30', time: '12:00', importance: 3, countryJa: '日本', currency: 'JPY', displayName: '日銀政策金利＆声明発表', comment: '政策判断と声明の文言を確認します。', timeEstimated: true },
+        { id: 'au-rba-rate-2026-10-30', time: '13:30', importance: 3, countryJa: '豪州', currency: 'AUD', displayName: 'RBA政策金利＆声明発表', comment: '声明の文言変化に注目します。' },
+      ],
+      windowGroups: [
+        { firstTime: '12:00', lastTime: '12:00', countryJa: '日本', currency: 'JPY', labelItems: [{ time: '12:00', text: '日銀政策金利＆声明発表' }] },
+        { firstTime: '13:30', lastTime: '13:30', countryJa: '豪州', currency: 'AUD', labelItems: [{ time: '13:30', text: 'RBA政策金利＆声明発表' }] },
+      ],
+    },
+  ],
+};
+const reportDataTimeEstimated = buildReportData(weekDataTimeEstimated);
+const generatedTimeEstimated = renderReportHtml(reportDataTimeEstimated, { reportPolicy, btcGuide });
+
+test('renderer: timeEstimated:trueのイベントは時刻表示が「HH:MM頃（目安）」になり、注記が1行追加される', () => {
+  const eventCardBlocks = generatedTimeEstimated.split('class="ea-event-card"').slice(1);
+  const jpBlock = eventCardBlocks.find((b) => b.includes('日銀政策金利＆声明発表'));
+  assert.ok(jpBlock, '日銀政策金利カードが見つからない');
+  assert.match(jpBlock, /12:00頃（目安）/);
+  assert.match(jpBlock, /公式に事前公表された確定値ではない/);
+});
+
+test('renderer: timeEstimatedが無い他国の同種イベント（RBA政策金利）は表示が変わらない（他ソースへの影響なし）', () => {
+  const eventCardBlocks = generatedTimeEstimated.split('class="ea-event-card"').slice(1);
+  const auBlock = eventCardBlocks.find((b) => b.includes('RBA政策金利＆声明発表'));
+  assert.ok(auBlock, 'RBA政策金利カードが見つからない');
+  assert.match(auBlock, /13:30(?!頃（目安）)/);
+  assert.ok(!auBlock.includes('目安'), 'RBA側に「目安」注記が混入してはならない');
+});
+
+test('renderer: timeEstimated:trueでも停止目安の帯・▲の位置は12:00基準のまま変わらない（表示のみの変更）', () => {
+  const block = haltDayBlock(generatedTimeEstimated, '2026-10-30');
+  const { bars, triangles } = barsAndTriangles(block);
+  assert.equal(triangles.length, 2, '日銀12:00・RBA13:30の▲が2つ出るはず');
+  // 日銀12:00基準の停止窓（12h前〜4h前＝00:00-08:00）が帯に含まれていることを確認する
+  assert.ok(bars.some((b) => parseFloat(b[0]) === 0), '日銀の停止窓開始（00:00）が帯に反映されていない');
+});
+
+test('renderer: timeEstimatedの注記文言に禁止語（JST・仮想通貨）が含まれない', () => {
+  for (const term of reportPolicy.forbidden_reader_terms) {
+    assert.ok(!generatedTimeEstimated.includes(term), `禁止語「${term}」が出力に含まれている`);
+  }
+});

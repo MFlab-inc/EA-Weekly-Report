@@ -264,6 +264,13 @@ function candidateToLedgerEvent(candidate, usedIds, officials) {
     // ため、対象週の翌日(土)として追加で取り込まれた候補かどうか（harness.mjsのisWeekendSpillover
     // 参照）。ledger-to-week-input.js側がこのフラグを使い、金曜カードへの「▲翌日」表示へ振り分ける
     is_weekend_spillover: Boolean(candidate.isWeekendSpillover),
+    // 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経てjp_boj policy_rateに適用）:
+    // この時刻が公式の事前公表された確定値ではない（config側の推定値）ことを示すフラグ。
+    // 停止目安の計算（上のhaltStart/haltEnd）には一切影響しない（従来どおりcandidate.timeを
+    // 基準に計算する）。ledger-to-week-input.js→html-renderer.jsが読者向け表示のみを
+    // 「HH:MM頃（目安）」＋短い注記に変える（対象: jp_bojのpolicy_rateのみ。他ソース・他kindは
+    // このフラグが立たないため表示は従来どおり）
+    time_is_estimated: Boolean(candidate.timeEstimated),
   };
 }
 

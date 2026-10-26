@@ -34,6 +34,52 @@ test('annualEntryToCandidate: announce_time_by_kindが無いkindはtime:nullで�
   assert.equal(c.timeNote, 'announce_time_by_kind未設定');
 });
 
+// timeEstimated: 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経てjp_boj policy_rateに適用）。
+// announce_time_by_kind側にestimated:trueがある場合のみ候補へ伝播し、他ソースは影響を受けないことを確認する
+test('annualEntryToCandidate: announce_time_by_kind.{kind}.estimated:trueはcandidate.timeEstimated:trueになる', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = {
+    id: 'jp_boj',
+    country: 'JP',
+    announce_time_by_kind: { policy_rate: { local_time: '12:00', tz: 'Asia/Tokyo', estimated: true } },
+  };
+  const c = annualEntryToCandidate({ date: '2026-10-30', kind: 'policy_rate' }, source, { importance_by_kind: { policy_rate: 3 } });
+  assert.equal(c.time, '12:00');
+  assert.equal(c.timeEstimated, true);
+});
+
+test('annualEntryToCandidate: estimated未設定（通常の中銀）はtimeEstimated:falseになる（他ソースへの影響なし）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = {
+    id: 'au_rba',
+    country: 'AU',
+    announce_time_by_kind: { policy_rate: { local_time: '14:30', tz: 'Australia/Sydney' } },
+  };
+  const c = annualEntryToCandidate({ date: '2026-08-11', kind: 'policy_rate' }, source, { importance_by_kind: { policy_rate: 3 } });
+  assert.equal(c.timeEstimated, false);
+});
+
+test('annualEntryToCandidate: schedule側entry.local_timeで個別上書きされた場合はestimatedを継承しない（個別確定とみなす）', async () => {
+  const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
+  const source = {
+    id: 'jp_boj',
+    country: 'JP',
+    announce_time_by_kind: { policy_rate: { local_time: '12:00', tz: 'Asia/Tokyo', estimated: true } },
+  };
+  const c = annualEntryToCandidate(
+    { date: '2026-10-30', kind: 'policy_rate', local_time: '11:45', tz: 'Asia/Tokyo' },
+    source,
+    { importance_by_kind: { policy_rate: 3 } }
+  );
+  assert.equal(c.time, '11:45');
+  assert.equal(c.timeEstimated, false);
+});
+
+test('実config: jp_bojのpolicy_rateは引き続きestimated:trueで登録されている（本回帰テストの前提確認）', () => {
+  const jpBoj = realSourcesConfig.sources.find((s) => s.id === 'jp_boj');
+  assert.equal(jpBoj.announce_time_by_kind.policy_rate.estimated, true);
+});
+
 test('annualEntryToCandidate: displayNameはnull（naming.js統合はscripts/lib/build-ledger.jsのresolveRuleGeneratedName側の責務）', async () => {
   const { annualEntryToCandidate } = await import('../scripts/phase1/observation-run.mjs');
   const source = {

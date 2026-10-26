@@ -36,6 +36,24 @@ test('candidateToLedgerEvent: importance=3・時刻確定はhalt_windowを計算
   assert.equal(ev.name_resolution, 'dictionary');
   assert.equal(ev.halt_window_start_jst, '2026-08-18T01:30:00+09:00');
   assert.equal(ev.halt_window_end_jst, '2026-08-18T09:30:00+09:00');
+  assert.equal(ev.time_is_estimated, false, 'timeEstimated未設定の通常ソースはfalse');
+});
+
+// time_is_estimated: 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経てjp_boj policy_rateに適用）。
+// candidate.timeEstimatedがそのままtime_is_estimatedへ渡ること、かつ停止目安の計算
+// （halt_window_start_jst/end_jst）には一切影響しないこと（従来どおりcandidate.timeを基準に算出）を確認する
+test('candidateToLedgerEvent: candidate.timeEstimated=trueはtime_is_estimated:trueとして記録され、halt_windowの計算には影響しない（表示のみの変更）', () => {
+  const used = new Set();
+  const candidate = {
+    date: '2026-10-30', time: '12:00', kind: 'policy_rate', country: 'JP', importance: 3,
+    displayName: '日銀政策金利＆声明発表', sourceId: 'jp_boj', sourceEvidence: '年次確定スケジュール',
+    localDate: '2026-10-30', localTime: '12:00', tz: 'Asia/Tokyo', timeEstimated: true,
+  };
+  const ev = candidateToLedgerEvent(candidate, used);
+  assert.equal(ev.time_is_estimated, true);
+  assert.equal(ev.time_status, 'published');
+  assert.equal(ev.halt_window_start_jst, '2026-10-30T00:00:00+09:00');
+  assert.equal(ev.halt_window_end_jst, '2026-10-30T08:00:00+09:00');
 });
 
 test('candidateToLedgerEvent: displayName未解決・officials未指定はFALLBACK_KIND_LABELを使いrule_generatedになる', () => {
