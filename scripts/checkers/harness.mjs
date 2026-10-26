@@ -92,6 +92,14 @@ const RECURRING_CHECK_MATCH = {
   // trade_balanceもweekly_scrapeからannual_schedule_config（us_census_trade_balance）へ
   // 切り替えたため、米小売売上高と同じsourceId指定のrecurring_checkを追加する）
   米貿易収支: { kind: 'trade_balance', sourceId: 'us_census_trade_balance' },
+  // 2026-10-26新設（しょうさん指摘、GPTの指摘の検証を経て）: 日銀総裁定例記者会見は
+  // jp_boj（kinds:[policy_rate,opinions_summary,minutes_summary]）にpress_conferenceが
+  // 未登録・mpm_index.htmlが時刻情報を一切持たないページのため構造的に取得できず、
+  // 過去のBOJ会合でも一度も掲載されたことが無い恒常的な欠落だった。jp_boj_speeches
+  // （公表予定ページ、extractBojSpeechesの「総裁定例記者会見（予定）」セクション抽出）を
+  // 新たな担当ソースとする。sourceId指定する理由: press_conferenceはECB/FRB/BOC/RBNZ等
+  // 他国でも使うkindのため、指定無しでは他国の該当がjp_boj_speeches側の欠落を覆い隠してしまう
+  日銀総裁定例記者会見: { kind: 'press_conference', sourceId: 'jp_boj_speeches' },
 };
 
 // jp_mof向け: auction_calendar_index.htmは月別ローリング公表（年次一括ではない）ため、対象週が
@@ -336,7 +344,11 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
   jp_boj_speeches: {
     primaryLabel: 'calendar',
     parseFn: extractBojSpeeches,
-    toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime, kind: 'official_speech', speakerLastName: r.speakerLastName }),
+    // 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経て）: extractBojSpeeches側で
+    // 「総裁定例記者会見（予定）」セクションから抽出した行はkind:'press_conference'を
+    // 既に確定済みで渡す（ruleGenerated）。kindが未設定（従来の【挨拶】【講演】行）の場合のみ
+    // 従来どおりofficial_speechへフォールバックする
+    toRow: (r) => ({ title: r.title, date: r.date, localTime: r.localTime, kind: r.kind || 'official_speech', speakerLastName: r.speakerLastName }),
   },
   // Stats NZ「Release calendar」ICS書き出し: calendar-exportはStats NZの全リリース種別が混在するICSを
   // 返すため、row.kindは確定せずevent-names.jsonのmatchキーワード（"retail trade survey"）による
@@ -665,11 +677,18 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
 // ではなく、annual_schedule_config型ソースの確定済みschedule[]の日付そのものに基づいて判定したい
 // ＝米小売売上高のように発表日が月により大きく変動するケースで、粗い日範囲だと該当月なのに
 // 判定漏れする問題を解消する）、そのソースのschedule[]に対象週内の日付があるかで判定する。
-// 未設定の場合は従来どおり自由記述のrule.ruleをmatchesRecurringRule（キーワード一致）で判定する
+// 未設定の場合は従来どおり自由記述のrule.ruleをmatchesRecurringRule（キーワード一致）で判定する。
+// rule.schedule_kindが設定されている場合（2026-10-26新設、しょうさん指摘: 日銀総裁定例記者会見の
+// WARNは「jp_bojのpolicy_rate開催週」にのみ該当すべきで、opinions_summary/minutes_summaryのみの
+// 週まで該当扱いにすると誤ってWARNが出てしまう）、schedule[]のうち該当kindのエントリのみで判定する。
+// 未設定の場合は従来どおりkindを問わず該当有無を見る（米小売売上高・米貿易収支との後方互換）
 function ruleAppliesThisWeek(rule, targetWeek, sourcesConfig) {
   if (rule.schedule_source_id) {
     const source = sourcesConfig?.sources?.find((s) => s.id === rule.schedule_source_id);
-    return (source?.schedule || []).some((e) => isWithinWeek(e.date, targetWeek.targetWeekStart, targetWeek.targetWeekEnd));
+    return (source?.schedule || []).some((e) =>
+      (!rule.schedule_kind || e.kind === rule.schedule_kind) &&
+      isWithinWeek(e.date, targetWeek.targetWeekStart, targetWeek.targetWeekEnd)
+    );
   }
   return matchesRecurringRule(rule, targetWeek.dates.map((d) => d.date));
 }

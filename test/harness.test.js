@@ -987,6 +987,78 @@ test('runChecks: us_census_trade_balanceのscheduleに対象週内の日付が�
   assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
 });
 
+// 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経て）: 日銀総裁定例記者会見は他中銀
+// （ECB/FRB/BOC/RBNZ等）と異なり恒常的に未掲載だった（jp_boj.kinds未登録＋jp_bojが時刻情報を
+// 一切持たないページだったため）。jp_boj_speeches（公表予定ページ）を新たな担当ソースとし、
+// schedule_kind:'policy_rate'によりjp_bojのpolicy_rate開催週にのみ該当するrecurring_checkが
+// 正しく機能することを確認する
+const JP_BOJ_PRESS_CONFERENCE_RULE = {
+  name: '日銀総裁定例記者会見', schedule_source_id: 'jp_boj', schedule_kind: 'policy_rate',
+  rule: 'jp_bojのpolicy_rate日程に基づく', action: 'WARN',
+};
+const JP_BOJ_SCHEDULE_SOURCE = {
+  id: 'jp_boj', status: 'active', country: 'JP', kinds: ['policy_rate', 'opinions_summary', 'minutes_summary'], type: 'annual_schedule_config',
+  announce_time_by_kind: { policy_rate: { local_time: '12:00', tz: 'Asia/Tokyo', estimated: true } },
+  schedule: [{ date: '2026-10-30', kind: 'policy_rate' }],
+};
+const JP_BOJ_SPEECHES_SOURCE_BASE = {
+  id: 'jp_boj_speeches', status: 'active', country: 'JP', kinds: ['official_speech', 'press_conference'], type: 'weekly_scrape',
+  access: { targets: [{ label: 'calendar', url: 'https://example.invalid/boj-calendar' }] },
+  announce_time_by_kind: { official_speech: { tz: 'Asia/Tokyo' }, press_conference: { tz: 'Asia/Tokyo' } },
+  recurring_check_refs: [],
+};
+const JP_WEEK_OCT30 = {
+  collectionDate: '2026-10-24', targetWeekStart: '2026-10-26', targetWeekEnd: '2026-10-30',
+  dates: [
+    { date: '2026-10-26', md: '10/26', weekday: '月' }, { date: '2026-10-27', md: '10/27', weekday: '火' },
+    { date: '2026-10-28', md: '10/28', weekday: '水' }, { date: '2026-10-29', md: '10/29', weekday: '木' },
+    { date: '2026-10-30', md: '10/30', weekday: '金' },
+  ],
+};
+// 本編テーブルの最小行（totalRowsSeen>0にするためのダミー行。press_conference通知は別途テキストで付与）
+const BOJ_CALENDAR_MIN_ROW = '<table><tbody><tr><td class="txt-right">27日（火）</td><td class="txt-right">8:50</td><td class="txt-center">○</td><td class="txt-center">●</td><td>マネタリーベース（10月）</td></tr></tbody></table>';
+
+test('runChecks: jp_bojのpolicy_rate開催週にjp_boj_speechesが総裁定例記者会見（予定）を検出すればrecurring_checks経由でWARNが出ない', async () => {
+  const { runChecks } = await loadHarness();
+  const html = `${BOJ_CALENDAR_MIN_ROW}<h2 id="p03">総裁定例記者会見（予定）</h2><p>2026年10月30日（金）15:30～（ライブ配信予定）</p>`;
+  const sourcesConfig = { sources: [JP_BOJ_SCHEDULE_SOURCE, JP_BOJ_SPEECHES_SOURCE_BASE] };
+  const importanceRules = { recurring_checks: [JP_BOJ_PRESS_CONFERENCE_RULE] };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek: JP_WEEK_OCT30, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
+  const speechesResult = report.results.find((r) => r.id === 'jp_boj_speeches');
+  assert.ok(speechesResult.foundKinds.includes('press_conference'));
+});
+
+test('runChecks: jp_bojのpolicy_rate開催週なのにjp_boj_speechesが総裁定例記者会見（予定）を検出できなければWARNが出る（会見予定が未発表の週を想定）', async () => {
+  const { runChecks } = await loadHarness();
+  // 「総裁定例記者会見（予定）」見出し自体が無い（会見予定が未発表のページ状態を想定）
+  const html = BOJ_CALENDAR_MIN_ROW;
+  const sourcesConfig = { sources: [JP_BOJ_SCHEDULE_SOURCE, JP_BOJ_SPEECHES_SOURCE_BASE] };
+  const importanceRules = { recurring_checks: [JP_BOJ_PRESS_CONFERENCE_RULE] };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek: JP_WEEK_OCT30, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.recurringMissingWarnings.length, 1);
+  assert.match(report.recurringMissingWarnings[0], /日銀総裁定例記者会見/);
+});
+
+test('runChecks: jp_bojにpolicy_rateが無い週（opinions_summaryのみ）はschedule_kindによりrecurring_check自体が該当せずWARNが出ない', async () => {
+  const { runChecks, computeRecurringChecksStatus } = await loadHarness();
+  const html = BOJ_CALENDAR_MIN_ROW; // 総裁定例記者会見（予定）の見出しも無い
+  const sourcesConfig = {
+    sources: [
+      { ...JP_BOJ_SCHEDULE_SOURCE, schedule: [{ date: '2026-10-29', kind: 'opinions_summary' }] },
+      JP_BOJ_SPEECHES_SOURCE_BASE,
+    ],
+  };
+  const importanceRules = { recurring_checks: [JP_BOJ_PRESS_CONFERENCE_RULE] };
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => html });
+  const report = await runChecks({ sourcesConfig, importanceRules, targetWeek: JP_WEEK_OCT30, fetchImpl, eventNames: REAL_EVENT_NAMES });
+  assert.equal(report.recurringMissingWarnings.length, 0, JSON.stringify(report.recurringMissingWarnings));
+  const status = computeRecurringChecksStatus(report.results, importanceRules, JP_WEEK_OCT30, sourcesConfig);
+  assert.equal(status[0].applies_this_week, false, 'policy_rateが対象週に無いためschedule_kindフィルタでapplies_this_week自体がfalseになるはず');
+});
+
 // 2026-10-12追加（しょうさん指摘）: calendar-listview.htmlはCensusの全経済指標の予定一覧
 // であり、ページ全体で1行も解析できない状況は通常ありえない（サイト構造変化の疑い）。
 // extractCensusCalendar自体は既に「<tr height="20">行が1件も解析できない＝ok:false」を

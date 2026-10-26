@@ -1466,11 +1466,12 @@
     },
     {
       "id": "jp_boj_speeches",
-      "name_ja": "日本銀行「公表予定」（総裁・副総裁・審議委員等の挨拶・講演）",
+      "name_ja": "日本銀行「公表予定」（総裁・副総裁・審議委員等の挨拶・講演、総裁定例記者会見）",
       "status": "active",
       "country": "JP",
       "kinds": [
-        "official_speech"
+        "official_speech",
+        "press_conference"
       ],
       "type": "weekly_scrape",
       "recurring_check_refs": [],
@@ -1485,9 +1486,13 @@
         "official_speech": {
           "tz": "Asia/Tokyo",
           "note": "抽出行ごとにlocalTimeを個別に持つ（このtz値のみをresolveCandidateEventのゾーン変換に使う）。access.provides_exact_time:trueのためconfig固定のlocal_timeは不要"
+        },
+        "press_conference": {
+          "tz": "Asia/Tokyo",
+          "note": "2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経て）。本編テーブルの外、ページ末尾付近の『総裁定例記者会見（予定）』見出し直後のテキスト（例: 『2026年10月30日（金）15:30～（ライブ配信予定）』）から抽出する（extractors/boj-speeches.js extractBojPressConferenceNotice参照、本編テーブルの記者会見行は時刻が常に『未定』のため対象外）。official_speechと同様、抽出行ごとにlocalTimeを個別に持つためtz値のみ使う"
         }
       },
-      "notes": "2026-08-22追加（しょうさん指摘、Manus版8/24週突合: 8/27の氷見野副総裁挨拶が未捕捉だった、task #64）。jp_boj（annual_schedule_config、政策金利・主な意見・議事要旨）とは別ソース: こちらは毎週金曜更新のローリング表『公表予定』（boj.or.jp/about/calendar/index.htm）で、日銀に関するほぼ全ての公表物（統計データ・オペレーション実施結果・そして総裁/副総裁/審議委員等の挨拶・講演・記者会見）を1つの表にまとめて掲載している。本ソースはこの表から『資料名』列が【挨拶】【講演】で始まる行のみを抽出する（【記者会見】等の他区分・データ公表行は対象外）。manus-diff-recon一時ワークフローで実HTML構造をライブ確認済み（run 32555894283、2026-08-22）: <table><thead>(公表日|時刻|日|英|資料名)</thead><tbody>...</tbody></table>形式、『27日（木） 10:30 ... 【挨拶】氷見野副総裁（埼玉）』の実在行を直接確認（しょうさん指摘のイベントと完全一致）。年は本ページに明記されないため対象週の年を起点に、月が前より小さくなった時点でのみ+1年するロールオーバー処理をextractor側で実施（scripts/checkers/extractors/boj-speeches.js）。話者の役職は国単位の固定ラベルではなくofficials.json側の個別role_jaを使う設計とした（同ページには副総裁・審議委員・理事など役職の異なる複数の話者が混在するため、US（FRB理事で統一）と同じ国単位定数の方式は使えない。scripts/lib/build-ledger.js resolveRuleGeneratedName参照）"
+      "notes": "2026-08-22追加（しょうさん指摘、Manus版8/24週突合: 8/27の氷見野副総裁挨拶が未捕捉だった、task #64）。jp_boj（annual_schedule_config、政策金利・主な意見・議事要旨）とは別ソース: こちらは毎週金曜更新のローリング表『公表予定』（boj.or.jp/about/calendar/index.htm）で、日銀に関するほぼ全ての公表物（統計データ・オペレーション実施結果・そして総裁/副総裁/審議委員等の挨拶・講演・記者会見）を1つの表にまとめて掲載している。本ソースはこの表から『資料名』列が【挨拶】【講演】で始まる行のみを抽出する（【記者会見】等の他区分・データ公表行は対象外）。manus-diff-recon一時ワークフローで実HTML構造をライブ確認済み（run 32555894283、2026-08-22）: <table><thead>(公表日|時刻|日|英|資料名)</thead><tbody>...</tbody></table>形式、『27日（木） 10:30 ... 【挨拶】氷見野副総裁（埼玉）』の実在行を直接確認（しょうさん指摘のイベントと完全一致）。年は本ページに明記されないため対象週の年を起点に、月が前より小さくなった時点でのみ+1年するロールオーバー処理をextractor側で実施（scripts/checkers/extractors/boj-speeches.js）。話者の役職は国単位の固定ラベルではなくofficials.json側の個別role_jaを使う設計とした（同ページには副総裁・審議委員・理事など役職の異なる複数の話者が混在するため、US（FRB理事で統一）と同じ国単位定数の方式は使えない。scripts/lib/build-ledger.js resolveRuleGeneratedName参照）。2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経て）: 総裁定例記者会見はpress_conference kindとして本ソースへ新規追加した（task参照: 他国の中銀[ECB/FRB/BOC/RBNZ等]はpress_conferenceが★★★で掲載されていたのに日銀だけ恒常的に欠けていた。原因はjp_boj.kinds未登録＋jp_boj（mpm_index.html）が時刻情報を一切持たないページだったため構造的に取得不可能だったこと）。本編テーブルの記者会見行は時刻が常に『未定』のため、別途ページ末尾の見出し外テキストを抽出する（announce_time_by_kind.press_conference.note参照）。見出し自体が見つからない、または日時が1件も抽出できない週（会合が近づくまで未発表の場合等）は構造的失敗にはせず静かにスキップする。日銀の政策決定会合開催週（jp_bojのpolicy_rate）なのに本ソースが検出できなかった場合のみ、importance-rules.jsonのrecurring_checks「日銀総裁定例記者会見」がWARNを出す設計"
     },
     {
       "id": "us_treasury",
