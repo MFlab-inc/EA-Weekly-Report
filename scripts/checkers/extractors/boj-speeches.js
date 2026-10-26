@@ -98,7 +98,53 @@ function extractBojSpeeches(html, ctx) {
   if (totalRowsSeen === 0) {
     return { ok: false, reason: '<tr>要素（データ行）が1件も見つからない。公表予定ページの構造変化の疑い' };
   }
+  // 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経て）: 総裁定例記者会見の時刻は
+  // 本編テーブル（上のrows）では常に「未定」のため時刻確定まで対象外になり、一度も抽出できない
+  // （press_conferenceがこれまでjp_boj系ソースの実質的な恒常欠落だった真因）。見出し外の
+  // 「総裁定例記者会見（予定）」セクションにのみ具体的な日時が明記されるため、別途抽出し
+  // rowsへ合流させる（extractBojPressConferenceNotice参照）。見つからない場合は静かにスキップ
+  // する（WARNはharness.mjsのrecurring_checks「総裁定例記者会見」[schedule_source_id:jp_boj、
+  // schedule_kind:policy_rate]が、日銀の政策決定会合開催週なのに検出できなかった場合にのみ出す
+  // 設計のため、ここ自体を構造的失敗にはしない＝将来的に本当に発表予定が無い時期[会合間の通常週]
+  // でも誤ってWARN/ok:falseにならない）
+  const pressConference = extractBojPressConferenceNotice(html);
+  if (pressConference.found) {
+    rows.push({
+      date: pressConference.date,
+      localTime: pressConference.localTime,
+      title: '総裁定例記者会見（予定）',
+      kind: 'press_conference',
+      speakerLastName: null,
+    });
+  }
   return { ok: true, rows };
 }
 
-module.exports = { extractBojSpeeches };
+// 日本銀行「公表予定」ページの「総裁定例記者会見（予定）」セクション（本編テーブルの外、
+// ページ末尾付近）の抽出。実データ構造（2026-10-26、curl直接取得で確認・UA偽装なし）:
+//   <h2 id="p03">総裁定例記者会見（予定）</h2>
+//   <p>2026年10月30日（金）15:30～（ライブ配信予定）<br>
+//   （会見記録は2026年11月2日（月）にホームページ掲載予定）</p>
+// 本編テーブルの記者会見行（【記者会見】植田総裁（M月D日分）等）とは異なり、この見出しには
+// 年を含む完全な日付が明記される（本編テーブルの年ロールオーバー処理は不要）。
+// 見出し自体が見つからない、または日時が1件も抽出できない場合は{found:false}を返す
+// （構造的失敗ではなく「現時点で未発表」の通常状態として扱う。呼び出し側extractBojSpeeches参照）
+function extractBojPressConferenceNotice(html) {
+  // 2026-10-26実測で発覚: ページ冒頭の目次（<a href="#p03">総裁定例記者会見（予定）</a>）にも
+  // 同じ文言が出現し、本文の<h2>より約7300文字前にあるため、素朴なindexOf()だと目次側に
+  // マッチして日時を取得できない（実測ライブページで再現・修正済み）。<h2>タグに限定して
+  // マッチすることで本文見出しのみを対象にする
+  const headingM = /<h2[^>]*>総裁定例記者会見（予定）<\/h2>/.exec(html);
+  if (!headingM) return { found: false };
+  const after = html.slice(headingM.index + headingM[0].length, headingM.index + headingM[0].length + 500);
+  const m = /(\d{4})年(\d{1,2})月(\d{1,2})日（[^）]*）\s*(\d{1,2}):(\d{2})/.exec(after);
+  if (!m) return { found: false };
+  const [, y, mo, d, h, mi] = m;
+  return {
+    found: true,
+    date: `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`,
+    localTime: `${h.padStart(2, '0')}:${mi}`,
+  };
+}
+
+module.exports = { extractBojSpeeches, extractBojPressConferenceNotice };

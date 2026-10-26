@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-const { extractBojSpeeches } = require('../scripts/checkers/extractors/boj-speeches');
+const { extractBojSpeeches, extractBojPressConferenceNotice } = require('../scripts/checkers/extractors/boj-speeches');
 
 const fx = (...p) => readFileSync(join(__dirname, 'fixtures', 'official-sources', ...p), 'utf8');
 
@@ -89,6 +89,69 @@ test('extractBojSpeeches: 同一日内の複数行（日番号が変わらない
   assert.equal(r.ok, true);
   assert.equal(r.rows.length, 2);
   assert.ok(r.rows.every((row) => row.date === '2026-09-02'), '同一日内の2行目（公表日セル空欄で31日→2日の繰り越し後）が誤って月を繰り上げてはいけない');
+});
+
+// extractBojPressConferenceNotice: 2026-10-26新設（しょうさん指摘、GPTの指摘の検証を経て）。
+// 本編テーブルの記者会見行は時刻が常に「未定」のため時刻確定まで対象外になり、総裁定例記者会見が
+// jp_boj系ソースで一度も抽出できなかった（恒常的な欠落）。ページ末尾付近の見出し外テキストのみに
+// 具体的な日時が明記されるため、これを別途抽出する。実データ構造は2026-10-26にcurl直接取得で
+// 確認済み（UA偽装なし）: <h2 id="p03">総裁定例記者会見（予定）</h2><p>{YYYY}年{M}月{D}日（{曜}）
+// {H}:{MM}～（ライブ配信予定）<br>...</p>
+test('extractBojPressConferenceNotice: 実測構造（2026-10-26確認）から日時を抽出できる', () => {
+  const html = '<h2 id="p03">総裁定例記者会見（予定）</h2>\n<p>2026年10月30日（金）15:30～（ライブ配信予定）<br>\n（会見記録は2026年11月2日（月）にホームページ掲載予定）</p>';
+  const r = extractBojPressConferenceNotice(html);
+  assert.equal(r.found, true);
+  assert.equal(r.date, '2026-10-30');
+  assert.equal(r.localTime, '15:30');
+});
+
+test('extractBojPressConferenceNotice: 見出し自体が見つからない場合はfound:false（構造的失敗ではなく通常の未発表状態）', () => {
+  const r = extractBojPressConferenceNotice('<html><body>no heading here</body></html>');
+  assert.equal(r.found, false);
+});
+
+// 2026-10-26実測で発覚した回帰テスト: ページ冒頭の目次（<a href="#p03">総裁定例記者会見（予定）</a>）
+// にも同じ文言が出現し、本文の<h2>より遥か前（実測で約7300文字前）にあるため、素朴な
+// indexOf()では目次側にマッチして日時を取得できなかった（本文の<h2>まで届かない）。
+// <h2>タグに限定してマッチすることを確認する
+test('extractBojPressConferenceNotice: ページ冒頭の目次リンク（<a href="#p03">...）に同じ文言があっても、本文の<h2>側の日時を正しく抽出する（実測で発覚した回帰テスト）', () => {
+  const html = `<ul class="page-link"><li><a href="#p03">総裁定例記者会見（予定）</a></li></ul>
+  <p>${'x'.repeat(1000)}</p>
+  <h2 id="p03">総裁定例記者会見（予定）</h2>
+  <p>2026年10月30日（金）15:30～（ライブ配信予定）</p>`;
+  const r = extractBojPressConferenceNotice(html);
+  assert.equal(r.found, true);
+  assert.equal(r.date, '2026-10-30');
+  assert.equal(r.localTime, '15:30');
+});
+
+test('extractBojPressConferenceNotice: 見出しはあるが日時が1件も抽出できない場合はfound:false', () => {
+  const html = '<h2 id="p03">総裁定例記者会見（予定）</h2>\n<p>未定</p>';
+  const r = extractBojPressConferenceNotice(html);
+  assert.equal(r.found, false);
+});
+
+test('extractBojSpeeches: 総裁定例記者会見（予定）の見出し外テキストが見つかればkind:press_conferenceの行をrowsへ合流させる', () => {
+  const html = `<table><tbody>
+    <tr><td class="txt-right">27日（火）</td><td class="txt-right">8:50</td><td class="txt-center">○</td><td class="txt-center">●</td><td>マネタリーベース（10月）</td></tr>
+  </tbody></table>
+  <h2 id="p03">総裁定例記者会見（予定）</h2>
+  <p>2026年10月30日（金）15:30～（ライブ配信予定）</p>`;
+  const r = extractBojSpeeches(html, { targetWeek: { targetWeekStart: '2026-10-26', targetWeekEnd: '2026-10-30' } });
+  assert.equal(r.ok, true);
+  const press = r.rows.find((row) => row.kind === 'press_conference');
+  assert.ok(press, '総裁定例記者会見の行が見つからない');
+  assert.equal(press.date, '2026-10-30');
+  assert.equal(press.localTime, '15:30');
+});
+
+test('extractBojSpeeches: 総裁定例記者会見（予定）の見出しが無い場合は従来どおり（press_conference行は追加されないが構造的失敗にもしない）', () => {
+  const html = `<table><tbody>
+    <tr><td class="txt-right">27日（火）</td><td class="txt-right">8:50</td><td class="txt-center">○</td><td class="txt-center">●</td><td>マネタリーベース（10月）</td></tr>
+  </tbody></table>`;
+  const r = extractBojSpeeches(html, { targetWeek: { targetWeekStart: '2026-10-26', targetWeekEnd: '2026-10-30' } });
+  assert.equal(r.ok, true);
+  assert.equal(r.rows.filter((row) => row.kind === 'press_conference').length, 0);
 });
 
 test('extractBojSpeeches: 年末→年始の月ロールオーバーで年をインクリメントする（月替わり行は実ページ運用どおりN月D日形式で明記される前提）', () => {
