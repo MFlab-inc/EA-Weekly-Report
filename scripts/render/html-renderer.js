@@ -159,11 +159,19 @@ function eventCard3(ev, reportPolicy) {
     ? `\n        <div style="font-size:12.5px;color:#43564d;margin-top:4px;">${ev.prevForecastText}</div>`
     : '';
   const comment = ev.comment ? `\n        <div style="font-size:12px;color:#6b8177;margin-top:${ev.showPrevForecast && ev.prevForecastText ? '3' : '4'}px;">${esc(ev.comment)}</div>` : '';
+  // 2026-10-26追加（しょうさん指摘、GPTの指摘の検証を経てjp_boj policy_rateに適用）:
+  // timeEstimated:trueの場合のみ、時刻表示に「頃（目安）」を付け、注記を1行追加する
+  // （停止目安の計算[haltDayCard側]は変更しない。表示のみ）。他ソース・他kindはtimeEstimatedが
+  // falseのため従来どおりの表示になる
+  const estimatedNote = ev.timeEstimated
+    ? `\n        <div style="font-size:12px;color:#6b8177;margin-top:3px;">発表時刻は公式に事前公表された確定値ではない目安です。停止目安はこの目安時刻を基準に算出しています。</div>`
+    : '';
   const borderStyle = ev.isLastInGroup ? '' : 'border-bottom:1px dashed #e2ede7;';
   // 週末スピルオーバー（しょうさん指示2026-10-11）: 対象週の金曜カードに掲載されるが実際の発表は
   // 翌日（土）のため、生の時刻のまま出すと金曜当日の発表と誤読されかねない。セクション1（EA停止
   // スケジュール）の既存の「▲翌日HH:MM」表記と同じ前置詞を付ける
-  const timeText = ev.isWeekendSpillover && ev.time ? `翌日${ev.time}` : ev.time;
+  const timeTextBase = ev.isWeekendSpillover && ev.time ? `翌日${ev.time}` : ev.time;
+  const timeText = ev.timeEstimated && timeTextBase ? `${timeTextBase}頃（目安）` : timeTextBase;
   const timeHtml = timeText
     ? `<span style="font-family:'Roboto Mono',Consolas,Menlo,monospace;font-size:15px;font-weight:800;color:#065f46;">${esc(timeText)}</span>`
     : `<span style="font-size:11px;font-weight:700;color:#8aa097;">${esc(reportPolicy.no_time_note)}</span>`;
@@ -173,7 +181,7 @@ function eventCard3(ev, reportPolicy) {
           ${countryPill(ev.countryJa)}
           <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">${esc(ev.displayName)}</span>
           <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
-        </div>${prevForecast}${comment}
+        </div>${prevForecast}${comment}${estimatedNote}
       </div>
 `;
 }

@@ -110,6 +110,12 @@ function validateEvent(event, index, errors, seenIds, sourceIds) {
   if (event.time_status === 'unpublished' && event.datetime_jst !== null) {
     errors.push(`${tag}: time_status=unpublishedのときdatetime_jstはnullである必要があります`);
   }
+  // time_is_estimated: 2026-10-26追加（しょうさん指摘）。time_status=publishedだが時刻が
+  // 公式事前公表された確定値ではない（config側の推定値）ことを示す任意の真偽値フラグ
+  // （jp_boj policy_rate等）。未設定（undefined）の既存台帳との後方互換のためnullも許容する
+  if (event.time_is_estimated != null && typeof event.time_is_estimated !== 'boolean') {
+    errors.push(`${tag}.time_is_estimated: 真偽値またはnull/未設定が必要です`);
+  }
   if (!isNonEmptyString(event.country)) errors.push(`${tag}.country: 空でない文字列が必要です`);
   if (!isNonEmptyString(event.currency)) errors.push(`${tag}.currency: 空でない文字列が必要です`);
   if (!isNonEmptyString(event.kind)) errors.push(`${tag}.kind: 空でない文字列が必要です`);
