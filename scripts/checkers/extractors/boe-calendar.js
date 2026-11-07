@@ -152,16 +152,21 @@ function addDaysToIsoDate(iso, n) {
 }
 
 // <title>Upcoming events - w/b {D} {Month} {YYYY} and {D} {Month} {YYYY}...</title>
-// から、ページが表示中の2つの週の月曜日（ISO日付）を読み取る
+// から、ページが表示中の2つの週の月曜日（ISO日付）を読み取る。
+// 2026-11-07追記（11/9週パイプライン失敗対応）: 実測で、表示中の2週が同じ年に収まる場合、
+// 1つ目の日付の年が省略される短縮形（例: "w/b 9 November and 16 November 2026"）が確認された
+// （従来fixtureの"w/b 28 September 2026 and 5 October 2026"のように年が両方明記される形式と
+// 混在する。BOE側のテンプレート都合と見られ条件は不明なため、1つ目の年の有無どちらにも
+// 対応する。1つ目の年が省略された場合は2つ目の年を流用する）
 function parseDeclaredWindow(html) {
-  const m = /w\/b (\d{1,2}) (\w+) (\d{4}) and (\d{1,2}) (\w+) (\d{4})/.exec(html);
+  const m = /w\/b (\d{1,2}) (\w+)(?: (\d{4}))? and (\d{1,2}) (\w+) (\d{4})/.exec(html);
   if (!m) return null;
   const mk = (d, mon, y) => {
     const mm = MONTHS[mon.toLowerCase()];
     if (!mm) return null;
     return `${y}-${pad2(mm)}-${pad2(Number(d))}`;
   };
-  const monday1 = mk(m[1], m[2], m[3]);
+  const monday1 = mk(m[1], m[2], m[3] || m[6]);
   const monday2 = mk(m[4], m[5], m[6]);
   if (!monday1 || !monday2) return null;
   return { monday1, monday2 };

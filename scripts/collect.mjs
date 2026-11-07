@@ -34,6 +34,14 @@ async function main() {
   mkdirSync('phase1-out', { recursive: true });
   writeFileSync(join('phase1-out', 'collect-result.json'), JSON.stringify(result, null, 2));
   console.log(`collect完了: 対象週=${targetWeek.targetWeekStart}〜${targetWeek.targetWeekEnd} 候補${result.candidates.length}件 outcome=${result.report.outcome.status}`);
+  // 2026-11-07追記（11/9週パイプライン失敗対応、しょうさん指摘: ワークフローログからは
+  // outcome=HOLD/WARNの理由が一切わからず、原因調査のたびにローカル環境での再現が必要だった）。
+  // outcome.reasons（WARN/HOLDの判定理由）とfailures（個別ソースの失敗一覧）をActionsログへ
+  // そのまま出力し、ログだけで原因を特定できるようにする。OK時は出力なし（ログを肥大化させない）
+  if (result.report.outcome.status !== 'OK') {
+    for (const reason of result.report.outcome.reasons) console.log(`  outcome理由: ${reason}`);
+    for (const f of result.report.failures) console.log(`  failure: ${f.sourceId} (expected=${f.expected}) ${f.reason}`);
+  }
   if (result.report.outcome.status === 'HOLD') process.exitCode = 1;
 }
 
