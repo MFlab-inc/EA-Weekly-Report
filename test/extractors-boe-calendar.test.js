@@ -253,6 +253,31 @@ test('parseDeclaredWindow: <title>のw/b表記から2つの週の月曜日を読
   assert.deepEqual(parseDeclaredWindow(html), { monday1: '2026-09-28', monday2: '2026-10-05' });
 });
 
+// 2026-11-07追記（11/9週パイプライン失敗対応・実測で発覚）: 表示中の2週が同じ年に収まる場合、
+// 1つ目の日付の年が省略される短縮形（実測: "w/b 9 November and 16 November 2026"）をBOEが
+// 使うことを確認した。1つ目の年は2つ目の年を流用して解決する
+test('parseDeclaredWindow: 1つ目の日付の年が省略された短縮形（表示中の2週が同じ年）でも2つ目の年を流用して読み取る', () => {
+  const html = '<title>Upcoming events - w/b 9 November and 16 November 2026 | Bank of England</title>';
+  assert.deepEqual(parseDeclaredWindow(html), { monday1: '2026-11-09', monday2: '2026-11-16' });
+});
+
+test('extractBoeCalendar: 1つ目の日付の年が省略された短縮形のタイトルでも正しく対象週を判定し抽出できる', () => {
+  const html = [
+    '<title>Upcoming events - w/b 9 November and 16 November 2026</title>',
+    '<div class="page-content">',
+    '<h3>Monday 9 November</h3>',
+    '<p>Andrew Bailey: <a href="/speech">Speech at Bank of England, London</a> (9am)</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-11-09' } });
+  assert.equal(r.ok, true);
+  const bailey = r.items.find((i) => i.speakerLastName === 'Andrew Bailey');
+  assert.ok(bailey, JSON.stringify(r.items));
+  assert.equal(bailey.date, '2026-11-09');
+  assert.equal(bailey.localTime, '09:00');
+});
+
 test('buildWindowDates: 月曜日から14日分（2週間）の連続した日付を作る', () => {
   const dates = buildWindowDates('2026-09-28');
   assert.equal(dates.length, 14);
