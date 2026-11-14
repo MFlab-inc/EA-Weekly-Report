@@ -4,7 +4,7 @@
 // 「N月第M日曜」等のDST切替規則を自前で保持しない（毎年変わりうる規則を手動更新する必要をなくすため。
 // 米連邦法改正等でルール自体が変わった場合もIntlのデータ更新に追随できる）。
 
-const { jstCalendarDate, formatYmd } = require('./dates');
+const { jstCalendarDate, formatYmd, isWithinWeek } = require('./dates');
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -91,6 +91,25 @@ function weekendSpilloverCutoffJst(fridayDateStr) {
   return { date, time };
 }
 
+// candidates（各要素が{date, time, ...}を持つ）を、対象週（月〜金、JST）内のものに加え、
+// 週末スピルオーバー（対象週の金曜NY市場クローズ[17:00 ET]前にかかり、JST変換で対象週の
+// 翌日[土]になる候補）も残し、スピルオーバー分にはisWeekendSpillover:trueを付ける。
+// 2026-10-11に週次スクレイプ型（checkWeeklyScrapeSource）専用に導入された判定を、
+// 2026-11-14（11/16週、しょうさん指摘）に共通化した: FRED型（checkFredSource、
+// 米ミシガン大学消費者信頼感指数10:00 ET→JST変換で翌日[土]0:00になり、この判定を経ない
+// 経路だけ台帳に残ったまま金曜カード側で描画されずHTML_EVENT_MISSINGになっていた）・
+// annual_schedule_config型（buildObservationSummaryのmatchedEntries。2026-10-03に
+// isWithinWeekのみの再チェックは追加済みだったが、スピルオーバーとしての取り込みはせず
+// 単純に対象週外として除外していた＝カナダIveyPMI等が対象週最終日[金]のロールオーバーで
+// 無警告のまま取りこぼされ得る潜在バグ）の双方にも同じ基準を適用できるようにする
+function applyWeekendSpillover(candidates, targetWeekStart, targetWeekEnd) {
+  const cutoff = weekendSpilloverCutoffJst(targetWeekEnd);
+  return candidates
+    .filter((c) => isWithinWeek(c.date, targetWeekStart, targetWeekEnd)
+      || (c.time && c.date === cutoff.date && c.time <= cutoff.time))
+    .map((c) => (c.date === cutoff.date ? { ...c, isWeekendSpillover: true } : c));
+}
+
 // 現在時刻を「+09:00」オフセット付きISO日時（秒精度、ミリ秒なし）の文字列で返す。
 // scripts/lib/validate-ledger.jsのISO_DATETIME_OFFSET_RE（ミリ秒非対応）に適合させるため、
 // `new Date().toISOString()`（UTC・Z・ミリ秒付き）をmeta.generated_at等にそのまま使わないこと
@@ -114,5 +133,6 @@ module.exports = {
   utcToZonedParts,
   zonedWallTimeToJst,
   weekendSpilloverCutoffJst,
+  applyWeekendSpillover,
   nowJstIso,
 };

@@ -101,6 +101,45 @@ test('checkFredSource: 実config（us_bls_fred）のjobless_claims/sentimentが�
   assert.equal(sentiment.importance, 2);
 });
 
+// 2026-11-14追加（11/16週の実インシデント回帰テスト、しょうさん指摘）: 上記task #89/#90の既存
+// テストは発表日が2026-09-11（夏時間[EDT、UTC-4]中）だったため、10:00 ET→JST変換が同日23:00に
+// 収まり問題が顕在化しなかった。冬時間（EST、UTC-5）に入った11月は同じ10:00 ETが
+// JST翌日0:00になり、対象週最終日（金）の発表だとJST変換後に対象週外（土）へロールオーバーする。
+// checkWeeklyScrapeSourceには既に週末スピルオーバー（isWeekendSpillover）の仕組みがあったが、
+// checkFredSourceの経路だけこれを通っておらず、対象週でも週末スピルオーバーの対象でもない
+// 中途半端な日付のまま台帳に残り、台帳×HTML突合（ledger-html-audit.mjs）がHTML_EVENT_MISSINGを
+// 検出してパイプラインがHOLDする実障害（2026-11-14、run #64/#65）となっていた。
+// applyWeekendSpillover()の適用により、対象週の翌日（土）扱い・isWeekendSpillover:trueで
+// 候補に残ることを確認する
+test('checkFredSource: 冬時間（EST）の金曜発表がJST変換で翌日（土）にロールオーバーする場合、週末スピルオーバーとして残る（2026-11-16週の実インシデント回帰テスト）', async () => {
+  const officialSources = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'official-sources.json'), 'utf8'));
+  const importanceRules = JSON.parse(readFileSync(join(__dirname, '..', 'config', 'importance-rules.json'), 'utf8'));
+  const usBlsFred = officialSources.sources.find((s) => s.id === 'us_bls_fred');
+  assert.ok(usBlsFred, 'us_bls_fredがconfigに存在するはず');
+
+  const { checkFredSource } = await loadHarness();
+  const fetchImpl = async (url) => {
+    const releaseId = new URL(url).searchParams.get('release_id');
+    // sentimentの確定値が対象週最終日（金、2026-11-20）に発表される実インシデントを再現する
+    const datesByRelease = { 91: ['2026-10-23', '2026-11-20', '2026-12-18'] };
+    return { ok: true, json: async () => ({ release_dates: (datesByRelease[releaseId] || []).map((date) => ({ date })) }) };
+  };
+  const targetWeek = {
+    targetWeekStart: '2026-11-16',
+    targetWeekEnd: '2026-11-20',
+    dates: [
+      { date: '2026-11-16' }, { date: '2026-11-17' }, { date: '2026-11-18' }, { date: '2026-11-19' }, { date: '2026-11-20' },
+    ],
+  };
+  const r = await checkFredSource(usBlsFred, targetWeek, { fetchImpl, apiKey: 'dummy', eventNames: REAL_EVENT_NAMES, importanceRules });
+  assert.equal(r.ok, true);
+  const sentiment = r.thisWeek.find((c) => c.kind === 'sentiment');
+  assert.ok(sentiment, JSON.stringify(r.thisWeek));
+  assert.equal(sentiment.date, '2026-11-21');
+  assert.equal(sentiment.time, '00:00');
+  assert.equal(sentiment.isWeekendSpillover, true);
+});
+
 // task #93（2026-09-06、しょうさん指示: 「公表リリース全量の差分監査」）の単体テスト
 test('checkFredCatalogAudit: catalog_audit_source_idsが無いソースは常にnewReleases:[]', async () => {
   const { checkFredCatalogAudit } = await loadHarness();
