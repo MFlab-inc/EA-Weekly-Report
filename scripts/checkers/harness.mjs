@@ -567,6 +567,10 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
   const toRows = (parsed) => (parsed.rows || parsed.meetings || parsed.entries || parsed.releases || parsed.items || []).map(extractor.toRow);
   const parseCtx = { targetWeek, source };
   let rawRows = [];
+  // 2026-11-16追加（しょうさん指摘、BOEの表示ウィンドウ直前の見出し読み飛ばし対応）: 構造的失敗
+  // ではないが読者・運用者へ知らせたい情報WARN（抽出器のparsed.warnings）を集める。
+  // build-ledger.jsのbuildMetaMessages経由でmeta.warningsへ合流させる（residualWarnings等と同じ設計）
+  const extractorWarnings = [];
   if (extractor.primaryLabel) {
     const primary = fetched.find((f) => f.label === extractor.primaryLabel);
     if (!primary?.ok || !primary.body) {
@@ -590,6 +594,7 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
         foundKinds: [],
       };
     }
+    if (parsed.warnings?.length) extractorWarnings.push(...parsed.warnings.map((w) => `${source.id}: ${w}`));
     rawRows = toRows(parsed);
   } else {
     // primaryLabel未指定（buildTargets等の動的複数ページ生成ソース）: フェッチ成功した
@@ -607,6 +612,7 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
           foundKinds: [],
         };
       }
+      if (parsed.warnings?.length) extractorWarnings.push(...parsed.warnings.map((w) => `${source.id}（${t.label}）: ${w}`));
       rawRows.push(...toRows(parsed));
     }
   }
@@ -668,6 +674,7 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
     allCandidatesCount: candidates.length,
     thisWeek,
     unregistered,
+    extractorWarnings,
     foundKinds: [...new Set(thisWeek.map((c) => c.kind))],
     annualConfigHasTargetWeek: false,
     recurringCheckMatches: false,
@@ -805,6 +812,10 @@ export async function runChecks({ sourcesConfig, importanceRules, eventNames, ta
     }
   );
 
+  // 2026-11-16追加（BOEの表示ウィンドウ直前の見出し読み飛ばし対応）: 構造的失敗ではない
+  // 情報WARN（checkWeeklyScrapeSourceのextractorWarnings）をソース横断でフラットに集める
+  const extractorWarnings = results.flatMap((r) => r.extractorWarnings || []);
+
   return {
     targetWeek: { start: targetWeek.targetWeekStart, end: targetWeek.targetWeekEnd },
     results,
@@ -813,6 +824,7 @@ export async function runChecks({ sourcesConfig, importanceRules, eventNames, ta
     residualWarnings,
     recurringMissingWarnings,
     catalogAuditWarnings,
+    extractorWarnings,
   };
 }
 

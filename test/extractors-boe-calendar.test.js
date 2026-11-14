@@ -278,6 +278,65 @@ test('extractBoeCalendar: 1つ目の日付の年が省略された短縮形の�
   assert.equal(bailey.localTime, '09:00');
 });
 
+// 2026-11-16追加（しょうさん指摘、11/16週の実インシデント回帰テスト）: 土曜取得時、表示
+// ウィンドウ（w/b 16 November and 23 November）の開始日（月曜1）より2日前の土曜見出し
+// 「Saturday 14 November」が本文冒頭に残っていた実例を再現する。この見出し配下の予定
+// （Megan Greeneの11am）は読み飛ばされ情報WARNになるが、ソース全体は失敗せず、
+// 後続の本来の対象週内の見出し・予定は正しく抽出できることを確認する
+test('extractBoeCalendar: 表示ウィンドウ開始日より前（直前の土日）の見出しは読み飛ばして情報WARNにし、後続の対象週内の予定は正しく抽出する（11/16週の実インシデント回帰テスト）', () => {
+  const html = [
+    '<title>Upcoming events - w/b 16 November and 23 November 2026</title>',
+    '<div class="page-content">',
+    '<h2>14 to 20 November</h2>',
+    '<h3>Saturday 14 November</h3>',
+    '<p>Megan Greene: <a href="/speech">Opening remarks at the CER Ditchley economics conference, Oxfordshire</a> (11am).</p>',
+    '<h3>Wednesday 18 November</h3>',
+    '<p>Andrew Bailey: <a href="/speech">Speech at the Annual Institute of Economic Development Conference, London</a> (3pm).</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-11-16' } });
+  assert.equal(r.ok, true);
+  assert.equal(r.items.length, 1);
+  assert.ok(!r.items.some((i) => i.speakerLastName === 'Megan Greene'), '表示ウィンドウより前の見出し配下の予定は含まれないはず');
+  const bailey = r.items.find((i) => i.speakerLastName === 'Andrew Bailey');
+  assert.ok(bailey, JSON.stringify(r.items));
+  assert.equal(bailey.date, '2026-11-18');
+  assert.equal(r.warnings.length, 1);
+  assert.match(r.warnings[0], /Saturday 14 November.*表示ウィンドウ.*より前/);
+});
+
+// 表示ウィンドウより3日以上前（読み飛ばし対象のLOOKBACK_DAYS=2日を超える）見出しは、
+// 従来どおり構造的失敗のままであることを確認する（読み飛ばし範囲を広げすぎないための回帰防止）
+test('extractBoeCalendar: 表示ウィンドウより3日以上前の見出しは読み飛ばし対象にせず、従来どおり構造的失敗のままにする', () => {
+  const html = [
+    '<title>Upcoming events - w/b 16 November and 23 November 2026</title>',
+    '<div class="page-content">',
+    '<h3>Friday 13 November</h3>',
+    '<p>Megan Greene: <a href="/speech">Some speech</a> (11am).</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-11-16' } });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /表示ウィンドウ.*内の日付と対応しない/);
+});
+
+// 表示ウィンドウより後（2週目の終わりより先）の見出しは従来どおり構造的失敗のままであることを確認する
+test('extractBoeCalendar: 表示ウィンドウより後の見出しは従来どおり構造的失敗のままにする', () => {
+  const html = [
+    '<title>Upcoming events - w/b 16 November and 23 November 2026</title>',
+    '<div class="page-content">',
+    '<h3>Monday 30 November</h3>',
+    '<p>Megan Greene: <a href="/speech">Some speech</a> (11am).</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-11-16' } });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /表示ウィンドウ.*内の日付と対応しない/);
+});
+
 test('buildWindowDates: 月曜日から14日分（2週間）の連続した日付を作る', () => {
   const dates = buildWindowDates('2026-09-28');
   assert.equal(dates.length, 14);

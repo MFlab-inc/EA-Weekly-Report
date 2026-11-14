@@ -476,6 +476,7 @@ function buildMetaMessages(report) {
   warnings.push(...(report.residualWarnings || []).map((w) => `残量監視WARN: ${w.id} — ${w.warn}`));
   warnings.push(...(report.recurringMissingWarnings || []));
   warnings.push(...(report.catalogAuditWarnings || []));
+  warnings.push(...(report.extractorWarnings || []));
   return { warnings, holds };
 }
 

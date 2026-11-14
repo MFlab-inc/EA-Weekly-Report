@@ -158,6 +158,25 @@ test('resolveOfficialBySurname: FRB理事個人（議長以外）が登録済み
   assert.equal(barr.role_ja, 'FRB理事');
 });
 
+// 2026-11-16追加（しょうさん指摘、BOE副総裁ブラディックの実例）: BOE自身のevents/
+// upcoming-eventsページ本文で「Katherine Braddick」（e）という表記揺れが実測で見つかった
+// （officials.json登録の正式表記は公式bioどおり「Katharine Braddick」、a）。
+// aliases_enに登録した別表記でも解決できること、未登録の別表記はnullのままであることを確認する
+test('resolveOfficialBySurname: aliases_enに登録済みの別表記（BOEページの表記揺れ"Katherine Braddick"）でも解決できる', () => {
+  const braddick = naming.resolveOfficialBySurname(officials, 'Katherine Braddick', 'GB');
+  assert.ok(braddick, 'aliases_en経由でBraddickが解決できない');
+  assert.equal(braddick.role_rank, 'deputy_governor');
+  assert.equal(braddick.name_ja, 'ブラディック');
+  // 正式表記（aliases_enではなくfull_name側）でも従来どおり解決できることの確認
+  const official = naming.resolveOfficialBySurname(officials, 'Katharine Braddick', 'GB');
+  assert.equal(official, braddick);
+});
+
+test('resolveOfficialBySurname: aliases_enに登録が無い未知の別表記・国不一致はnullのままにする', () => {
+  assert.equal(naming.resolveOfficialBySurname(officials, 'Catherine Braddick', 'GB'), null);
+  assert.equal(naming.resolveOfficialBySurname(officials, 'Katherine Braddick', 'US'), null, 'aliases_enにも国スコープが適用されるはず（task #88と同じ基準）');
+});
+
 test('resolveOfficialBySurname: 該当なし・surname未指定・country未指定はnull', () => {
   assert.equal(naming.resolveOfficialBySurname(officials, 'NonexistentSurname', 'AU'), null);
   assert.equal(naming.resolveOfficialBySurname(officials, null, 'AU'), null);

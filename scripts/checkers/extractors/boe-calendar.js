@@ -179,6 +179,24 @@ function buildWindowDates(windowStart) {
   return dates;
 }
 
+// 2026-11-16追加（しょうさん指摘、11/16週実測で発覚）: このページを土曜に取得すると、
+// <title>が宣言する表示ウィンドウ（w/b {月曜1} and {月曜2}）の開始日（月曜1）より前の
+// 曜日見出し（実測: 取得当日の土曜「Saturday 14 November」、宣言ウィンドウは
+// w/b 16 November。本生成が常に土曜実行＝取得日は常に次の月曜の2日前という運用上、
+// この「直前の土日」が本文に残っていることがある）が本文冒頭に残っていることがある。
+// 従来はwindowDates（月曜1から14日分）のみと照合しており、この見出しが「どの日付にも
+// 対応しない」構造的失敗として誤ってソース全体を失敗させていた。宣言ウィンドウの直前
+// LOOKBACK_DAYS日分（土日の2日。取得日が常に土曜のため、これより前に残る見出しは想定
+// していない＝それ以上前であれば従来どおり構造的失敗のまま）を別途照合し、ここに該当する
+// 見出し配下の内容だけを対象外（読み飛ばし＋情報WARN）にする。宣言ウィンドウより後の日付や
+// どちらにも対応しない見出しは従来どおり構造的失敗のまま変えない
+const LOOKBACK_DAYS = 2;
+function buildLookbackDates(windowStart, days) {
+  const dates = [];
+  for (let i = 1; i <= days; i++) dates.push(addDaysToIsoDate(windowStart, -i));
+  return dates;
+}
+
 function findDateForHeading(windowDates, day, monthName) {
   const mm = MONTHS[monthName.toLowerCase()];
   if (!mm) return null;
@@ -196,7 +214,10 @@ const SPEAKER_LINE_RE = /^((?:[A-Z][a-zA-Z'’]*\.?\s+){1,2}[A-Z][a-zA-Z'’]*)\
 const BLOCK_RE = /<(h3|p)[^>]*>([\s\S]*?)<\/\1>/g;
 
 // html: events/upcoming-eventsの生HTML全体。ctx: { targetWeek } （harness.mjsのparseCtx）
-// 戻り値: { ok: true, items: [{ date, localTime, speakerLastName, title }] } または { ok: false, reason }
+// 戻り値: { ok: true, items: [{ date, localTime, speakerLastName, title }], warnings: string[] }
+// または { ok: false, reason }（warningsは表示ウィンドウより前の見出しを読み飛ばした際の
+// 情報WARN。無ければ空配列。harness.mjsのcheckWeeklyScrapeSourceがsource.id付きで
+// report.extractorWarnings→meta.warningsへ合流させる）
 function extractBoeCalendar(html, ctx) {
   const window_ = parseDeclaredWindow(html);
   if (!window_) {
@@ -230,6 +251,7 @@ function extractBoeCalendar(html, ctx) {
   const section = html.slice(startIdx, endIdx);
 
   const items = [];
+  const warnings = [];
   let currentDate = null;
   let blockCount = 0;
   let headingCount = 0;
@@ -246,14 +268,20 @@ function extractBoeCalendar(html, ctx) {
     if (headingM) {
       headingCount += 1;
       const date = findDateForHeading(windowDates, Number(headingM[1]), headingM[2]);
-      if (!date) {
-        return {
-          ok: false,
-          reason: `日付見出し「${text}」が表示ウィンドウ（${window_.monday1}〜${windowDates[13]}）内の日付と対応しない。サイト構造変化の疑い`,
-        };
+      if (date) {
+        currentDate = date;
+        continue;
       }
-      currentDate = date;
-      continue;
+      const lookbackDate = findDateForHeading(buildLookbackDates(window_.monday1, LOOKBACK_DAYS), Number(headingM[1]), headingM[2]);
+      if (lookbackDate) {
+        currentDate = null; // この見出し配下の予定は対象外（表示ウィンドウより前のため）
+        warnings.push(`日付見出し「${text}」は表示ウィンドウ（${window_.monday1}〜）より前のため読み飛ばしました（対象週には影響しません）`);
+        continue;
+      }
+      return {
+        ok: false,
+        reason: `日付見出し「${text}」が表示ウィンドウ（${window_.monday1}〜${windowDates[13]}）内の日付と対応しない。サイト構造変化の疑い`,
+      };
     }
 
     // このプロジェクトが追跡する日付見出しの体裁と紛らわしい行（曜日+日+月で始まるが後続に
@@ -322,7 +350,7 @@ function extractBoeCalendar(html, ctx) {
     };
   }
 
-  return { ok: true, items };
+  return { ok: true, items, warnings };
 }
 
 module.exports = {
