@@ -435,3 +435,66 @@ test('renderer: timeEstimatedの注記文言に禁止語（JST・仮想通貨）
     assert.ok(!generatedTimeEstimated.includes(term), `禁止語「${term}」が出力に含まれている`);
   }
 });
+
+// usesManuscriptReleaseTime: 2026-11-21追加（しょうさん指示、gb_boe_calendar限定）。
+// 原稿公表時刻を基準にしたイベントは、時刻表示自体が原稿公表時刻（既にledger-to-week-input.js
+// 経由で差し替え済み）になり、講演本体の時刻を併記する注記が1行追加されることを確認する。
+// 停止目安の帯・▲の位置も、この差し替え済み時刻（原稿公表時刻）を基準にしたまま変わらないことも確認する
+const weekDataManuscriptRelease = {
+  reportMeta: 'ea-weekly-test-manuscript-release',
+  createdDateJa: '2026年11月14日（土）',
+  targetWeekStart: '2026-11-16',
+  targetWeekEnd: '2026-11-20',
+  heroSummary: 'BOE副総裁の発言を確認する週',
+  heroPills: ['ブラディック副総裁 11/18'],
+  days: [
+    { date: '2026-11-16', md: '11/16', weekday: '月', events: [], windowGroups: [] },
+    { date: '2026-11-17', md: '11/17', weekday: '火', events: [], windowGroups: [] },
+    { date: '2026-11-18', md: '11/18', weekday: '水', events: [], windowGroups: [] },
+    { date: '2026-11-19', md: '11/19', weekday: '木', events: [], windowGroups: [] },
+    {
+      date: '2026-11-20', md: '11/20', weekday: '金',
+      events: [
+        { id: 'gb-official_speech-2026-11-20', time: '14:00', importance: 3, countryJa: '英国', currency: 'GBP', displayName: 'ブラディックBOE副総裁（プルーデンス規制担当）の発言', usesManuscriptReleaseTime: true, speechLocalTime: '19:00' },
+        { id: 'gb-official_speech-2026-11-20-2', time: '15:00', importance: 3, countryJa: '英国', currency: 'GBP', displayName: 'ベイリーBOE総裁の発言' },
+      ],
+      windowGroups: [
+        { firstTime: '14:00', lastTime: '14:00', countryJa: '英国', currency: 'GBP', labelItems: [{ time: '14:00', text: 'ブラディックBOE副総裁（プルーデンス規制担当）の発言' }] },
+        { firstTime: '15:00', lastTime: '15:00', countryJa: '英国', currency: 'GBP', labelItems: [{ time: '15:00', text: 'ベイリーBOE総裁の発言' }] },
+      ],
+    },
+  ],
+};
+const reportDataManuscriptRelease = buildReportData(weekDataManuscriptRelease);
+const generatedManuscriptRelease = renderReportHtml(reportDataManuscriptRelease, { reportPolicy, btcGuide });
+
+test('renderer: usesManuscriptReleaseTime:trueのイベントは原稿公表時刻がそのまま時刻表示になり、講演本体の時刻を併記した注記が1行追加される', () => {
+  const eventCardBlocks = generatedManuscriptRelease.split('class="ea-event-card"').slice(1);
+  const braddickBlock = eventCardBlocks.find((b) => b.includes('ブラディックBOE副総裁'));
+  assert.ok(braddickBlock, 'ブラディック副総裁カードが見つからない');
+  assert.match(braddickBlock, /14:00/);
+  assert.match(braddickBlock, /原稿公表時刻基準/);
+  assert.match(braddickBlock, /19:00/, '講演本体の時刻（19:00）が注記に含まれているはず');
+});
+
+test('renderer: usesManuscriptReleaseTimeが無い他のイベント（ベイリー総裁）は表示が変わらない（他イベントへの影響なし）', () => {
+  const eventCardBlocks = generatedManuscriptRelease.split('class="ea-event-card"').slice(1);
+  const baileyBlock = eventCardBlocks.find((b) => b.includes('ベイリーBOE総裁'));
+  assert.ok(baileyBlock, 'ベイリー総裁カードが見つからない');
+  assert.ok(!baileyBlock.includes('原稿公表時刻基準'), 'ベイリー側に注記が混入してはならない');
+});
+
+test('renderer: usesManuscriptReleaseTime:trueでも停止目安の帯・▲の位置は差し替え済みの時刻（14:00）基準のまま変わらない', () => {
+  const block = haltDayBlock(generatedManuscriptRelease, '2026-11-20');
+  const { bars, triangles } = barsAndTriangles(block);
+  assert.equal(triangles.length, 2, 'ブラディック14:00・ベイリー15:00の▲が2つ出るはず');
+  // ブラディック14:00基準の停止窓（12h前〜4h前＝02:00-10:00、24時間中8.333%地点から開始）が
+  // 帯に反映されていることを確認する
+  assert.ok(bars.some((b) => Math.abs(parseFloat(b[0]) - (2 / 24) * 100) < 0.1), 'ブラディックの停止窓開始（02:00）が帯に反映されていない');
+});
+
+test('renderer: 原稿公表時刻基準の注記文言に禁止語（JST・仮想通貨）が含まれない', () => {
+  for (const term of reportPolicy.forbidden_reader_terms) {
+    assert.ok(!generatedManuscriptRelease.includes(term), `禁止語「${term}」が出力に含まれている`);
+  }
+});

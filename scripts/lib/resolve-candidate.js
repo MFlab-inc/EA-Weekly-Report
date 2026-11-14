@@ -114,6 +114,10 @@ function resolveCandidateEvent(row, ctx) {
     // どうか（build-ledger.jsのcheckInstitutionalHintOnlyWarningが情報用WARN生成に使う。
     // しょうさん指示2026-10-11フォローアップ）
     ukHintInstitutionalOnly: Boolean(row.ukHintInstitutionalOnly),
+    // 原稿公表時刻（講演時刻より早い）を停止目安の基準にした行かどうか。gb_boe_calendar限定
+    // （しょうさん指示2026-11-21）。speechLocalTimeは元の講演時刻（表示・注記用に保持）
+    manuscriptReleaseBasis: Boolean(row.manuscriptReleaseBasis),
+    speechLocalTime: row.speechLocalTime || null,
   };
 }
 

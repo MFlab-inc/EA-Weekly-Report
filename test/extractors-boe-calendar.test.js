@@ -208,7 +208,7 @@ test('extractBoeCalendar: 対象週（targetWeek.targetWeekStart）が2週目（
 test('extractBoeCalendar: 対象週がページの表示ウィンドウ（今週+翌週）に含まれない場合は構造的失敗として扱う（前提が崩れたときに気づける仕組み）', () => {
   const r = extractBoeCalendar(fx(), { targetWeek: { targetWeekStart: '2026-10-12' } });
   assert.equal(r.ok, false);
-  assert.match(r.reason, /表示ウィンドウ.*対象週.*含んでいない/);
+  assert.match(r.reason, /宣言された表示期間.*対象週.*月〜金を全て含んでいない/);
 });
 
 // しょうさん指示（2026-09-27）: このページは通常必ず何らかの予定が掲載されているため、
@@ -278,7 +278,7 @@ test('extractBoeCalendar: 1つ目の日付の年が省略された短縮形の�
   assert.equal(bailey.localTime, '09:00');
 });
 
-// 2026-11-16追加（しょうさん指摘、11/16週の実インシデント回帰テスト）: 土曜取得時、表示
+// 2026-11-14追加（しょうさん指摘、11/16週の実インシデント回帰テスト）: 土曜取得時、表示
 // ウィンドウ（w/b 16 November and 23 November）の開始日（月曜1）より2日前の土曜見出し
 // 「Saturday 14 November」が本文冒頭に残っていた実例を再現する。この見出し配下の予定
 // （Megan Greeneの11am）は読み飛ばされ情報WARNになるが、ソース全体は失敗せず、
@@ -335,6 +335,97 @@ test('extractBoeCalendar: 表示ウィンドウより後の見出しは従来ど
   const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-11-16' } });
   assert.equal(r.ok, false);
   assert.match(r.reason, /表示ウィンドウ.*内の日付と対応しない/);
+});
+
+// 2026-11-21追加（しょうさん指示、10/17実測の回帰テスト）: <title>自体が
+// 「w/b 17 October 2026 and 26 October 2026」（1つ目の日付が土曜始まり・9日間隔）になった
+// 実例。宣言された表示期間（10/17〜11/1=10/26[月]が属する週の日曜）に当時の対象週
+// （10/19〜10/23の月〜金）が全て含まれているため、従来の「月曜かつ7日間隔」の厳格チェックを
+// 撤廃した現在の実装では受け入れられることを確認する
+test('extractBoeCalendar: 1つ目の日付が土曜始まり・9日間隔の宣言ウィンドウでも、対象週の月〜金を全て含んでいれば受け入れる（10/17実測の回帰テスト）', () => {
+  const html = [
+    '<title>Upcoming events - w/b 17 October 2026 and 26 October 2026</title>',
+    '<div class="page-content">',
+    '<h3>Monday 19 October</h3>',
+    '<p>Andrew Bailey: <a href="/speech">Speech at Bank of England, London</a> (9am).</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-10-19' } });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const bailey = r.items.find((i) => i.speakerLastName === 'Andrew Bailey');
+  assert.ok(bailey, JSON.stringify(r.items));
+  assert.equal(bailey.date, '2026-10-19');
+});
+
+test('extractBoeCalendar: 宣言された表示期間に対象週の月〜金の一部でも含まれていなければ従来どおり構造的失敗にする（10/17形式でも対象週がずれていれば失敗のまま）', () => {
+  const html = [
+    '<title>Upcoming events - w/b 17 October 2026 and 26 October 2026</title>',
+    '<div class="page-content">',
+    '<h3>Monday 19 October</h3>',
+    '<p>Andrew Bailey: <a href="/speech">Speech at Bank of England, London</a> (9am).</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  // 表示期間は10/17〜11/1。対象週を11/2（月）〜11/6（金）にすると金曜(11/6)が表示期間を超える
+  const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-11-02' } });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /宣言された表示期間.*対象週.*月〜金を全て含んでいない/);
+});
+
+// 2026-11-21追加（しょうさん指示）: 原稿公表時刻（「Text to be released at (Xpm)」）が
+// 講演時刻より早い場合、停止目安の基準を早い方（原稿公表時刻）に差し替え、注記で
+// 「原稿公表時刻基準」と分かるようにする実例（Katherine/Katharine Braddick副総裁の実測）
+test('extractBoeCalendar: 原稿公表時刻（Text to be released at）が講演時刻より早い場合、早い方を基準時刻にしmanuscriptReleaseBasis/speechLocalTimeを付ける', () => {
+  const html = [
+    '<title>Upcoming events - w/b 16 November and 23 November 2026</title>',
+    '<div class="page-content">',
+    '<h3>Wednesday 18 November</h3>',
+    '<p>Katherine Braddick: <a href="/speech">Speech at the UK Finance Annual Dinner, London</a> (7pm). Text to be released at (2pm).</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-11-16' } });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const braddick = r.items.find((i) => i.speakerLastName === 'Katherine Braddick');
+  assert.ok(braddick, JSON.stringify(r.items));
+  assert.equal(braddick.localTime, '14:00');
+  assert.equal(braddick.manuscriptReleaseBasis, true);
+  assert.equal(braddick.speechLocalTime, '19:00');
+});
+
+test('extractBoeCalendar: 原稿公表時刻の注記が無い通常の行はmanuscriptReleaseBasisを付けない（既存挙動の回帰防止）', () => {
+  const html = [
+    '<title>Upcoming events - w/b 16 November and 23 November 2026</title>',
+    '<div class="page-content">',
+    '<h3>Wednesday 18 November</h3>',
+    '<p>Andrew Bailey: <a href="/speech">Speech at the Annual Institute of Economic Development Conference, London</a> (3pm).</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-11-16' } });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const bailey = r.items.find((i) => i.speakerLastName === 'Andrew Bailey');
+  assert.ok(bailey, JSON.stringify(r.items));
+  assert.equal(bailey.localTime, '15:00');
+  assert.equal(bailey.manuscriptReleaseBasis, undefined);
+});
+
+test('extractBoeCalendar: 原稿公表時刻の併記が複数時刻で一意に決まらない場合は推測で補わず講演時刻のみを基準にする', () => {
+  const html = [
+    '<title>Upcoming events - w/b 16 November and 23 November 2026</title>',
+    '<div class="page-content">',
+    '<h3>Wednesday 18 November</h3>',
+    '<p>Katherine Braddick: <a href="/speech">Speech at the UK Finance Annual Dinner, London</a> (7pm). Text to be released at (2pm or 2.30pm).</p>',
+    '</div>',
+    '<h2>Upcoming key publications</h2>',
+  ].join('\n');
+  const r = extractBoeCalendar(html, { targetWeek: { targetWeekStart: '2026-11-16' } });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const braddick = r.items.find((i) => i.speakerLastName === 'Katherine Braddick');
+  assert.ok(braddick, JSON.stringify(r.items));
+  assert.equal(braddick.localTime, '19:00');
+  assert.equal(braddick.manuscriptReleaseBasis, undefined);
 });
 
 test('buildWindowDates: 月曜日から14日分（2週間）の連続した日付を作る', () => {

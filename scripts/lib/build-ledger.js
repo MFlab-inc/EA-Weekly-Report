@@ -271,6 +271,13 @@ function candidateToLedgerEvent(candidate, usedIds, officials) {
     // 「HH:MM頃（目安）」＋短い注記に変える（対象: jp_bojのpolicy_rateのみ。他ソース・他kindは
     // このフラグが立たないため表示は従来どおり）
     time_is_estimated: Boolean(candidate.timeEstimated),
+    // 2026-11-21追加（しょうさん指示、gb_boe_calendar限定）: 原稿公表時刻（講演時刻より早い）を
+    // 停止目安の基準にした行かどうか。candidate.time自体は既に抽出器側で早い方（原稿公表時刻）に
+    // 差し替え済みのため、上のdatetime_jst/halt_window_*は変更不要で自動的に正しく計算される。
+    // この2フィールドは読者向け注記（「原稿公表時刻基準」）の表示にのみ使う
+    // （ledger-to-week-input.js→html-renderer.js参照）
+    uses_manuscript_release_time: Boolean(candidate.manuscriptReleaseBasis),
+    speech_local_time: candidate.speechLocalTime || null,
   };
 }
 

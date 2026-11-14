@@ -63,6 +63,11 @@ function eventToWeekInputEvent(ev, eventComments) {
     // この時刻が公式の事前公表された確定値ではない（config側の推定値）ことをhtml-renderer.jsへ
     // 伝える。他ソース・他kindはfalseのままのため表示は従来どおり
     timeEstimated: Boolean(ev.time_is_estimated),
+    // 2026-11-21追加（しょうさん指示、gb_boe_calendar限定）: 原稿公表時刻（講演時刻より早い）を
+    // 停止目安の基準にした行かどうかをhtml-renderer.jsへ伝える。他ソース・他kindはfalseのため
+    // 表示は従来どおり
+    usesManuscriptReleaseTime: Boolean(ev.uses_manuscript_release_time),
+    speechLocalTime: ev.speech_local_time || null,
   };
 }
 
