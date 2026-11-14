@@ -46,9 +46,17 @@ function parseFrbCalendarTime(raw) {
 
 // "Vice Chair Philip N. Jefferson" -> "Philip Jefferson"（役職タイトル・ミドルイニシャルを除去。
 // officials.jsonのfull_nameがミドルイニシャル無し表記のため、除去しないと部分一致に失敗する）
+// 2026-11-14是正（しょうさん指摘、ウォーシュFRB議長の実例で発覚）: 当初は議長職の肩書きを
+// 「Chair」のみで想定していたが、実際のカレンダーページは議長を「Chairman」と表記していた
+// （実測: "Speech - Chairman Kevin Warsh"）。"Chairman"は"Chair"を前方一致で含むが
+// 旧実装は`^Chair\s+`（Chairの直後に空白）を要求していたため"Chairman"（空白なしで"man"が続く）
+// にはマッチせず、肩書き未除去のまま"Chairman Kevin Warsh"がofficials.json照合に失敗し、
+// 話者不明（★★フォールバック）になっていた。Chairman／Vice Chairmanも明示的に追加した
+// （長い語を先に置く順序は従来どおり維持: 例えば"Vice Chair"を"Vice Chair for Supervision"より
+// 先に置くと後者が前方一致で誤って途中までしか除去されない）
 function normalizeFrbSpeakerName(raw) {
   let s = raw.trim();
-  s = s.replace(/^(Chair|Vice Chair for Supervision|Vice Chair|Governor|President)\s+/i, '');
+  s = s.replace(/^(Vice Chair for Supervision|Vice Chairman|Vice Chair|Chairman|Chair|Governor|President)\s+/i, '');
   s = s.replace(/\s+[A-Z]\.(?=\s|$)/g, '');
   return s.trim().replace(/\s+/g, ' ');
 }

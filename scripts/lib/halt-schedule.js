@@ -87,6 +87,13 @@ function computeHaltWindow({ date, firstTime, lastTime }) {
 
     if (entirelyPreviousDay) {
       rawPreviousDayEnd = formatMinutes(endMin);
+      // 2026-11-14追記（しょうさん指摘、軽微・11/18のFOMC議事録[04:00発表→窓16:00-00:00]で発覚）:
+      // 停止終了がちょうど当日0時（＝前日24時）の場合、formatMinutesは当日起点の「00:00」を
+      // 返すが、この値は常に「前日」を主語にした範囲の終端表示（前日◯曜{start}–{end}）専用
+      // （rawPreviousDayEndはentirelyPreviousDayの場合のみ設定される）。「16:00–00:00」は
+      // 期間がゼロ・あるいは前後逆に見えて誤読しやすいため、前日の24時間表記に合わせて
+      // 「24:00」と表示する
+      if (rawPreviousDayEnd === '00:00') rawPreviousDayEnd = '24:00';
       annotation = isMondayWeekendCross
         ? `前日 ${previousDayLabel}曜${rawPreviousDayStart}〜${rawPreviousDayEnd}（週をまたぐため、週明けの取引開始時点からの停止が目安）`
         : `前日 ${previousDayLabel}曜${rawPreviousDayStart}〜${rawPreviousDayEnd}`;

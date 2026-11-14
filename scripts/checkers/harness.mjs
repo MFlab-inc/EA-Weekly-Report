@@ -283,7 +283,7 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     // build-ledger.jsのcheckTimeAmbiguousWarningが使う（タイムゾーン・開催地のいずれからも
     // 英国時間と確定できない行をWARN付きで時刻未確定扱いにする、しょうさん指示2026-10-10/11）。
     // manuscriptReleaseBasis/speechLocalTimeは原稿公表時刻を停止目安の基準にした行の印
-    // （しょうさん指示2026-11-21）。ここで渡し忘れるとrowに付いていても後段に伝わらない
+    // （しょうさん指示2026-11-14）。ここで渡し忘れるとrowに付いていても後段に伝わらない
     // （2026-10-11に発覚・修正。同じ理由で新フィールドも都度ここに追加する必要がある）
     toRow: (r) => ({
       title: r.title, date: r.date, localTime: r.localTime, kind: 'official_speech', speakerLastName: r.speakerLastName,

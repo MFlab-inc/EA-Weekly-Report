@@ -7,7 +7,7 @@
 //
 // ライブ実測（2026-09-26、GitHub Actions実ネットワーク経由）: このページは常に「今週＋翌週」の
 // ローリング2週間を表示する（<title>が"Upcoming events - w/b {日付A} and {日付B}"の形式で
-// 表示中の2つの日付を宣言する）。2026-11-21是正（しょうさん指示、10/17実測で発覚）: 当初は
+// 表示中の2つの日付を宣言する）。2026-11-14是正（しょうさん指示、10/17実測で発覚）: 当初は
 // 「日付A・日付Bが月曜かつ正確に7日間隔」であることを厳格に要求していたが、取得当日（土曜）の
 // 日付がそのまま日付Aとして宣言される表記（実例: 10/17実測『w/b 17 October 2026 and
 // 26 October 2026』＝土曜始まり・9日間隔）が確認され、この厳格な前提自体がBOE側の表記で
@@ -178,7 +178,7 @@ function parseDeclaredWindow(html) {
 }
 
 // windowStartからwindowEnd（省略時はwindowStart+13日＝従来の14日固定）までの連続した
-// ISO日付配列を作る。2026-11-21修正（しょうさん指示、10/17実測の土曜始まり・9日間隔ケース
+// ISO日付配列を作る。2026-11-14修正（しょうさん指示、10/17実測の土曜始まり・9日間隔ケース
 // 対応）: 宣言された表示期間の実際の長さに応じて動的に算出できるよう終端日を明示的に
 // 渡せるようにした（省略時は従来どおり14日固定、既存の直接呼び出しとの後方互換のため）
 function buildWindowDates(windowStart, windowEnd) {
@@ -192,7 +192,7 @@ function buildWindowDates(windowStart, windowEnd) {
   return dates;
 }
 
-// 2026-11-21追加（しょうさん指示、10/17実測で発覚）: isoの曜日（1=月...7=日）を返す
+// 2026-11-14追加（しょうさん指示、10/17実測で発覚）: isoの曜日（1=月...7=日）を返す
 function isoWeekdayOfIsoDate(iso) {
   const [y, m, d] = iso.split('-').map(Number);
   const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=日..6=土
@@ -222,7 +222,7 @@ function buildLookbackDates(windowStart, days) {
   return dates;
 }
 
-// 2026-11-21追加（しょうさん指示）: 「Text to be released at (Xpm)」のように講演原稿
+// 2026-11-14追加（しょうさん指示）: 「Text to be released at (Xpm)」のように講演原稿
 // （テキスト）の公表時刻が別途明記されている行がある（実測例: Katherine [Katharine] Braddick
 // 副総裁の2026-11-18分「Speech at the UK Finance Annual Dinner, London (7pm). Text to be
 // released at (2pm).」）。原稿は講演そのものより先に公表されるため、停止目安は早い方
@@ -267,8 +267,8 @@ function extractBoeCalendar(html, ctx) {
   }
 
   // 対象週（月曜〜金曜）が、宣言された表示期間（1つ目の日付〜2つ目の日付が属する週の日曜）に
-  // 全て含まれているかを確認する（しょうさん指示、2026-09-26・2026-11-21に一般化）。
-  // 2026-11-21是正: 当初は「2つの日付が月曜始まりで正確に7日間隔」であることを厳格に要求して
+  // 全て含まれているかを確認する（しょうさん指示、2026-09-26・2026-11-14に一般化）。
+  // 2026-11-14是正: 当初は「2つの日付が月曜始まりで正確に7日間隔」であることを厳格に要求して
   // いたが、10/17実測（<title>が『w/b 17 October 2026 and 26 October 2026』＝1つ目の日付が
   // 土曜始まり・9日間隔）で、この前提自体がBOE側の表記で崩れることが判明した。この実例では
   // 1つ目の日付（10/17・土）〜2つ目の日付が属する週の日曜（10/26が月曜なので週末の11/1）の
@@ -348,7 +348,7 @@ function extractBoeCalendar(html, ctx) {
         // 推測で補わずスキップする（例: 「Speech at 9.40am, Panel at 10am」は掲載しない）
       const speechTime = parseBoeCalendarTime(timeMatches[0][0]);
       if (!speechTime) continue;
-      // 2026-11-21追加（しょうさん指示）: 原稿公表時刻が明記されている場合、早い方
+      // 2026-11-14追加（しょうさん指示）: 原稿公表時刻が明記されている場合、早い方
       // （通常は原稿公表時刻）を停止目安の基準にする。manuscriptReleaseBasisを立て、
       // 元の講演時刻（speechLocalTime）も残す（build-ledger.js側で注記に使う）
       const manuscriptTime = manuscriptReleaseLocalTime(chunkText);

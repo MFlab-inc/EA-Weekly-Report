@@ -50,6 +50,22 @@ function timeFromDatetimeJst(datetimeJst) {
   return datetimeJst ? datetimeJst.slice(11, 16) : null;
 }
 
+// speech_datetime_jst（JST変換済み）から、カード本体の日付（date_jst）と異なる場合のみ
+// 日付付きの表示文字列を組み立てる（しょうさん指摘2026-11-14、ブラディック副総裁の実例:
+// 原稿公表14:00 London→JST23:00[11/18、カード本体の日付と同じ]・講演本体19:00 London→
+// JST04:00[11/19、日付をまたぐ]。speech_local_time（未変換の現地時刻）をそのまま読者向け
+// 注記に出すと、カード本体の時刻[JST変換済み23:00]より前[19:00]の講演のように誤読される
+// 事故があったため、JST変換済みのこの値のみを表示に使う。日付が同じ場合は時刻のみを返す
+// （既存のtimeEstimated等の表示と体裁を揃えるため）
+function formatSpeechTimeDisplay(ev) {
+  if (!ev.speech_datetime_jst) return null;
+  const speechDate = ev.speech_datetime_jst.slice(0, 10);
+  const speechTime = timeFromDatetimeJst(ev.speech_datetime_jst);
+  if (speechDate === ev.date_jst) return speechTime;
+  const [, mo, d] = speechDate.split('-');
+  return `${Number(mo)}/${Number(d)} ${speechTime}`;
+}
+
 function eventToWeekInputEvent(ev, eventComments) {
   return {
     id: ev.event_id,
@@ -63,11 +79,11 @@ function eventToWeekInputEvent(ev, eventComments) {
     // この時刻が公式の事前公表された確定値ではない（config側の推定値）ことをhtml-renderer.jsへ
     // 伝える。他ソース・他kindはfalseのままのため表示は従来どおり
     timeEstimated: Boolean(ev.time_is_estimated),
-    // 2026-11-21追加（しょうさん指示、gb_boe_calendar限定）: 原稿公表時刻（講演時刻より早い）を
+    // 2026-11-14追加（しょうさん指示、gb_boe_calendar限定）: 原稿公表時刻（講演時刻より早い）を
     // 停止目安の基準にした行かどうかをhtml-renderer.jsへ伝える。他ソース・他kindはfalseのため
     // 表示は従来どおり
     usesManuscriptReleaseTime: Boolean(ev.uses_manuscript_release_time),
-    speechLocalTime: ev.speech_local_time || null,
+    speechTimeDisplay: formatSpeechTimeDisplay(ev),
   };
 }
 
@@ -196,4 +212,5 @@ module.exports = {
   countryJaOf,
   COUNTRY_JA_BY_ISO,
   monthEndNoticeFor,
+  formatSpeechTimeDisplay,
 };

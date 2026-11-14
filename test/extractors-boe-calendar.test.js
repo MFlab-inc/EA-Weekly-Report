@@ -337,7 +337,7 @@ test('extractBoeCalendar: 表示ウィンドウより後の見出しは従来ど
   assert.match(r.reason, /表示ウィンドウ.*内の日付と対応しない/);
 });
 
-// 2026-11-21追加（しょうさん指示、10/17実測の回帰テスト）: <title>自体が
+// 2026-11-14追加（しょうさん指示、10/17実測の回帰テスト）: <title>自体が
 // 「w/b 17 October 2026 and 26 October 2026」（1つ目の日付が土曜始まり・9日間隔）になった
 // 実例。宣言された表示期間（10/17〜11/1=10/26[月]が属する週の日曜）に当時の対象週
 // （10/19〜10/23の月〜金）が全て含まれているため、従来の「月曜かつ7日間隔」の厳格チェックを
@@ -373,7 +373,7 @@ test('extractBoeCalendar: 宣言された表示期間に対象週の月〜金の
   assert.match(r.reason, /宣言された表示期間.*対象週.*月〜金を全て含んでいない/);
 });
 
-// 2026-11-21追加（しょうさん指示）: 原稿公表時刻（「Text to be released at (Xpm)」）が
+// 2026-11-14追加（しょうさん指示）: 原稿公表時刻（「Text to be released at (Xpm)」）が
 // 講演時刻より早い場合、停止目安の基準を早い方（原稿公表時刻）に差し替え、注記で
 // 「原稿公表時刻基準」と分かるようにする実例（Katherine/Katharine Braddick副総裁の実測）
 test('extractBoeCalendar: 原稿公表時刻（Text to be released at）が講演時刻より早い場合、早い方を基準時刻にしmanuscriptReleaseBasis/speechLocalTimeを付ける', () => {

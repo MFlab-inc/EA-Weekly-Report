@@ -42,6 +42,25 @@ test('extractFrbCalendar: Governor役職タイトルとミドルイニシャル�
   assert.equal(waller.speakerLastName, 'Christopher Waller');
 });
 
+// 2026-11-14追加（しょうさん指摘、ウォーシュFRB議長の実例で発覚）。実fixture
+// （2026-september.htm）はウォーシュ議長就任前のデータのため、既存fixtureを変更せず
+// 最小限の合成HTMLで「Speech - Chairman Kevin Warsh」行をextractFrbCalendar経由で
+// 再現する（normalizeFrbSpeakerNameの単体テストだけでなく、ROW_RE抽出からの通し確認）
+test('extractFrbCalendar: 「Chairman」表記の講演行（ウォーシュ議長）も正しい話者名で抽出する', () => {
+  const html = [
+    '<h4>November 2026</h4>',
+    '<div class="col-xs-2"><p>2:00 p.m.</p></div>',
+    '<div class="col-xs-7"><p>Speech - Chairman Kevin Warsh</p></div>',
+    '<div class="col-xs-3"><p>17</p></div>',
+  ].join('\n');
+  const r = extractFrbCalendar(html);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const warsh = r.items.find((i) => i.date === '2026-11-17');
+  assert.ok(warsh, JSON.stringify(r.items));
+  assert.equal(warsh.localTime, '14:00');
+  assert.equal(warsh.speakerLastName, 'Kevin Warsh');
+});
+
 test('extractFrbCalendar: 当該月にSpeechカテゴリの行が無くても（他カテゴリの行があれば）構造的失敗にはしない', () => {
   const r = extractFrbCalendar(fx('us_frb_calendar', '2026-october-no-speeches.htm'));
   assert.equal(r.ok, true);
@@ -72,9 +91,27 @@ test('normalizeFrbSpeakerName: 役職タイトル・ミドルイニシャルを�
   assert.equal(normalizeFrbSpeakerName('Governor Christopher J. Waller'), 'Christopher Waller');
 });
 
+// 2026-11-14追加（しょうさん指摘、ウォーシュFRB議長の実例で発覚: 台帳us-official_speech-
+// 2026-11-17がChairman表記未除去のため話者不明★★扱いになっていた）。旧実装は`^Chair\s+`
+// （Chairの直後に空白）のみ対応していたため、空白無しで"man"が続く"Chairman"には
+// マッチせず肩書きが残ってしまっていた
+test('normalizeFrbSpeakerName: 議長職「Chairman」表記（空白を挟まず"Chair"に続く）も正しく除去する（ウォーシュ議長の実例）', () => {
+  assert.equal(normalizeFrbSpeakerName('Chairman Kevin Warsh'), 'Kevin Warsh');
+});
+
+test('normalizeFrbSpeakerName: 「Vice Chairman」表記も正しく除去する', () => {
+  assert.equal(normalizeFrbSpeakerName('Vice Chairman Philip N. Jefferson'), 'Philip Jefferson');
+});
+
 test('resolveOfficialBySurname: 正規化後の話者名がofficials.jsonの各FRB理事と正しく一致する', () => {
   assert.equal(resolveOfficialBySurname(officials, 'Philip Jefferson', 'US').role_rank, 'deputy_governor');
   assert.equal(resolveOfficialBySurname(officials, 'Michelle Bowman', 'US').role_rank, 'board_member');
   assert.equal(resolveOfficialBySurname(officials, 'Michael Barr', 'US').role_rank, 'board_member');
   assert.equal(resolveOfficialBySurname(officials, 'Christopher Waller', 'US').role_rank, 'board_member');
+});
+
+test('resolveOfficialBySurname: 正規化後の「Kevin Warsh」がofficials.json登録のFRB議長と正しく一致する（ウォーシュ議長の実例）', () => {
+  const warsh = resolveOfficialBySurname(officials, 'Kevin Warsh', 'US');
+  assert.ok(warsh, 'Kevin Warshが解決できない');
+  assert.equal(warsh.role_rank, 'governor');
 });
