@@ -1,12 +1,12 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "generated_at": "2026-11-14T18:58:30+09:00",
+    "generated_at": "2026-11-14T22:27:19+09:00",
     "target_week_start": "2026-11-16",
     "target_week_end": "2026-11-20",
     "pipeline_version": "ea-weekly-report@0.1.0",
-    "generated_from_commit": "57fcae8f18684114fbfa50a873bf9d17af5b4582",
-    "generated_from_code_hash": "62ac64be947123a4719b7d8ad2342c97d6a2de160ae83cdbf3331ab073bc7829",
+    "generated_from_commit": "d2ecc8842a0f4d3f5750d1b70b6eea540dbc2ea1",
+    "generated_from_code_hash": "bacf722a4070030d7539dbdbff9320660cb0308e154ee533c06e69d537d68622",
     "outcome": "PUBLISH_READY",
     "warnings": [
       "残量監視WARN: nz_stats_cpi — 年次スケジュールconfigに対象週(2026-11-16)から14週先(2027-02-22)までの日程が見つからない。次年度分の手動確定が必要な可能性（docs/annual-schedule-maintenance.md参照）",
@@ -15,7 +15,6 @@
       "gb_boe_calendar: 日付見出し「Saturday 14 November」は表示ウィンドウ（2026-11-16〜）より前のため読み飛ばしました（対象週には影響しません）",
       "gb_boe_calendar: officials.json未登録の話者のため掲載対象外とした: speaker=\"Sasha Mills\" date=2026-11-18",
       "gb_boe_calendar: officials.json未登録の話者のため掲載対象外とした: speaker=\"Tom Mutton\" date=2026-11-18",
-      "official_speechの話者の格を判定できず★★（安全側）とした: country=US speaker=\"Chairman Kevin Warsh\" date=2026-11-17（officials.json未登録、またはrole_rank未設定）",
       "official_speechの話者の格を判定できず★★（安全側）とした: country=AU speaker=\"(話者不明)\" date=2026-11-20（officials.json未登録、またはrole_rank未設定）"
     ],
     "holds": []
@@ -24,7 +23,7 @@
     {
       "source_id": "us_bls_fred",
       "type": "date_api_fred",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://api.stlouisfed.org/fred/release/dates",
       "ok": true,
       "http_status": null,
@@ -36,7 +35,7 @@
     {
       "source_id": "au_rba",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.rba.gov.au/schedules-events/board-meeting-schedules.html",
       "ok": true,
       "http_status": null,
@@ -48,7 +47,7 @@
     {
       "source_id": "au_rba_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.rba.gov.au/rss/rss-cb-speeches.xml",
       "ok": true,
       "http_status": null,
@@ -60,7 +59,7 @@
     {
       "source_id": "au_rba_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.rba.gov.au/coming-up/index.html",
       "ok": true,
       "http_status": null,
@@ -72,7 +71,7 @@
     {
       "source_id": "us_census",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.census.gov/economic-indicators/calendar-listview.html",
       "ok": true,
       "http_status": null,
@@ -84,7 +83,7 @@
     {
       "source_id": "us_census_retail_sales",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.census.gov/retail/release_schedule.html",
       "ok": true,
       "http_status": null,
@@ -96,7 +95,7 @@
     {
       "source_id": "us_census_trade_balance",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.census.gov/foreign-trade/reference/release_schedule.html",
       "ok": true,
       "http_status": null,
@@ -108,7 +107,7 @@
     {
       "source_id": "gb_ons",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://api.beta.ons.gov.uk/v1/search/releases?release-type=type-upcoming&query=GDP",
       "ok": true,
       "http_status": null,
@@ -120,7 +119,7 @@
     {
       "source_id": "nz_statsnz",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.stats.govt.nz/information-releases/labour-market-statistics-september-2026-quarter/",
       "ok": true,
       "http_status": null,
@@ -132,7 +131,7 @@
     {
       "source_id": "nz_stats_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/calendar-export?month=8&year=2026",
       "ok": true,
       "http_status": null,
@@ -144,7 +143,7 @@
     {
       "source_id": "nz_stats_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -156,7 +155,7 @@
     {
       "source_id": "nz_stats_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.stats.govt.nz/release-calendar/",
       "ok": true,
       "http_status": null,
@@ -168,7 +167,7 @@
     {
       "source_id": "ca_statcan",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
       "ok": true,
       "http_status": null,
@@ -180,7 +179,7 @@
     {
       "source_id": "au_abs",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.abs.gov.au/release-calendar/future-releases-calendar",
       "ok": true,
       "http_status": null,
@@ -192,7 +191,7 @@
     {
       "source_id": "us_ism",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/",
       "ok": true,
       "http_status": null,
@@ -204,7 +203,7 @@
     {
       "source_id": "us_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -216,7 +215,7 @@
     {
       "source_id": "us_eia_petroleum",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
       "ok": true,
       "http_status": null,
@@ -228,7 +227,7 @@
     {
       "source_id": "jp_boj",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm",
       "ok": true,
       "http_status": null,
@@ -240,7 +239,7 @@
     {
       "source_id": "jp_boj_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.boj.or.jp/about/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -252,7 +251,7 @@
     {
       "source_id": "us_treasury",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/upcoming_auctions",
       "ok": true,
       "http_status": null,
@@ -264,7 +263,7 @@
     {
       "source_id": "jp_mof",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/index.htm",
       "ok": true,
       "http_status": null,
@@ -276,7 +275,7 @@
     {
       "source_id": "jp_stat_cpi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.stat.go.jp/data/cpi/4-1.html",
       "ok": true,
       "http_status": null,
@@ -288,7 +287,7 @@
     {
       "source_id": "jp_esri_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html",
       "ok": true,
       "http_status": null,
@@ -300,7 +299,7 @@
     {
       "source_id": "jp_customs_trade",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.customs.go.jp/toukei/calendar/calend.htm",
       "ok": true,
       "http_status": null,
@@ -312,7 +311,7 @@
     {
       "source_id": "us_frb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.federalreserve.gov/feeds/speeches.xml",
       "ok": true,
       "http_status": null,
@@ -324,7 +323,7 @@
     {
       "source_id": "us_frb_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.federalreserve.gov/newsevents/2026-september.htm",
       "ok": true,
       "http_status": null,
@@ -336,7 +335,7 @@
     {
       "source_id": "cn_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -348,7 +347,7 @@
     {
       "source_id": "cn_nbs_data",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/",
       "ok": true,
       "http_status": null,
@@ -360,7 +359,7 @@
     {
       "source_id": "gb_construction_pmi",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "unknown",
       "ok": true,
       "http_status": null,
@@ -372,7 +371,7 @@
     {
       "source_id": "us_adp",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://adpemploymentreport.com/",
       "ok": true,
       "http_status": null,
@@ -384,7 +383,7 @@
     {
       "source_id": "ca_ivey",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://iveypmi.uwo.ca/faq/",
       "ok": true,
       "http_status": null,
@@ -396,7 +395,7 @@
     {
       "source_id": "us_frb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
       "ok": true,
       "http_status": null,
@@ -408,7 +407,7 @@
     {
       "source_id": "ecb_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
       "ok": true,
       "http_status": null,
@@ -420,7 +419,7 @@
     {
       "source_id": "ecb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.ecb.europa.eu/rss/press.html",
       "ok": true,
       "http_status": null,
@@ -432,7 +431,7 @@
     {
       "source_id": "eurostat_hicp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -444,7 +443,7 @@
     {
       "source_id": "eurostat_gdp",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://ec.europa.eu/eurostat/news/release-calendar",
       "ok": true,
       "http_status": null,
@@ -456,7 +455,7 @@
     {
       "source_id": "de_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -468,7 +467,7 @@
     {
       "source_id": "eu_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -480,7 +479,7 @@
     {
       "source_id": "gb_flash_pmi",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease",
       "ok": true,
       "http_status": null,
@@ -492,7 +491,7 @@
     {
       "source_id": "de_zew",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.zew.de/en/press/latest-press-releases/2026-release-dates-for-zew-indicator-of-economic-sentiment-fixed",
       "ok": true,
       "http_status": null,
@@ -504,7 +503,7 @@
     {
       "source_id": "boe_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates",
       "ok": true,
       "http_status": null,
@@ -516,7 +515,7 @@
     {
       "source_id": "gb_boe_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.bankofengland.co.uk/rss/speeches",
       "ok": true,
       "http_status": null,
@@ -528,7 +527,7 @@
     {
       "source_id": "gb_boe_calendar",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.bankofengland.co.uk/events/upcoming-events",
       "ok": true,
       "http_status": null,
@@ -540,7 +539,7 @@
     {
       "source_id": "boc_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.bankofcanada.ca/press/upcoming-events/",
       "ok": true,
       "http_status": null,
@@ -552,7 +551,7 @@
     {
       "source_id": "ca_boc_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.bankofcanada.ca/content_type/speeches/feed/",
       "ok": true,
       "http_status": null,
@@ -564,7 +563,7 @@
     {
       "source_id": "rbnz_policy_rate",
       "type": "annual_schedule_config",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.rbnz.govt.nz/news-and-events/how-we-release-information/ocr-decision-dates-and-financial-stability-report-dates-to-feb-2028",
       "ok": true,
       "http_status": null,
@@ -576,7 +575,7 @@
     {
       "source_id": "snb_policy_rate",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
       "ok": true,
       "http_status": null,
@@ -588,7 +587,7 @@
     {
       "source_id": "snb_speeches",
       "type": "weekly_scrape",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "https://www.snb.ch/public/rss/en/speeches",
       "ok": true,
       "http_status": null,
@@ -600,7 +599,7 @@
     {
       "source_id": "manual",
       "type": "manual",
-      "fetched_at": "2026-11-14T18:58:30+09:00",
+      "fetched_at": "2026-11-14T22:27:19+09:00",
       "url": "config/manual-events.json",
       "ok": true,
       "http_status": null,
@@ -631,7 +630,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "cn-industrial_production-2026-11-16",
@@ -654,7 +656,10 @@
       "bundle_id": "cn-industrial_production-2026-11-16",
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "cn-retail_sales-2026-11-16",
@@ -677,7 +682,10 @@
       "bundle_id": "cn-industrial_production-2026-11-16",
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "jp-official_speech-2026-11-16",
@@ -700,7 +708,10 @@
       "bundle_id": null,
       "speaker_named": true,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-official_speech-2026-11-16",
@@ -723,7 +734,10 @@
       "bundle_id": null,
       "speaker_named": true,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "ca-cpi-2026-11-16",
@@ -746,7 +760,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-official_speech-2026-11-17",
@@ -759,17 +776,20 @@
       "country": "US",
       "currency": "USD",
       "kind": "official_speech",
-      "name_ja": "FRB理事の発言",
-      "importance": 2,
+      "name_ja": "ウォーシュFRB議長の発言",
+      "importance": 3,
       "source_id": "us_frb_calendar",
       "source_evidence": "Speech - Chairman Kevin Warsh",
       "name_resolution": "rule_generated",
-      "halt_window_start_jst": null,
-      "halt_window_end_jst": null,
+      "halt_window_start_jst": "2026-11-16T14:00:00+09:00",
+      "halt_window_end_jst": "2026-11-16T22:00:00+09:00",
       "bundle_id": null,
-      "speaker_named": false,
+      "speaker_named": true,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "au-official_speech-2026-11-17",
@@ -792,7 +812,10 @@
       "bundle_id": null,
       "speaker_named": true,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "au-minutes_summary-2026-11-17",
@@ -815,7 +838,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "gb-employment_situation-2026-11-17",
@@ -838,7 +864,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "de-sentiment-2026-11-17",
@@ -861,7 +890,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-retail_sales-2026-11-17",
@@ -884,7 +916,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-official_speech-2026-11-17-2",
@@ -907,7 +942,10 @@
       "bundle_id": null,
       "speaker_named": true,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "jp-bond_auction-2026-11-18",
@@ -930,7 +968,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "jp-trade_balance-2026-11-18",
@@ -953,7 +994,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "gb-cpi-2026-11-18",
@@ -976,7 +1020,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "gb-official_speech-2026-11-18",
@@ -999,7 +1046,36 @@
       "bundle_id": null,
       "speaker_named": true,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
+    },
+    {
+      "event_id": "gb-official_speech-2026-11-18-2",
+      "date_local": "2026-11-18",
+      "time_local": "14:00",
+      "tz": "Europe/London",
+      "date_jst": "2026-11-18",
+      "datetime_jst": "2026-11-18T23:00:00+09:00",
+      "time_status": "published",
+      "country": "GB",
+      "currency": "GBP",
+      "kind": "official_speech",
+      "name_ja": "ブラディックBOE副総裁（プルーデンス規制担当）の発言",
+      "importance": 3,
+      "source_id": "gb_boe_calendar",
+      "source_evidence": "Katherine Braddick: Speech at the UK Finance Annual Dinner, London (7pm). Text to be released at (2pm).",
+      "name_resolution": "rule_generated",
+      "halt_window_start_jst": "2026-11-18T11:00:00+09:00",
+      "halt_window_end_jst": "2026-11-18T19:00:00+09:00",
+      "bundle_id": null,
+      "speaker_named": true,
+      "is_weekend_spillover": false,
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": true,
+      "speech_local_time": "19:00",
+      "speech_datetime_jst": "2026-11-19T04:00:00+09:00"
     },
     {
       "event_id": "gb-official_speech-2026-11-19",
@@ -1022,7 +1098,10 @@
       "bundle_id": null,
       "speaker_named": true,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-oil_inventories-2026-11-19",
@@ -1045,7 +1124,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-official_speech-2026-11-19",
@@ -1068,7 +1150,10 @@
       "bundle_id": null,
       "speaker_named": true,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-minutes_summary-2026-11-19",
@@ -1091,30 +1176,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
-    },
-    {
-      "event_id": "gb-official_speech-2026-11-19-2",
-      "date_local": "2026-11-18",
-      "time_local": "19:00",
-      "tz": "Europe/London",
-      "date_jst": "2026-11-19",
-      "datetime_jst": "2026-11-19T04:00:00+09:00",
-      "time_status": "published",
-      "country": "GB",
-      "currency": "GBP",
-      "kind": "official_speech",
-      "name_ja": "ブラディックBOE副総裁（プルーデンス規制担当）の発言",
-      "importance": 3,
-      "source_id": "gb_boe_calendar",
-      "source_evidence": "Katherine Braddick: Speech at the UK Finance Annual Dinner, London (7pm). Text to be released at (2pm).",
-      "name_resolution": "rule_generated",
-      "halt_window_start_jst": "2026-11-18T16:00:00+09:00",
-      "halt_window_end_jst": "2026-11-19T00:00:00+09:00",
-      "bundle_id": null,
-      "speaker_named": true,
-      "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "au-employment_situation-2026-11-19",
@@ -1137,7 +1202,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-jobless_claims-2026-11-19",
@@ -1160,7 +1228,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "jp-cpi-2026-11-20",
@@ -1183,7 +1254,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "au-official_speech-2026-11-20",
@@ -1206,7 +1280,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "gb-retail_sales-2026-11-20",
@@ -1229,7 +1306,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-official_speech-2026-11-20",
@@ -1252,7 +1332,10 @@
       "bundle_id": null,
       "speaker_named": true,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "ca-retail_sales-2026-11-20",
@@ -1275,7 +1358,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": false,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-sentiment-2026-11-21",
@@ -1298,7 +1384,10 @@
       "bundle_id": null,
       "speaker_named": false,
       "is_weekend_spillover": true,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     },
     {
       "event_id": "us-official_speech-2026-11-21",
@@ -1321,7 +1410,10 @@
       "bundle_id": null,
       "speaker_named": true,
       "is_weekend_spillover": true,
-      "time_is_estimated": false
+      "time_is_estimated": false,
+      "uses_manuscript_release_time": false,
+      "speech_local_time": null,
+      "speech_datetime_jst": null
     }
   ],
   "coverage": {
