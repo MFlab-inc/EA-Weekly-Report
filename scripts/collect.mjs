@@ -42,7 +42,7 @@ async function main() {
     for (const reason of result.report.outcome.reasons) console.log(`  outcome理由: ${reason}`);
     for (const f of result.report.failures) console.log(`  failure: ${f.sourceId} (expected=${f.expected}) ${f.reason}`);
   }
-  // 2026-11-16追加（BOEの表示ウィンドウ直前の見出し読み飛ばし対応）: 構造的失敗ではない
+  // 2026-11-14追加（BOEの表示ウィンドウ直前の見出し読み飛ばし対応）: 構造的失敗ではない
   // 情報WARN（meta.warningsにも合流するextractorWarnings）もログへ出す
   for (const w of result.report.extractorWarnings || []) console.log(`  extractor情報WARN: ${w}`);
   if (result.report.outcome.status === 'HOLD') process.exitCode = 1;

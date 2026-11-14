@@ -86,6 +86,20 @@ function resolveCandidateEvent(row, ctx) {
     const auLabel = auGdpQuarterDisplayName(Number(jst.date.slice(5, 7)));
     if (auLabel) displayName = auLabel;
   }
+  // 2026-11-14追加（しょうさん指摘、ブラディック副総裁の実例で発覚）: row.speechLocalTimeは
+  // 現地（英国）時刻の生の文字列のため、読者向け注記にそのまま出すとJST変換後のカード本体時刻
+  // （原稿公表時刻基準）と前後関係が逆に見える事故が起きる（原稿14:00 London→JST23:00なのに
+  // 注記が未変換の「19:00」のままだと、23:00の後に19:00の講演があるように誤読される）。
+  // row.dateとctx.tzは講演本体・原稿公表のいずれも同一の現地日・同一のタイムゾーン確定済み
+  // （extractBoeCalendarはmanuscriptReleaseBasisをhasTzMarker/hasGeoHint/hasInstHintで
+  // 英国時間と確定した分岐内でのみ立てるため）なので、同じ変換経路でJST化する
+  let speechDatetimeJst = null;
+  if (row.date && row.speechLocalTime && ctx.tz) {
+    const [sy, smo, sd] = row.date.split('-').map(Number);
+    const [sh, smi] = row.speechLocalTime.split(':').map(Number);
+    const speechJst = zonedWallTimeToJst(sy, smo, sd, sh, smi, ctx.tz);
+    speechDatetimeJst = `${speechJst.date}T${speechJst.time}:00+09:00`;
+  }
   return {
     ok: true,
     date: jst.date,
@@ -114,6 +128,12 @@ function resolveCandidateEvent(row, ctx) {
     // どうか（build-ledger.jsのcheckInstitutionalHintOnlyWarningが情報用WARN生成に使う。
     // しょうさん指示2026-10-11フォローアップ）
     ukHintInstitutionalOnly: Boolean(row.ukHintInstitutionalOnly),
+    // 原稿公表時刻（講演時刻より早い）を停止目安の基準にした行かどうか。gb_boe_calendar限定
+    // （しょうさん指示2026-11-14）。speechLocalTimeは元の講演時刻（現地時刻、根拠記録用。
+    // 読者向け表示には使わない）。speechDatetimeJstがJST変換済みの表示用の値
+    manuscriptReleaseBasis: Boolean(row.manuscriptReleaseBasis),
+    speechLocalTime: row.speechLocalTime || null,
+    speechDatetimeJst,
   };
 }
 

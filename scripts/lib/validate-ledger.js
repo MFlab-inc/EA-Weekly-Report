@@ -116,6 +116,21 @@ function validateEvent(event, index, errors, seenIds, sourceIds) {
   if (event.time_is_estimated != null && typeof event.time_is_estimated !== 'boolean') {
     errors.push(`${tag}.time_is_estimated: 真偽値またはnull/未設定が必要です`);
   }
+  // uses_manuscript_release_time/speech_local_time: 2026-11-14追加（しょうさん指示）。
+  // gb_boe_calendar限定で、原稿公表時刻（講演時刻より早い）を停止目安の基準にした行を示す
+  // 任意フィールド。未設定（undefined）の既存台帳との後方互換のためnullも許容する
+  if (event.uses_manuscript_release_time != null && typeof event.uses_manuscript_release_time !== 'boolean') {
+    errors.push(`${tag}.uses_manuscript_release_time: 真偽値またはnull/未設定が必要です`);
+  }
+  if (event.speech_local_time != null && !HHMM_RE.test(event.speech_local_time)) {
+    errors.push(`${tag}.speech_local_time: HH:MM形式またはnull/未設定が必要です`);
+  }
+  // speech_datetime_jst: 2026-11-14追加（しょうさん指摘、ブラディック副総裁の実例で発覚）。
+  // speech_local_time（現地時刻の生の文字列）を読者向け表示にそのまま使うと、JST変換済みの
+  // カード本体時刻と前後関係が逆に見える事故があったため、JST変換済みの表示用の値を別途持たせる
+  if (event.speech_datetime_jst != null && !ISO_DATETIME_OFFSET_RE.test(event.speech_datetime_jst)) {
+    errors.push(`${tag}.speech_datetime_jst: オフセット付きISO日時またはnull/未設定が必要です`);
+  }
   if (!isNonEmptyString(event.country)) errors.push(`${tag}.country: 空でない文字列が必要です`);
   if (!isNonEmptyString(event.currency)) errors.push(`${tag}.currency: 空でない文字列が必要です`);
   if (!isNonEmptyString(event.kind)) errors.push(`${tag}.kind: 空でない文字列が必要です`);

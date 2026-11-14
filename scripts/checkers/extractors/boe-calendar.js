@@ -6,9 +6,14 @@
 // 限界、既にus_frb_calendarで解決済み）。本ソースはその英国版として新設した。
 //
 // ライブ実測（2026-09-26、GitHub Actions実ネットワーク経由）: このページは常に「今週＋翌週」の
-// ローリング2週間を表示する（<title>が"Upcoming events - w/b {月曜A} and {月曜B}"の形式で
-// 表示中の2つの週の開始日を宣言する）。土曜生成時、対象週（来週の月〜金）は必ずこの2週間の
-// いずれかと一致するはずという前提を置く。この前提が崩れた場合（サイト構成変更・更新遅延等）は
+// ローリング2週間を表示する（<title>が"Upcoming events - w/b {日付A} and {日付B}"の形式で
+// 表示中の2つの日付を宣言する）。2026-11-14是正（しょうさん指示、10/17実測で発覚）: 当初は
+// 「日付A・日付Bが月曜かつ正確に7日間隔」であることを厳格に要求していたが、取得当日（土曜）の
+// 日付がそのまま日付Aとして宣言される表記（実例: 10/17実測『w/b 17 October 2026 and
+// 26 October 2026』＝土曜始まり・9日間隔）が確認され、この厳格な前提自体がBOE側の表記で
+// 崩れることが判明した。現在は「宣言された表示期間（日付A〜日付Bが属する週の日曜）に
+// 対象週（来週の月〜金）が全て含まれるか」のみを検査する（parseDeclaredWindow/
+// sundayOfWeekContaining参照）。この前提が崩れた場合（サイト構成変更・更新遅延等）は
 // 構造的失敗として扱う（ok:falseを返す。しょうさん指示の「気づける仕組み」に相当）。
 //
 // 実測構造: 各週は<div class="page-content">ブロック内に、日付見出し（実測ではほぼ<h3>{曜日}
@@ -172,14 +177,34 @@ function parseDeclaredWindow(html) {
   return { monday1, monday2 };
 }
 
-// windowStart（1週目の月曜）から14日分のISO日付配列を作る（2週間分のローリング表示に対応）
-function buildWindowDates(windowStart) {
+// windowStartからwindowEnd（省略時はwindowStart+13日＝従来の14日固定）までの連続した
+// ISO日付配列を作る。2026-11-14修正（しょうさん指示、10/17実測の土曜始まり・9日間隔ケース
+// 対応）: 宣言された表示期間の実際の長さに応じて動的に算出できるよう終端日を明示的に
+// 渡せるようにした（省略時は従来どおり14日固定、既存の直接呼び出しとの後方互換のため）
+function buildWindowDates(windowStart, windowEnd) {
+  const end = windowEnd || addDaysToIsoDate(windowStart, 13);
   const dates = [];
-  for (let i = 0; i < 14; i++) dates.push(addDaysToIsoDate(windowStart, i));
+  let d = windowStart;
+  while (d <= end) {
+    dates.push(d);
+    d = addDaysToIsoDate(d, 1);
+  }
   return dates;
 }
 
-// 2026-11-16追加（しょうさん指摘、11/16週実測で発覚）: このページを土曜に取得すると、
+// 2026-11-14追加（しょうさん指示、10/17実測で発覚）: isoの曜日（1=月...7=日）を返す
+function isoWeekdayOfIsoDate(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=日..6=土
+  return dow === 0 ? 7 : dow;
+}
+
+// dateIsoが属する週（月曜始まり）の日曜日を返す
+function sundayOfWeekContaining(dateIso) {
+  return addDaysToIsoDate(dateIso, 7 - isoWeekdayOfIsoDate(dateIso));
+}
+
+// 2026-11-14追加（しょうさん指摘、11/16週実測で発覚）: このページを土曜に取得すると、
 // <title>が宣言する表示ウィンドウ（w/b {月曜1} and {月曜2}）の開始日（月曜1）より前の
 // 曜日見出し（実測: 取得当日の土曜「Saturday 14 November」、宣言ウィンドウは
 // w/b 16 November。本生成が常に土曜実行＝取得日は常に次の月曜の2日前という運用上、
@@ -195,6 +220,23 @@ function buildLookbackDates(windowStart, days) {
   const dates = [];
   for (let i = 1; i <= days; i++) dates.push(addDaysToIsoDate(windowStart, -i));
   return dates;
+}
+
+// 2026-11-14追加（しょうさん指示）: 「Text to be released at (Xpm)」のように講演原稿
+// （テキスト）の公表時刻が別途明記されている行がある（実測例: Katherine [Katharine] Braddick
+// 副総裁の2026-11-18分「Speech at the UK Finance Annual Dinner, London (7pm). Text to be
+// released at (2pm).」）。原稿は講演そのものより先に公表されるため、停止目安は早い方
+// （通常は原稿公表時刻）を基準にすべき。この注記は最初の括弧（講演時刻）より後ろの2つ目の
+// 括弧として現れるため、firstParenMでは拾えない。gb_boe_calendar限定の対応
+// （しょうさん指示: 対象はgb_boe_calendarのみ）。複数時刻併記で一意に決まらない場合は
+// 推測で補わずnullを返す（この場合は講演時刻のみを基準にする）
+const MANUSCRIPT_RELEASE_RE = /text to be released at\s*\(([^)]*)\)/i;
+function manuscriptReleaseLocalTime(chunkText) {
+  const m = MANUSCRIPT_RELEASE_RE.exec(chunkText);
+  if (!m) return null;
+  const timeMatches = [...m[1].matchAll(/\d{1,2}(?:\.\d{2})?\s*(?:am|pm)/gi)];
+  if (timeMatches.length !== 1) return null;
+  return parseBoeCalendarTime(timeMatches[0][0]);
 }
 
 function findDateForHeading(windowDates, day, monthName) {
@@ -223,25 +265,30 @@ function extractBoeCalendar(html, ctx) {
   if (!window_) {
     return { ok: false, reason: 'ページの<title>から表示ウィンドウ（w/b {日付} and {日付}）を読み取れない。サイト構造変化の疑い' };
   }
-  if (addDaysToIsoDate(window_.monday1, 7) !== window_.monday2) {
-    return {
-      ok: false,
-      reason: `表示ウィンドウの2つの週が7日間隔になっていない（${window_.monday1} / ${window_.monday2}）。サイト構造変化の疑い`,
-    };
-  }
 
-  // 対象週（月曜始まり）がこのページの表示ウィンドウ（今週+翌週のローリング2週間）に
-  // 含まれているかを確認する。土曜生成時に対象週全体が確実に載っているかの安全確認
-  // （しょうさん指示、2026-09-26）。前提が崩れた場合はここで検出する
+  // 対象週（月曜〜金曜）が、宣言された表示期間（1つ目の日付〜2つ目の日付が属する週の日曜）に
+  // 全て含まれているかを確認する（しょうさん指示、2026-09-26・2026-11-14に一般化）。
+  // 2026-11-14是正: 当初は「2つの日付が月曜始まりで正確に7日間隔」であることを厳格に要求して
+  // いたが、10/17実測（<title>が『w/b 17 October 2026 and 26 October 2026』＝1つ目の日付が
+  // 土曜始まり・9日間隔）で、この前提自体がBOE側の表記で崩れることが判明した。この実例では
+  // 1つ目の日付（10/17・土）〜2つ目の日付が属する週の日曜（10/26が月曜なので週末の11/1）の
+  // 期間に、当時の対象週（10/19〜10/23、取得日10/17・土の次の月曜から）は全て含まれており、
+  // 事前告知カレンダーとして実質的に問題は無かった。そのため「2つの日付が月曜かつ7日間隔」
+  // という形自体は検査せず、「宣言された表示期間に対象週の月〜金が全て含まれるか」のみを
+  // 検査するよう一般化した。含まれていなければ従来どおり構造的失敗のまま変えていない
+  const displayEnd = sundayOfWeekContaining(window_.monday2);
   const targetMonday = ctx?.targetWeek?.targetWeekStart;
-  if (targetMonday && targetMonday !== window_.monday1 && targetMonday !== window_.monday2) {
-    return {
-      ok: false,
-      reason: `ページの表示ウィンドウ（w/b ${window_.monday1} and ${window_.monday2}）が対象週（${targetMonday}〜）を含んでいない。事前告知カレンダーの前提（今週+翌週のローリング2週間）が崩れている可能性`,
-    };
+  if (targetMonday) {
+    const targetFriday = addDaysToIsoDate(targetMonday, 4);
+    if (targetMonday < window_.monday1 || targetFriday > displayEnd) {
+      return {
+        ok: false,
+        reason: `宣言された表示期間（${window_.monday1}〜${displayEnd}）が対象週（${targetMonday}〜${targetFriday}）の月〜金を全て含んでいない。事前告知カレンダーの前提が崩れている可能性`,
+      };
+    }
   }
 
-  const windowDates = buildWindowDates(window_.monday1);
+  const windowDates = buildWindowDates(window_.monday1, displayEnd);
 
   const startIdx = html.indexOf('<div class="page-content"');
   const endIdx = html.indexOf('<h2>Upcoming key publications</h2>');
@@ -280,7 +327,7 @@ function extractBoeCalendar(html, ctx) {
       }
       return {
         ok: false,
-        reason: `日付見出し「${text}」が表示ウィンドウ（${window_.monday1}〜${windowDates[13]}）内の日付と対応しない。サイト構造変化の疑い`,
+        reason: `日付見出し「${text}」が表示ウィンドウ（${window_.monday1}〜${displayEnd}）内の日付と対応しない。サイト構造変化の疑い`,
       };
     }
 
@@ -299,8 +346,14 @@ function extractBoeCalendar(html, ctx) {
       const timeMatches = [...parenContent.matchAll(/\d{1,2}(?:\.\d{2})?\s*(?:am|pm)/gi)];
       if (timeMatches.length !== 1) continue; // 時刻0件、または併記で一意に決まらない行は
         // 推測で補わずスキップする（例: 「Speech at 9.40am, Panel at 10am」は掲載しない）
-      const localTime = parseBoeCalendarTime(timeMatches[0][0]);
-      if (!localTime) continue;
+      const speechTime = parseBoeCalendarTime(timeMatches[0][0]);
+      if (!speechTime) continue;
+      // 2026-11-14追加（しょうさん指示）: 原稿公表時刻が明記されている場合、早い方
+      // （通常は原稿公表時刻）を停止目安の基準にする。manuscriptReleaseBasisを立て、
+      // 元の講演時刻（speechLocalTime）も残す（build-ledger.js側で注記に使う）
+      const manuscriptTime = manuscriptReleaseLocalTime(chunkText);
+      const usesManuscriptReleaseTime = Boolean(manuscriptTime && manuscriptTime < speechTime);
+      const localTime = usesManuscriptReleaseTime ? manuscriptTime : speechTime;
       const hasTzMarker = /\b(?:BST|GMT)\b/i.test(parenContent);
       const hasGeoHint = hasGeographicHint(chunkText);
       const hasInstHint = hasInstitutionalHint(chunkText);
@@ -315,6 +368,7 @@ function extractBoeCalendar(html, ctx) {
           speakerLastName: speakerM[1].trim(),
           title: chunkText,
           ...(!hasTzMarker && !hasGeoHint && hasInstHint ? { ukHintInstitutionalOnly: true } : {}),
+          ...(usesManuscriptReleaseTime ? { manuscriptReleaseBasis: true, speechLocalTime: speechTime } : {}),
         });
       } else {
         // 3) タイムゾーン明記が無く、英国内と判断できる手がかりも説明文に無い → 推測せず

@@ -166,6 +166,20 @@ function eventCard3(ev, reportPolicy) {
   const estimatedNote = ev.timeEstimated
     ? `\n        <div style="font-size:12px;color:#6b8177;margin-top:3px;">発表時刻は公式に事前公表された確定値ではない目安です。停止目安はこの目安時刻を基準に算出しています。</div>`
     : '';
+  // 2026-11-14追加（しょうさん指示、gb_boe_calendar限定）: 原稿（講演テキスト）が講演本体より
+  // 先に公表される場合、停止目安はより早い原稿公表時刻を基準にする（ev.time自体が既に
+  // ledger-to-week-input.js経由でこの時刻に差し替え済み）。読者が「表示されている時刻＝
+  // 講演開始時刻」と誤解しないよう、講演本体の時刻も併記する注記を1行追加する。
+  // ev.speechTimeDisplayはledger-to-week-input.js（formatSpeechTimeDisplay）が既にJST変換・
+  // 日付跨ぎ判定まで済ませた表示用文字列（例:「4:00」または日付をまたぐ場合は「11/19 4:00」）。
+  // 2026-11-14是正（しょうさん指摘）: 当初は未変換の現地（英国）時刻をそのまま出していたが、
+  // カード本体の時刻（JST変換済み）より時刻だけ見ると前後関係が逆に見える事故があったため、
+  // ここでは絶対に未変換の現地時刻を使わない。timeEstimatedと同じ理由でeventCard3（★★★）
+  // 限定にしている（halt_windowの計算対象はimportance=3のみのため、★★の表示には現時点で
+  // 影響しない）
+  const manuscriptReleaseNote = ev.usesManuscriptReleaseTime
+    ? `\n        <div style="font-size:12px;color:#6b8177;margin-top:3px;">この時刻は講演原稿の公表時刻です（原稿公表時刻基準。講演本体は${esc(ev.speechTimeDisplay || '')}）。停止目安はこの原稿公表時刻を基準に算出しています。</div>`
+    : '';
   const borderStyle = ev.isLastInGroup ? '' : 'border-bottom:1px dashed #e2ede7;';
   // 週末スピルオーバー（しょうさん指示2026-10-11）: 対象週の金曜カードに掲載されるが実際の発表は
   // 翌日（土）のため、生の時刻のまま出すと金曜当日の発表と誤読されかねない。セクション1（EA停止
@@ -181,7 +195,7 @@ function eventCard3(ev, reportPolicy) {
           ${countryPill(ev.countryJa)}
           <span style="font-size:14px;font-weight:700;color:#1f2d28;overflow-wrap:anywhere;">${esc(ev.displayName)}</span>
           <span style="font-size:12px;font-weight:800;color:#047857;">★★★</span>
-        </div>${prevForecast}${comment}${estimatedNote}
+        </div>${prevForecast}${comment}${estimatedNote}${manuscriptReleaseNote}
       </div>
 `;
 }

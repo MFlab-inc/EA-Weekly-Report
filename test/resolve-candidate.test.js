@@ -182,3 +182,31 @@ test('resolveCandidateEvent: timeAmbiguousが無い通常の行ではtimeAmbiguo
   assert.equal(r.timeAmbiguous, false);
   assert.equal(r.ambiguousTimeRaw, null);
 });
+
+// 2026-11-14追加（しょうさん指摘、ブラディック副総裁の実例で発覚）: row.speechLocalTimeは
+// 現地（英国）時刻の生の文字列のため、resolveCandidateEventがrow.date+ctx.tzで同じ経路から
+// JST変換した値（speechDatetimeJst）も返すことを確認する。11月（GMT、UTC+0）実測:
+// 原稿公表14:00 London→JST23:00（同日。row.dateと同じ日付のまま）・
+// 講演本体19:00 London→JST04:00（翌日。日付をまたぐ）
+test('resolveCandidateEvent: manuscriptReleaseBasis/speechLocalTimeがある行は、speechLocalTimeをrow.dateと同じtzでJST変換したspeechDatetimeJstも返す（冬時間・日付をまたぐ実例）', () => {
+  const row = {
+    title: 'Speech', date: '2026-11-18', localTime: '14:00', speakerLastName: 'Katherine Braddick',
+    manuscriptReleaseBasis: true, speechLocalTime: '19:00',
+  };
+  const r = resolveCandidateEvent(row, { country: 'GB', kind: 'official_speech', tz: 'Europe/London', ruleGenerated: true });
+  assert.equal(r.ok, true);
+  assert.equal(r.date, '2026-11-18'); // 14:00 GMT（冬時間）→ 23:00 JST、同日のまま
+  assert.equal(r.time, '23:00');
+  assert.equal(r.manuscriptReleaseBasis, true);
+  assert.equal(r.speechLocalTime, '19:00', '現地時刻の生の値も根拠記録用に保持する（読者向け表示には使わない）');
+  assert.equal(r.speechDatetimeJst, '2026-11-19T04:00:00+09:00', '19:00 GMT→04:00 JSTは日付をまたぐため、date部分が翌日(11/19)になるはず');
+});
+
+test('resolveCandidateEvent: manuscriptReleaseBasisが無い通常の行はspeechDatetimeJst:null（後方互換）', () => {
+  const row = { title: 'Speech', date: '2026-10-12', localTime: '10:30', speakerLastName: 'Sarah Breeden' };
+  const r = resolveCandidateEvent(row, { country: 'GB', kind: 'official_speech', tz: 'Europe/London', ruleGenerated: true });
+  assert.equal(r.ok, true);
+  assert.equal(r.manuscriptReleaseBasis, false);
+  assert.equal(r.speechLocalTime, null);
+  assert.equal(r.speechDatetimeJst, null);
+});

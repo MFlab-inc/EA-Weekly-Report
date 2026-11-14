@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { ledgerToWeekInput, buildDays, commentFor, timeFromDatetimeJst, countryJaOf } = require('../scripts/render/ledger-to-week-input');
+const { ledgerToWeekInput, buildDays, commentFor, timeFromDatetimeJst, countryJaOf, formatSpeechTimeDisplay } = require('../scripts/render/ledger-to-week-input');
 
 function baseLedger(events) {
   return {
@@ -48,6 +48,51 @@ test('buildDays: time_is_estimated未設定の既存イベントはtimeEstimated
   const days = buildDays(ledger, undefined);
   const ev = days.find((d) => d.date === '2026-08-11').events[0];
   assert.equal(ev.timeEstimated, false);
+});
+
+// formatSpeechTimeDisplay/usesManuscriptReleaseTime: 2026-11-14追加（しょうさん指摘、
+// ブラディック副総裁の実例で発覚）。speech_local_time（未変換の現地時刻）を読者向け表示に
+// そのまま使うと、JST変換済みのカード本体時刻と前後関係が逆に見える事故があったため、
+// JST変換済みのspeech_datetime_jstから表示用文字列を組み立てる。date_jstと異なる場合のみ
+// 日付を付ける
+test('formatSpeechTimeDisplay: speech_datetime_jstの日付がdate_jstと異なる場合は日付付きで表示する（日付をまたぐ実例）', () => {
+  const ev = { date_jst: '2026-11-18', speech_datetime_jst: '2026-11-19T04:00:00+09:00' };
+  assert.equal(formatSpeechTimeDisplay(ev), '11/19 04:00');
+});
+
+test('formatSpeechTimeDisplay: speech_datetime_jstの日付がdate_jstと同じ場合は時刻のみを表示する', () => {
+  const ev = { date_jst: '2026-11-18', speech_datetime_jst: '2026-11-18T21:00:00+09:00' };
+  assert.equal(formatSpeechTimeDisplay(ev), '21:00');
+});
+
+test('formatSpeechTimeDisplay: speech_datetime_jstが無い場合はnull', () => {
+  assert.equal(formatSpeechTimeDisplay({ date_jst: '2026-11-18', speech_datetime_jst: null }), null);
+});
+
+test('buildDays: 台帳のuses_manuscript_release_time:true・speech_datetime_jstは、イベントのusesManuscriptReleaseTime:true・日付付きのspeechTimeDisplayとして伝わる（ブラディック副総裁の実例と同型、対象週内の日付に置き換え）', () => {
+  const ledger = baseLedger([
+    {
+      event_id: 'gb-official_speech-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T23:00:00+09:00',
+      country: 'GB', currency: 'GBP', kind: 'official_speech', name_ja: 'ブラディックBOE副総裁（プルーデンス規制担当）の発言', importance: 3,
+      uses_manuscript_release_time: true, speech_local_time: '19:00', speech_datetime_jst: '2026-08-12T04:00:00+09:00',
+    },
+  ]);
+  const days = buildDays(ledger, undefined);
+  const found = days.flatMap((d) => d.events).find((e) => e.id === 'gb-official_speech-2026-08-11');
+  assert.ok(found, JSON.stringify(days));
+  assert.equal(found.time, '23:00');
+  assert.equal(found.usesManuscriptReleaseTime, true);
+  assert.equal(found.speechTimeDisplay, '8/12 04:00');
+});
+
+test('buildDays: uses_manuscript_release_time未設定の既存イベントはusesManuscriptReleaseTime:false・speechTimeDisplay:null（後方互換）', () => {
+  const ledger = baseLedger([
+    { event_id: 'au-policy_rate-2026-08-11', date_jst: '2026-08-11', datetime_jst: '2026-08-11T13:30:00+09:00', country: 'AU', currency: 'AUD', kind: 'policy_rate', name_ja: 'RBA政策金利＆声明発表', importance: 3 },
+  ]);
+  const days = buildDays(ledger, undefined);
+  const ev = days.find((d) => d.date === '2026-08-11').events[0];
+  assert.equal(ev.usesManuscriptReleaseTime, false);
+  assert.equal(ev.speechTimeDisplay, null);
 });
 
 test('buildDays: 対象週5日分（月〜金）を、イベントが無い日も含めてすべて生成する', () => {

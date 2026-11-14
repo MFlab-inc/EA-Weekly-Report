@@ -56,6 +56,45 @@ test('candidateToLedgerEvent: candidate.timeEstimated=trueはtime_is_estimated:t
   assert.equal(ev.halt_window_end_jst, '2026-10-30T08:00:00+09:00');
 });
 
+// uses_manuscript_release_time/speech_local_time/speech_datetime_jst: 2026-11-14追加
+// （しょうさん指示、gb_boe_calendar限定）。candidate.time自体は抽出器側で既に早い方
+// （原稿公表時刻）に差し替え済みのため、halt_windowはその時刻（manuscriptReleaseBasis
+// 適用後のcandidate.time）を基準に自動的に算出される（time_is_estimatedと異なり、こちらは
+// 停止目安の計算対象そのものを変える設計のため、この点が正しく動くことを確認する）。
+// date/time（原稿公表14:00 London→JST23:00、同日）・speechDatetimeJst（講演本体19:00 London→
+// JST04:00、翌日）はresolveCandidateEventが実際に計算する値（test/resolve-candidate.test.js参照）
+// と一致させている
+test('candidateToLedgerEvent: candidate.manuscriptReleaseBasis=trueはuses_manuscript_release_time:true・speech_local_time・speech_datetime_jstを記録し、halt_windowはcandidate.time（既に早い方へ差し替え済み）を基準に算出する', () => {
+  const used = new Set();
+  const candidate = {
+    date: '2026-11-18', time: '23:00', kind: 'official_speech', country: 'GB', importance: 3,
+    sourceId: 'gb_boe_calendar', sourceEvidence: 'Katherine Braddick: Speech ... (7pm). Text to be released at (2pm).',
+    localDate: '2026-11-18', localTime: '14:00', tz: 'Europe/London',
+    manuscriptReleaseBasis: true, speechLocalTime: '19:00', speechDatetimeJst: '2026-11-19T04:00:00+09:00',
+  };
+  const ev = candidateToLedgerEvent(candidate, used);
+  assert.equal(ev.uses_manuscript_release_time, true);
+  assert.equal(ev.speech_local_time, '19:00');
+  assert.equal(ev.speech_datetime_jst, '2026-11-19T04:00:00+09:00');
+  assert.equal(ev.time_local, '14:00');
+  assert.equal(ev.datetime_jst, '2026-11-18T23:00:00+09:00');
+  assert.equal(ev.halt_window_start_jst, '2026-11-18T11:00:00+09:00');
+  assert.equal(ev.halt_window_end_jst, '2026-11-18T19:00:00+09:00');
+});
+
+test('candidateToLedgerEvent: manuscriptReleaseBasis未設定の通常候補はuses_manuscript_release_time:false・speech_local_time/speech_datetime_jstともnull', () => {
+  const used = new Set();
+  const candidate = {
+    date: '2026-08-18', time: '13:30', kind: 'policy_rate', country: 'AU', importance: 3,
+    displayName: 'RBA政策金利＆声明発表', sourceId: 'au_rba', sourceEvidence: 'ground truth一致確認済み',
+    localDate: '2026-08-18', localTime: '14:30', tz: 'Australia/Sydney',
+  };
+  const ev = candidateToLedgerEvent(candidate, used);
+  assert.equal(ev.uses_manuscript_release_time, false);
+  assert.equal(ev.speech_local_time, null);
+  assert.equal(ev.speech_datetime_jst, null);
+});
+
 test('candidateToLedgerEvent: displayName未解決・officials未指定はFALLBACK_KIND_LABELを使いrule_generatedになる', () => {
   const used = new Set();
   const candidate = {

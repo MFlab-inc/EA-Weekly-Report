@@ -153,6 +153,19 @@ test('entirelyPreviousDay: 月曜00:30発表（日曜へ跨る、週明け特例
   assert.match(w.annotation, /週明けの取引開始時点からの停止が目安/);
 });
 
+// 2026-11-14追加（しょうさん指摘、軽微・11/18週FOMC議事録[木曜04:00発表]の実例で発覚）:
+// 窓[t-12h, t-4h]のt-4hがちょうど当日0時（＝前日24時）になる場合、formatMinutesは当日起点の
+// 「00:00」を返してしまい、「停止開始目安 前日 水曜16:00–00:00」という期間ゼロ・前後逆に
+// 見える誤表示になっていた。前日を主語にした範囲の終端は「24:00」で表示する
+test('entirelyPreviousDay: 04:00発表（FOMC議事録11/19の実例、木曜）— 停止終了がちょうど前日24時の場合は「24:00」と表示する', () => {
+  const w = computeHaltWindow({ date: '2026-11-19', firstTime: '04:00' });
+  assert.equal(w.entirelyPreviousDay, true);
+  assert.equal(w.previousDayLabel, '水');
+  assert.equal(w.rawPreviousDayStart, '16:00');
+  assert.equal(w.rawPreviousDayEnd, '24:00');
+  assert.match(w.annotation, /前日 水曜16:00〜24:00/);
+});
+
 test('entirelyPreviousDay: 境界値04:00は窓の終わりがちょうど当日0時（entirelyPreviousDay扱い）', () => {
   const w = computeHaltWindow({ date: '2026-08-20', firstTime: '04:00' });
   assert.equal(w.endMin, 0);

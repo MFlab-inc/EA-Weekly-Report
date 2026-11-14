@@ -282,10 +282,13 @@ const WEEKLY_SCRAPE_EXTRACTORS = {
     // timeAmbiguous/ambiguousTimeRawはresolveCandidateEvent（scripts/lib/resolve-candidate.js）・
     // build-ledger.jsのcheckTimeAmbiguousWarningが使う（タイムゾーン・開催地のいずれからも
     // 英国時間と確定できない行をWARN付きで時刻未確定扱いにする、しょうさん指示2026-10-10/11）。
-    // ここで渡し忘れるとrowに付いていても後段に伝わらない（2026-10-11に発覚・修正）
+    // manuscriptReleaseBasis/speechLocalTimeは原稿公表時刻を停止目安の基準にした行の印
+    // （しょうさん指示2026-11-14）。ここで渡し忘れるとrowに付いていても後段に伝わらない
+    // （2026-10-11に発覚・修正。同じ理由で新フィールドも都度ここに追加する必要がある）
     toRow: (r) => ({
       title: r.title, date: r.date, localTime: r.localTime, kind: 'official_speech', speakerLastName: r.speakerLastName,
       timeAmbiguous: r.timeAmbiguous, ambiguousTimeRaw: r.ambiguousTimeRaw, ukHintInstitutionalOnly: r.ukHintInstitutionalOnly,
+      manuscriptReleaseBasis: r.manuscriptReleaseBasis, speechLocalTime: r.speechLocalTime,
     }),
   },
   // BOC/RBA/ECB/SNB講演: task #72（2026-09-19）で新設。いずれもpubDate/dc:date/cb:occurrenceDateが
@@ -567,7 +570,7 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
   const toRows = (parsed) => (parsed.rows || parsed.meetings || parsed.entries || parsed.releases || parsed.items || []).map(extractor.toRow);
   const parseCtx = { targetWeek, source };
   let rawRows = [];
-  // 2026-11-16追加（しょうさん指摘、BOEの表示ウィンドウ直前の見出し読み飛ばし対応）: 構造的失敗
+  // 2026-11-14追加（しょうさん指摘、BOEの表示ウィンドウ直前の見出し読み飛ばし対応）: 構造的失敗
   // ではないが読者・運用者へ知らせたい情報WARN（抽出器のparsed.warnings）を集める。
   // build-ledger.jsのbuildMetaMessages経由でmeta.warningsへ合流させる（residualWarnings等と同じ設計）
   const extractorWarnings = [];
@@ -812,7 +815,7 @@ export async function runChecks({ sourcesConfig, importanceRules, eventNames, ta
     }
   );
 
-  // 2026-11-16追加（BOEの表示ウィンドウ直前の見出し読み飛ばし対応）: 構造的失敗ではない
+  // 2026-11-14追加（BOEの表示ウィンドウ直前の見出し読み飛ばし対応）: 構造的失敗ではない
   // 情報WARN（checkWeeklyScrapeSourceのextractorWarnings）をソース横断でフラットに集める
   const extractorWarnings = results.flatMap((r) => r.extractorWarnings || []);
 

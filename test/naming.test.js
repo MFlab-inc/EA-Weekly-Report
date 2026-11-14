@@ -158,7 +158,7 @@ test('resolveOfficialBySurname: FRB理事個人（議長以外）が登録済み
   assert.equal(barr.role_ja, 'FRB理事');
 });
 
-// 2026-11-16追加（しょうさん指摘、BOE副総裁ブラディックの実例）: BOE自身のevents/
+// 2026-11-14追加（しょうさん指摘、BOE副総裁ブラディックの実例）: BOE自身のevents/
 // upcoming-eventsページ本文で「Katherine Braddick」（e）という表記揺れが実測で見つかった
 // （officials.json登録の正式表記は公式bioどおり「Katharine Braddick」、a）。
 // aliases_enに登録した別表記でも解決できること、未登録の別表記はnullのままであることを確認する
