@@ -125,11 +125,20 @@ function resolveGovernor(officials, country) {
 // 残存する限界: 姓のみ（フルネーム不明）表記の情報源（BOJ公表予定ページ等）から抽出した候補と、
 // 同一国内に同姓の別人が複数登録された場合は前方一致だけでは区別できない（情報源側の制約であり
 // コード側では解決不能。同姓の別人が実在する場合はofficials.json登録時に個別の運用判断が必要）
+// 2026-11-16追加（しょうさん指摘、ブラディック副総裁の実例）: BOE自身のevents/upcoming-events
+// ページ内で、同一人物の表記が段落本文「Katherine Braddick」（e）と講演ページURLスラッグ
+// 「katharine-braddick」（a、officials.json登録済みの公式表記と一致）で揺れていることが
+// 実測で発覚した（BOE側の誤記の疑い。公式bio: bankofengland.co.uk/about/people/
+// katharine-braddick/biography）。officials.json側の正式表記（full_name）を変更せず、
+// 既知の別表記をaliases_en（文字列配列、完全一致のみ。full_nameの部分一致/前方一致とは
+// 意図的に判定方式を分けている＝曖昧な部分一致で誤って別人に当ててしまう事故を避けるため）
+// として個別に登録できるようにし、ここで追加の照合経路として確認する
 function resolveOfficialBySurname(officials, surnameEn, country) {
   if (!surnameEn || !country) return null;
   return (officials || []).find((o) => {
     if (o.country !== country || !o.full_name) return false;
-    return o.full_name.includes('（') ? o.full_name.includes(surnameEn) : o.full_name.startsWith(surnameEn);
+    if (o.full_name.includes('（') ? o.full_name.includes(surnameEn) : o.full_name.startsWith(surnameEn)) return true;
+    return Array.isArray(o.aliases_en) && o.aliases_en.includes(surnameEn);
   }) || null;
 }
 
