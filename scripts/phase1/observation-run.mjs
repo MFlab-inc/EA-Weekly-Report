@@ -14,12 +14,12 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runChecks } from '../checkers/harness.mjs';
-import { getTargetWeek, isWithinWeek } from '../lib/dates.js';
+import { getTargetWeek } from '../lib/dates.js';
 import { createRobotsChecker } from '../lib/robots.js';
 
 const require = createRequire(import.meta.url);
 const { computeHaltWindow, unionIntervals } = require('../lib/halt-schedule.js');
-const { zonedWallTimeToJst } = require('../lib/tz-convert.js');
+const { zonedWallTimeToJst, applyWeekendSpillover } = require('../lib/tz-convert.js');
 const { resolveImportance } = require('../lib/importance.js');
 const { candidatesForTargetWeek } = require('../lib/manual-events.js');
 const { resolveBojMeetingRange } = require('../lib/boj-meeting-schedule.js');
@@ -130,18 +130,19 @@ export function buildObservationSummary(report, sourcesConfig, importanceRules, 
     }
     if (Array.isArray(r.matchedEntries)) {
       const source = sourcesConfig.sources.find((s) => s.id === r.id);
-      for (const e of r.matchedEntries) {
-        const candidate = annualEntryToCandidate(e, source, importanceRules, eventNames);
-        // 2026-10-03追加（しょうさん指摘で発見した潜在バグ）: checkAnnualScheduleSource側の
-        // matchedEntriesフィルタ（harness.mjs）はscheduleのローカル日付で対象週判定するため、
-        // ローカル日付は対象週内でもJST変換後（annualEntryToCandidateのjst.date）に対象週の
-        // 翌日（土曜）へロールオーバーする候補が素通りしてしまう（実例: カナダIveyPMIが
-        // 対象週最終日[金]のローカル時刻で発表され、JST変換で翌日[土]扱いになるケース）。
-        // weekly_scrape型（harness.mjsのthisWeekフィルタ）と同じ基準でJST変換後に再判定する
-        if (isWithinWeek(candidate.date, report.targetWeek.start, report.targetWeek.end)) {
-          candidates.push(candidate);
-        }
-      }
+      // 2026-10-03追加（しょうさん指摘で発見した潜在バグ）: checkAnnualScheduleSource側の
+      // matchedEntriesフィルタ（harness.mjs）はscheduleのローカル日付で対象週判定するため、
+      // ローカル日付は対象週内でもJST変換後（annualEntryToCandidateのjst.date）に対象週の
+      // 翌日（土曜）へロールオーバーする候補が素通りしてしまう（実例: カナダIveyPMIが
+      // 対象週最終日[金]のローカル時刻で発表され、JST変換で翌日[土]扱いになるケース）。
+      // 2026-11-14是正（11/16週・米ミシガン大学消費者信頼感指数[FRED経路]のHOLD対応と同時に
+      // 発覚）: 単純なisWithinWeekのみの再判定では、ロールオーバーした候補を「対象週でない」
+      // として黒く除外するだけで、週末スピルオーバー（金曜NY市場クローズ前の発表として金曜
+      // カードへ掲載する既存の仕組み）としての取り込みがされておらず、対象週内でもisWithinWeek
+      // だけでは拾えないロールオーバー候補が無警告のまま丸ごと取りこぼされる潜在バグが残っていた。
+      // weekly_scrape型・FRED型と同じapplyWeekendSpillover()を適用し、3経路の基準を統一する
+      const annualCandidates = r.matchedEntries.map((e) => annualEntryToCandidate(e, source, importanceRules, eventNames));
+      candidates.push(...applyWeekendSpillover(annualCandidates, report.targetWeek.start, report.targetWeek.end));
     }
   }
   if (manualEventsConfig) {

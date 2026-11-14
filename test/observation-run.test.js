@@ -175,13 +175,17 @@ test('buildObservationSummary: thisWeek由来とmatchedEntries由来の候補を
   assert.ok(!summary.candidates.some((c) => c.sourceId === 'cn_pmi'));
 });
 
-test('buildObservationSummary: annual_schedule_config型のmatchedEntriesはJST変換後に対象週をロールオーバーする候補を除外する（2026-10-03発見、ca_ivey実例）', async () => {
+test('buildObservationSummary: annual_schedule_config型のmatchedEntriesはJST変換後に対象週をロールオーバーする候補を週末スピルオーバーとして取り込む（2026-10-03発見、2026-11-14是正、ca_ivey実例）', async () => {
   // ca_ivey（Ivey PMI、annual_schedule_config型）の実設定: 2026-11-06（対象週最終日=金）
   // 10:00 America/Toronto（EST、夏時間終了後）で発表 → UTC 15:00 → JST 2026-11-07T00:00:00+09:00（土）。
   // harness.mjsのcheckAnnualScheduleSourceはscheduleのローカル日付（2026-11-06）で対象週内と
   // 判定してmatchedEntriesに含めるが、JST変換後は対象週（〜11/6）の翌日（土）にロールオーバーする。
-  // 修正前はこのままannualEntryToCandidateで候補化され台帳に紛れ込んでいた。修正後は
-  // isWithinWeek(candidate.date, ...)による再チェックで除外されることを確認する
+  // 2026-10-03時点の修正はisWithinWeekのみの再チェックで除外する方式だったが、2026-11-14
+  // （11/16週、米ミシガン大学消費者信頼感指数[FRED経路]のHOLD対応と同時に発覚）: これは
+  // 週末スピルオーバー（金曜NY市場クローズ前の発表として金曜カードへ掲載する既存の仕組み）の
+  // 対象外にされてしまい、★★発表が無警告のまま丸ごと取りこぼされる潜在バグだった。
+  // weekly_scrape型・FRED型と同じapplyWeekendSpillover()を適用し、対象週の翌日（土）扱いで
+  // 候補へ残しisWeekendSpillover:trueを付けることを確認する
   const { buildObservationSummary } = await import('../scripts/phase1/observation-run.mjs');
   const report = {
     targetWeek: { start: '2026-11-02', end: '2026-11-06' },
@@ -208,8 +212,12 @@ test('buildObservationSummary: annual_schedule_config型のmatchedEntriesはJST�
   const importanceRules = { importance_by_kind: { pmi_ism: 2 } };
 
   const summary = buildObservationSummary(report, sourcesConfig, importanceRules);
-  assert.equal(summary.candidateCount, 0);
-  assert.ok(!summary.candidates.some((c) => c.sourceId === 'ca_ivey'));
+  assert.equal(summary.candidateCount, 1);
+  const candidate = summary.candidates.find((c) => c.sourceId === 'ca_ivey');
+  assert.ok(candidate, JSON.stringify(summary.candidates));
+  assert.equal(candidate.date, '2026-11-07');
+  assert.equal(candidate.time, '00:00');
+  assert.equal(candidate.isWeekendSpillover, true);
 });
 
 test('buildObservationSummary: manualEventsConfigの対象週内entriesを他ソースと同列の候補として取り込む', async () => {

@@ -22,7 +22,7 @@ import { decideRunOutcome, isExpectedThisWeek, checkResidualMonitoring, checkRec
 import { matchesRecurringRule } from '../lib/recurring-rules.js';
 import { createRobotsChecker } from '../lib/robots.js';
 import { resolveCandidateEvent, resolveKindCandidates } from '../lib/resolve-candidate.js';
-import { weekendSpilloverCutoffJst } from '../lib/tz-convert.js';
+import { applyWeekendSpillover } from '../lib/tz-convert.js';
 import { extractCensusCalendar } from './extractors/census.js';
 import { extractAbsCalendar } from './extractors/abs.js';
 import { extractOnsReleases } from './extractors/ons.js';
@@ -466,7 +466,16 @@ export async function checkFredSource(source, targetWeek, { fetchImpl = fetch, a
   }
   const ok = releaseResults.every((r) => r.ok);
   const foundKinds = releaseResults.filter((r) => r.foundDate).map((r) => r.kind);
-  const thisWeek = releaseResults.flatMap((r) => r.thisWeekCandidates || []).filter((c) => c.ok);
+  // 2026-11-14追加（11/16週、しょうさん指摘で発覚）: 米ミシガン大学消費者信頼感指数
+  // （sentiment、10:00 ET）は対象週最終日（金）の発表がJST変換で翌日（土）0:00になるが、
+  // 従来はcheckWeeklyScrapeSourceだけが持っていた週末スピルオーバー判定（isWeekendSpillover
+  // フラグ付与）をこの経路（FRED）が一度も通っていなかったため、「対象週でも週末スピルオーバーの
+  // 対象でもない」中途半端な日付のまま台帳に残り、レンダラーのbuildDays()（月〜金のみ）・
+  // スピルオーバー枠（is_weekend_spilloverフラグが前提）のどちらにも描画されず、台帳×HTML突合
+  // （ledger-html-audit.mjs）がHTML_EVENT_MISSINGを検出してパイプラインがHOLDする実障害と
+  // なっていた。checkWeeklyScrapeSourceと同じapplyWeekendSpillover()を適用する
+  const rawThisWeek = releaseResults.flatMap((r) => r.thisWeekCandidates || []).filter((c) => c.ok);
+  const thisWeek = applyWeekendSpillover(rawThisWeek, weekStart, weekEnd);
   // recurringCheckMatchesはrunChecks()側でmatchesRecurringRule（実際の対象週日付に基づく判定）が
   // 一元的に計算する。ここでは未設定（false）にしておく（二重計算・不整合を避けるため）
   return { ok, releaseResults, foundKinds, thisWeek, annualConfigHasTargetWeek: false, recurringCheckMatches: false, reason: ok ? undefined : 'FREDリリース取得の一部が失敗' };
@@ -642,12 +651,9 @@ export async function checkWeeklyScrapeSource(source, targetWeek, { fetchImpl = 
   // 取りこぼされる。対象週の金曜（JST）からNY金17:00のJST換算時刻までの候補を追加で含め、
   // isWeekendSpilloverフラグを立てる（build-ledger.js・レンダラー側がこのフラグを使って
   // 金曜カードへの「▲翌日」表示に振り分ける）。時刻未確定（candidate.time===null）の候補は
-  // 推測で含めない
-  const spilloverCutoff = weekendSpilloverCutoffJst(targetWeek.targetWeekEnd);
-  const thisWeek = candidates
-    .filter((c) => isWithinWeek(c.date, targetWeek.targetWeekStart, targetWeek.targetWeekEnd)
-      || (c.time && c.date === spilloverCutoff.date && c.time <= spilloverCutoff.time))
-    .map((c) => (c.date === spilloverCutoff.date ? { ...c, isWeekendSpillover: true } : c));
+  // 推測で含めない。2026-11-14: checkFredSource・buildObservationSummaryのmatchedEntries経路にも
+  // 同じ基準を適用するため、applyWeekendSpillover()へ共通化した（tz-convert.js参照）
+  const thisWeek = applyWeekendSpillover(candidates, targetWeek.targetWeekStart, targetWeek.targetWeekEnd);
 
   return {
     ok: true,
