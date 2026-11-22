@@ -11,6 +11,17 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+      - name: Stats NZ calendar-export診断（HTTPステータス・2026年11月分[現在月]で生存確認）
+        run: |
+          echo "=== HTTPステータス（month=12&year=2026） ==="
+          curl -sS -D - -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
+            "https://www.stats.govt.nz/release-calendar/calendar-export?month=12&year=2026" -o /tmp/nz-2026-12-diag.ics
+          echo "--- 2026年11月（現在月）で同エンドポイントが生きているか確認 ---"
+          curl -sS -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
+            "https://www.stats.govt.nz/release-calendar/calendar-export?month=11&year=2026" -o /tmp/nz-2026-11.ics
+          wc -l /tmp/nz-2026-11.ics || true
+          echo "--- 2026年11月の内容冒頭 ---"
+          head -c 1000 /tmp/nz-2026-11.ics || true
       - name: Stats NZ calendar-export（2026年12月・GDP確認）
         run: |
           echo "=== calendar-export?month=12&year=2026 ==="
@@ -88,6 +99,9 @@ jobs:
           for i, l in enumerate(lines):
               if '国民经济运行情况' in l or '12月' in l:
                   print(f'[{i}] {l}')
+          print('--- 文脈確認: 190〜260行目を全て表示 ---')
+          for i in range(190, min(260, len(lines))):
+              print(f'[{i}] {lines[i]}')
           "
       - name: NBS 2027年発表日程表の存在確認（本年度・歴年一覧ページ）
         run: |
