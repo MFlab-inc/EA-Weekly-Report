@@ -9,13 +9,18 @@ on:
 jobs:
   recon:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - name: Stats NZ calendar-export（2026年12月・GDP確認。301リダイレクト[末尾スラッシュ]をcurl -Lで追従）
+      - name: Stats NZ calendar-export（2026年12月・GDP確認。301リダイレクト[末尾スラッシュ]をcurl -Lで追従・タイムアウト設定）
         run: |
-          echo "=== calendar-export?month=12&year=2026（-Lでリダイレクト追従） ==="
-          curl -sSL -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
-            "https://www.stats.govt.nz/release-calendar/calendar-export?month=12&year=2026" -o /tmp/nz-2026-12.ics
+          echo "=== calendar-export?month=12&year=2026（-Lでリダイレクト追従、--max-time 25） ==="
+          curl -sSL --max-time 25 --max-redirs 5 -D /tmp/nz-2026-12-headers.txt -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
+            "https://www.stats.govt.nz/release-calendar/calendar-export?month=12&year=2026" -o /tmp/nz-2026-12.ics || echo "curl終了コード: $?"
+          echo "--- レスポンスヘッダー ---"
+          cat /tmp/nz-2026-12-headers.txt || true
+          echo "--- ファイルサイズ ---"
+          wc -c /tmp/nz-2026-12.ics || true
           echo "--- HTTP status/size ---"
           wc -l /tmp/nz-2026-12.ics || true
           echo "--- 全SUMMARY/DTSTART一覧 ---"
@@ -44,11 +49,11 @@ jobs:
                   print('---VEVENT---')
                   print(ev[:800])
           "
-      - name: Stats NZ calendar-export（2027年1月・CPI確認。-Lでリダイレクト追従）
+      - name: Stats NZ calendar-export（2027年1月・CPI確認。-Lでリダイレクト追従・タイムアウト設定）
         run: |
-          echo "=== calendar-export?month=1&year=2027（-Lでリダイレクト追従） ==="
-          curl -sSL -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
-            "https://www.stats.govt.nz/release-calendar/calendar-export?month=1&year=2027" -o /tmp/nz-2027-01.ics
+          echo "=== calendar-export?month=1&year=2027（-Lでリダイレクト追従、--max-time 25） ==="
+          curl -sSL --max-time 25 --max-redirs 5 -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
+            "https://www.stats.govt.nz/release-calendar/calendar-export?month=1&year=2027" -o /tmp/nz-2027-01.ics || echo "curl終了コード: $?"
           wc -l /tmp/nz-2027-01.ics || true
           echo "--- 全SUMMARY/DTSTART一覧 ---"
           python3 -c "
