@@ -1,0 +1,108 @@
+# 一時調査ワークフロー（2026-11-22作成、しょうさん指示: config/official-sources.jsonの
+# 残量監視WARN対応のための年次スケジュール確認）。本サンドボックス環境はstats.govt.nz・
+# stats.gov.cnへ直接到達できない（agent proxyの許可リストに無い）ため、既存のnz-stats-api-recon等と
+# 同じ「GitHub Actions実ネットワーク経由で一時調査し、結果をログに出す」方式を使う。
+# data/・output/・config/への書き込みは一切行わない（調査専用、確認後に本ファイル自体を削除する）。
+name: recon-annual-schedule-2026-11
+on:
+  workflow_dispatch: {}
+jobs:
+  recon:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Stats NZ calendar-export（2026年12月・GDP確認）
+        run: |
+          echo "=== calendar-export?month=12&year=2026 ==="
+          curl -sS -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
+            "https://www.stats.govt.nz/release-calendar/calendar-export?month=12&year=2026" -o /tmp/nz-2026-12.ics
+          echo "--- HTTP status/size ---"
+          wc -l /tmp/nz-2026-12.ics || true
+          echo "--- 全SUMMARY/DTSTART一覧 ---"
+          python3 -c "
+          import re
+          text = open('/tmp/nz-2026-12.ics', encoding='utf-8', errors='replace').read()
+          events = text.split('BEGIN:VEVENT')
+          for ev in events[1:]:
+              m_sum = re.search(r'SUMMARY:(.*)', ev)
+              m_start = re.search(r'DTSTART[^:]*:(.*)', ev)
+              m_end = re.search(r'DTEND[^:]*:(.*)', ev)
+              summ = m_sum.group(1).strip() if m_sum else '?'
+              start = m_start.group(1).strip() if m_start else '?'
+              end = m_end.group(1).strip() if m_end else '?'
+              print(f'{start} - {end} | {summ}')
+          "
+          echo "--- GDP関連のみ（SUMMARYに'gross domestic product'または'GDP'を含む行） ---"
+          python3 -c "
+          import re
+          text = open('/tmp/nz-2026-12.ics', encoding='utf-8', errors='replace').read()
+          events = text.split('BEGIN:VEVENT')
+          for ev in events[1:]:
+              m_sum = re.search(r'SUMMARY:(.*)', ev)
+              summ = m_sum.group(1).strip() if m_sum else ''
+              if 'gross domestic product' in summ.lower() or re.search(r'\bgdp\b', summ.lower()):
+                  print('---VEVENT---')
+                  print(ev[:800])
+          "
+      - name: Stats NZ calendar-export（2027年1月・CPI確認）
+        run: |
+          echo "=== calendar-export?month=1&year=2027 ==="
+          curl -sS -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
+            "https://www.stats.govt.nz/release-calendar/calendar-export?month=1&year=2027" -o /tmp/nz-2027-01.ics
+          wc -l /tmp/nz-2027-01.ics || true
+          echo "--- 全SUMMARY/DTSTART一覧 ---"
+          python3 -c "
+          import re
+          text = open('/tmp/nz-2027-01.ics', encoding='utf-8', errors='replace').read()
+          events = text.split('BEGIN:VEVENT')
+          for ev in events[1:]:
+              m_sum = re.search(r'SUMMARY:(.*)', ev)
+              m_start = re.search(r'DTSTART[^:]*:(.*)', ev)
+              summ = m_sum.group(1).strip() if m_sum else '?'
+              start = m_start.group(1).strip() if m_start else '?'
+              print(f'{start} | {summ}')
+          "
+          echo "--- CPI関連のみ ---"
+          python3 -c "
+          import re
+          text = open('/tmp/nz-2027-01.ics', encoding='utf-8', errors='replace').read()
+          events = text.split('BEGIN:VEVENT')
+          for ev in events[1:]:
+              m_sum = re.search(r'SUMMARY:(.*)', ev)
+              summ = m_sum.group(1).strip() if m_sum else ''
+              if 'consumer price index' in summ.lower() or re.search(r'\bcpi\b', summ.lower()):
+                  print('---VEVENT---')
+                  print(ev[:800])
+          "
+      - name: NBS 2026年発表日程表（12月の国民経済運行情況の日付確認）
+        run: |
+          curl -sS -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
+            "https://www.stats.gov.cn/xxgk/sjfb/fbrcb/202512/t20251224_1962137.html" -o /tmp/nbs-2026-schedule.html
+          wc -c /tmp/nbs-2026-schedule.html || true
+          python3 -c "
+          import re
+          html = open('/tmp/nbs-2026-schedule.html', encoding='utf-8', errors='replace').read()
+          text = re.sub(r'<[^>]+>', '\n', html)
+          text = re.sub(r'\n\s*\n+', '\n', text)
+          lines = [l.strip() for l in text.split(chr(10)) if l.strip()]
+          for i, l in enumerate(lines):
+              if '国民经济运行情况' in l or '12月' in l:
+                  print(f'[{i}] {l}')
+          "
+      - name: NBS 2027年発表日程表の存在確認（本年度・歴年一覧ページ）
+        run: |
+          for url in "https://www.stats.gov.cn/sj/fbrc/bnxxfb/" "https://www.stats.gov.cn/sj/fbrc/ljxxfb/"; do
+            echo "=== $url ==="
+            curl -sS -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" "$url" -o /tmp/nbs-index.html
+            wc -c /tmp/nbs-index.html || true
+            python3 -c "
+          import re
+          html = open('/tmp/nbs-index.html', encoding='utf-8', errors='replace').read()
+          text = re.sub(r'<[^>]+>', '\n', html)
+          text = re.sub(r'\n\s*\n+', '\n', text)
+          lines = [l.strip() for l in text.split(chr(10)) if l.strip()]
+          for l in lines:
+              if '2027' in l or '2026' in l:
+                  print(l)
+          "
+          done
