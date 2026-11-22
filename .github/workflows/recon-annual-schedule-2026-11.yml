@@ -11,21 +11,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - name: Stats NZ calendar-export診断（HTTPステータス・2026年11月分[現在月]で生存確認）
+      - name: Stats NZ calendar-export（2026年12月・GDP確認。301リダイレクト[末尾スラッシュ]をcurl -Lで追従）
         run: |
-          echo "=== HTTPステータス（month=12&year=2026） ==="
-          curl -sS -D - -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
-            "https://www.stats.govt.nz/release-calendar/calendar-export?month=12&year=2026" -o /tmp/nz-2026-12-diag.ics
-          echo "--- 2026年11月（現在月）で同エンドポイントが生きているか確認 ---"
-          curl -sS -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
-            "https://www.stats.govt.nz/release-calendar/calendar-export?month=11&year=2026" -o /tmp/nz-2026-11.ics
-          wc -l /tmp/nz-2026-11.ics || true
-          echo "--- 2026年11月の内容冒頭 ---"
-          head -c 1000 /tmp/nz-2026-11.ics || true
-      - name: Stats NZ calendar-export（2026年12月・GDP確認）
-        run: |
-          echo "=== calendar-export?month=12&year=2026 ==="
-          curl -sS -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
+          echo "=== calendar-export?month=12&year=2026（-Lでリダイレクト追従） ==="
+          curl -sSL -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
             "https://www.stats.govt.nz/release-calendar/calendar-export?month=12&year=2026" -o /tmp/nz-2026-12.ics
           echo "--- HTTP status/size ---"
           wc -l /tmp/nz-2026-12.ics || true
@@ -55,10 +44,10 @@ jobs:
                   print('---VEVENT---')
                   print(ev[:800])
           "
-      - name: Stats NZ calendar-export（2027年1月・CPI確認）
+      - name: Stats NZ calendar-export（2027年1月・CPI確認。-Lでリダイレクト追従）
         run: |
-          echo "=== calendar-export?month=1&year=2027 ==="
-          curl -sS -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
+          echo "=== calendar-export?month=1&year=2027（-Lでリダイレクト追従） ==="
+          curl -sSL -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
             "https://www.stats.govt.nz/release-calendar/calendar-export?month=1&year=2027" -o /tmp/nz-2027-01.ics
           wc -l /tmp/nz-2027-01.ics || true
           echo "--- 全SUMMARY/DTSTART一覧 ---"
@@ -85,38 +74,3 @@ jobs:
                   print('---VEVENT---')
                   print(ev[:800])
           "
-      - name: NBS 2026年発表日程表（12月の国民経済運行情況の日付確認）
-        run: |
-          curl -sS -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
-            "https://www.stats.gov.cn/xxgk/sjfb/fbrcb/202512/t20251224_1962137.html" -o /tmp/nbs-2026-schedule.html
-          wc -c /tmp/nbs-2026-schedule.html || true
-          python3 -c "
-          import re
-          html = open('/tmp/nbs-2026-schedule.html', encoding='utf-8', errors='replace').read()
-          text = re.sub(r'<[^>]+>', '\n', html)
-          text = re.sub(r'\n\s*\n+', '\n', text)
-          lines = [l.strip() for l in text.split(chr(10)) if l.strip()]
-          for i, l in enumerate(lines):
-              if '国民经济运行情况' in l or '12月' in l:
-                  print(f'[{i}] {l}')
-          print('--- 文脈確認: 190〜260行目を全て表示 ---')
-          for i in range(190, min(260, len(lines))):
-              print(f'[{i}] {lines[i]}')
-          "
-      - name: NBS 2027年発表日程表の存在確認（本年度・歴年一覧ページ）
-        run: |
-          for url in "https://www.stats.gov.cn/sj/fbrc/bnxxfb/" "https://www.stats.gov.cn/sj/fbrc/ljxxfb/"; do
-            echo "=== $url ==="
-            curl -sS -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" "$url" -o /tmp/nbs-index.html
-            wc -c /tmp/nbs-index.html || true
-            python3 -c "
-          import re
-          html = open('/tmp/nbs-index.html', encoding='utf-8', errors='replace').read()
-          text = re.sub(r'<[^>]+>', '\n', html)
-          text = re.sub(r'\n\s*\n+', '\n', text)
-          lines = [l.strip() for l in text.split(chr(10)) if l.strip()]
-          for l in lines:
-              if '2027' in l or '2026' in l:
-                  print(l)
-          "
-          done
