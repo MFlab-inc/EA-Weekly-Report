@@ -1608,6 +1608,41 @@
       "residual_monitor_weeks": 4
     },
     {
+      "id": "jp_stat_labour",
+      "name_ja": "総務省統計局（労働力調査・完全失業率）",
+      "status": "active",
+      "country": "JP",
+      "kinds": [
+        "employment_indicator"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "targets": [
+          { "label": "release_schedule_pdf", "url": "https://www.stat.go.jp/data/roudou/pdf/kohyo26.pdf" },
+          { "label": "monthly_index", "url": "https://www.stat.go.jp/data/roudou/sokuhou/tsuki/index.html" }
+        ]
+      },
+      "announce_time_by_kind": {
+        "employment_indicator": { "local_time": "08:30", "tz": "Asia/Tokyo" }
+      },
+      "notes": "2026-11-28新設（しょうさん依頼: 日本の完全失業率を毎月自動で掲載したい。11/30週はconfig/manual-events.jsonのjp-unemployment-2026-12-01で手動登録済み）。総務省統計局『労働力調査 2026年公表予定日』PDF（kohyo26.pdf）をGitHub Actions実ネットワーク経由で直接取得し（2026-11-28、HTTP 200・application/pdf）、本文の基本集計欄（注１『基本集計は各日８時30分、詳細集計は各日14時に公表』）から日付を転記した。同PDFは2027年3月公表分（2027年2月分）まで掲載している。2027年版（kohyo27.pdf）は同日時点でHTTP 404（未公表）。完全失業率は基本集計に含まれるため、詳細集計（四半期、14時）は対象外。12/1公表分（10月分）はmanual-events.jsonの手動登録と重複しないようscheduleに含めていない。重要度は★★（importance_by_kind.employment_indicatorの既定値。円相場への影響が小さい部類との判断で、11/30週の手動登録時にしょうさん了承）",
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-11-28",
+      "confirmed_by": "Claude Code（総務省統計局の公表予定表PDF本文をGitHub Actions実ネットワーク経由で直接確認）",
+      "confirmed_source_url": [
+        "https://www.stat.go.jp/data/roudou/pdf/kohyo26.pdf"
+      ],
+      "schedule": [
+        { "date": "2026-12-25", "kind": "employment_indicator", "note": "2026年11月分（基本集計）。kohyo26.pdf『11月分 12月25日（金）』" },
+        { "date": "2027-01-29", "kind": "employment_indicator", "note": "2026年12月分・10～12月期平均・2026年平均（基本集計）。kohyo26.pdf『12月分 2027年１月29日（金）』" },
+        { "date": "2027-03-02", "kind": "employment_indicator", "note": "2027年1月分（基本集計）。kohyo26.pdf『2027年１月分 ３月２日（火）』" },
+        { "date": "2027-03-30", "kind": "employment_indicator", "note": "2027年2月分（基本集計）。kohyo26.pdf『２月分 ３月30日（火）』。この先は2027年版公表予定表の公表待ち（残量監視WARNで知らせる）" }
+      ],
+      "residual_monitor_weeks": 6
+    },
+    {
       "id": "jp_esri_gdp",
       "name_ja": "内閣府/ESRI（四半期別GDP速報）",
       "status": "draft_schedule",
