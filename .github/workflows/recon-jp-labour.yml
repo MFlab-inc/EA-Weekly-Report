@@ -1,0 +1,49 @@
+# 一時調査ワークフロー（2026-11-28作成、しょうさん依頼: 日本・完全失業率の自動取得化）。
+# 総務省統計局の労働力調査 公表予定表（PDF）を、本番と同じGitHub Actions実ネットワーク経由で
+# 直接取得し、本文テキストをログへ出すだけ。data/・config/への書き込みは一切しない。
+# 作業用ブランチへのpushでのみ動く（mainには入れない。確認後に本ファイルを削除する）。
+name: recon-jp-labour
+on:
+  push:
+    branches: [claude/ea-weekly-report-automation-lw6cio-auto-indicators]
+    paths: ['.github/workflows/recon-jp-labour.yml']
+jobs:
+  recon:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: 労働力調査 公表予定表PDF（2026年・2027年）
+        run: |
+          for y in 26 27; do
+            url="https://www.stat.go.jp/data/roudou/pdf/kohyo${y}.pdf"
+            echo "=== ${url} ==="
+            curl -sSL --max-time 20 -o "/tmp/kohyo${y}.pdf" -w "HTTP:%{http_code} type:%{content_type} size:%{size_download}\n" \
+              -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" "$url" || echo "curl終了コード: $?"
+            node -e "
+              const fs = require('fs');
+              const buf = fs.readFileSync('/tmp/kohyo${y}.pdf');
+              if (buf.slice(0, 4).toString() !== '%PDF') { console.log('PDFではない応答（先頭）:', buf.slice(0, 200).toString()); process.exit(0); }
+              require('pdf-parse')(buf).then((d) => console.log(d.text)).catch((e) => console.log('pdf-parse失敗:', e.message));
+            " || true
+          done
+      - name: 労働力調査 月次ページ（次回公表予定の記載確認）
+        run: |
+          curl -sSL --max-time 20 -A "MFlab-EA-Weekly/1.0 (+https://github.com/MFlab-inc/EA-Weekly-Report; recon)" \
+            "https://www.stat.go.jp/data/roudou/sokuhou/tsuki/index.html" -o /tmp/tsuki.html || echo "curl終了コード: $?"
+          python3 -c "
+          import re
+          raw = open('/tmp/tsuki.html','rb').read()
+          for enc in ('utf-8','shift_jis','cp932'):
+              try:
+                  html = raw.decode(enc); print('encoding:', enc); break
+              except Exception: pass
+          text = re.sub(r'<[^>]+>', '\n', html)
+          lines = [l.strip() for l in text.split(chr(10)) if l.strip()]
+          for l in lines:
+              if '公表' in l or '予定' in l or '2026' in l or '2027' in l or '令和' in l:
+                  print(l)
+          " || true
