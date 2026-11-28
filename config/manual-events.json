@@ -134,6 +134,45 @@
       "source_note": "2026-10-26、しょうさん指摘（GPTの指摘の検証・訂正）。日本銀行公式「公表予定」ページ https://www.boj.or.jp/about/calendar/index.htm （2026年10月23日更新、ページ本文冒頭に明記）のH2見出し「総裁定例記者会見（予定）」直下に『2026年10月30日（金）15:30～（ライブ配信予定）\\n（会見記録は2026年11月2日（月）にホームページ掲載予定）』と記載。生HTML（curl直接取得、2026-10-26確認）でも<h2 id=\"p03\">総裁定例記者会見（予定）</h2><p>2026年10月30日（金）15:30～（ライブ配信予定）<br>...</p>の構造で同内容を確認済み。同ページの本編テーブルでは同日の政策委員会・金融政策決定会合の決定内容は時刻「未定」（jp_boj.announce_time_by_kind.policy_rateのnote参照）。officials.jsonで日銀総裁（governor・★★★）と確認済み。本ソース（jp_boj_speeches、boj.or.jp/about/calendar/index.htm）は毎週取得対象だが、現行抽出器（extractBojSpeeches）は時刻セルが「未定」の行（記者会見の大半はこれ）を対象外とする設計のため、この見出し外テキスト形式の会見予定は自動検出できない（別PRで自動化を検討）。press_conferenceがjp_bojのkindsに未登録だったため今回まで総裁会見が一度も掲載されていなかった恒常的な欠落の、今週分の訂正登録",
       "registered_by": "Claude Code（しょうさん指摘・日銀公式ページ生HTML直接確認済み。要しょうさん確認）",
       "registered_at": "2026-10-26"
+    },
+    {
+      "id": "jp-unemployment-2026-12-01",
+      "date": "2026-12-01",
+      "local_time": "08:30",
+      "tz": "Asia/Tokyo",
+      "country": "JP",
+      "kind": "employment_indicator",
+      "display_name": "完全失業率",
+      "importance": 2,
+      "source_note": "2026-11-28、しょうさん依頼（11/30週への掲載）。労働力調査（基本集計）2026年10月分。総務省統計局の公表予定表（https://www.stat.go.jp/data/roudou/pdf/kohyo26.pdf 、10月分=12月1日(火)、基本集計は各日8時30分）とe-Statの公表予定（https://www.e-stat.go.jp/release-calendar/detail/00200531/202612010830 、2026-12-01 08:30）の公式2件で確認（WebSearch経由。本環境からstat.go.jp・e-stat.go.jpの直接取得は未実施）。みんかぶFXの経済指標カレンダー（https://fx.minkabu.jp/indicators?date=2026-11-28 、しょうさん提供のスクリーンショット: 12/1 08:30『日本・雇用統計 10月[完全失業率]』）とも一致。重要度は★★（Claude Code案。円相場への影響が小さい部類）。担当ソースが無いため今週限りの手動登録",
+      "registered_by": "Claude Code（しょうさん依頼。重要度はClaude Code案、要しょうさん確認）",
+      "registered_at": "2026-11-28"
+    },
+    {
+      "id": "cn-ratingdog-mfg-pmi-2026-12-01",
+      "date": "2026-12-01",
+      "local_time": "09:45",
+      "tz": "Asia/Shanghai",
+      "country": "CN",
+      "kind": "pmi_ism",
+      "display_name": "RatingDog(旧財新)製造業PMI",
+      "importance": 2,
+      "source_note": "2026-11-28、しょうさん依頼（11/30週への掲載）。RatingDog China General Manufacturing PMI 11月分。一次ソース（S&P Global、pmi.spglobal.com）は同日のGitHub Actions実ネットワーク再確認でもHTTP 403で到達不可（cn_pmi・task #16参照）。日時は、みんかぶFXの経済指標カレンダー（https://fx.minkabu.jp/indicators?date=2026-11-28 、しょうさん提供のスクリーンショット: 12/1 10:45『中国・RatingDog製造業PMI 11月』）と、『毎月第1営業日の北京時間9:45』という発表慣行（過去実績: 2025年11月分=2025-12-01、2026年10月分=2026-11-02[11/1が日曜のため翌営業日]。いずれもWebSearchで確認）の一致による。12/1(火)は12月の第1営業日。一次ソース本体での確認ではない点に注意。重要度は★★（importance-rules.jsonのpmi_ism既定値。RatingDogは速報値が無く発表は1回きり）。担当ソースcn_pmiがpending_recon（task #16）のため今週限りの手動登録。定例欠落WARN『中国PMI』はcn_pmiに紐づく判定のため本登録では消えない",
+      "registered_by": "Claude Code（しょうさん依頼。重要度はClaude Code案、要しょうさん確認）",
+      "registered_at": "2026-11-28"
+    },
+    {
+      "id": "us-sp-final-mfg-pmi-2026-12-01",
+      "date": "2026-12-01",
+      "local_time": "09:45",
+      "tz": "America/New_York",
+      "country": "US",
+      "kind": "pmi_ism",
+      "display_name": "米製造業PMI【確報値】",
+      "importance": 2,
+      "source_note": "2026-11-28、しょうさん依頼（11/30週への掲載）。S&P Global US Manufacturing PMI 確報値（11月分）。一次ソース（pmi.spglobal.com）は到達不可（us_flash_pmiのaccess.note参照、同日のGitHub Actions実ネットワーク再確認でもHTTP 403）。日時は、みんかぶFXの経済指標カレンダー（https://fx.minkabu.jp/indicators?date=2026-11-28 、しょうさん提供のスクリーンショット: 12/1 23:45『アメリカ・PMI（確報値）11月[製造業PMI・確報値]』）と、『確報値は毎月第1営業日の9:45 ET』という発表慣行（過去実績: 2025年12月分=2026-01-02 9:45 ET、WebSearchで確認）の一致による。9:45 ET（EST）=23:45 JST。一次ソース本体での確認ではない点に注意。重要度は★★（Claude Code案。速報値[us_flash_pmi]と同じ扱い。確報値は速報値の修正版で、15分後のISM製造業景況指数[★★★、12/2 00:00]の停止枠ともほぼ重なるため★★★にしても停止判断は変わらない）。今週限りの手動登録",
+      "registered_by": "Claude Code（しょうさん依頼。重要度はClaude Code案、要しょうさん確認）",
+      "registered_at": "2026-11-28"
     }
   ]
 }
