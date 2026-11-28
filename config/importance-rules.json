@@ -50,14 +50,15 @@
     { "kind": "minutes_summary", "country": "EU", "importance": 3, "reason": "2026-08-22しょうさん決定: ECB Accounts of the monetary policy meetingをFOMC議事録・RBA議事要旨と同格の★★★に統一", "downgrade_ok": true },
     { "kind": "minutes_summary", "country": "CA", "importance": 3, "reason": "2026-08-22しょうさん決定: BOC Summary of Governing Council DeliberationsをFOMC議事録・RBA議事要旨と同格の★★★に統一", "downgrade_ok": true },
     { "kind": "sentiment", "country": "DE", "importance": 3, "reason": "2026-08-15しょうさん指摘（Manus突合）: ZEW景況感指数はEURペアで★★★級の反応がある。sentiment kindの既定値（★★）から引き上げ", "downgrade_ok": true },
-    { "kind": "pmi_ism", "country": "US", "subtype": "flash", "importance": 2, "reason": "2026-09-19新設（task #94フォローアップ、us_flash_pmi）。US×pmi_ismは上記の一般エントリ（ISM向け）で★★★昇格済みだが、S&P Globalフラッシュ米国PMIはDE/EU/GBフラッシュPMIと同じ理由（月末に必ず発生する定例イベントを★★★にすると停止スケジュールが過密になる）で★★据え置きとする。subtypeフィールドにより上記の一般エントリより優先してこちらが適用される（scripts/lib/importance.jsのresolveImportance参照）", "downgrade_ok": false }
+    { "kind": "pmi_ism", "country": "US", "subtype": "flash", "importance": 2, "reason": "2026-09-19新設（task #94フォローアップ、us_flash_pmi）。US×pmi_ismは上記の一般エントリ（ISM向け）で★★★昇格済みだが、S&P Globalフラッシュ米国PMIはDE/EU/GBフラッシュPMIと同じ理由（月末に必ず発生する定例イベントを★★★にすると停止スケジュールが過密になる）で★★据え置きとする。subtypeフィールドにより上記の一般エントリより優先してこちらが適用される（scripts/lib/importance.jsのresolveImportance参照）", "downgrade_ok": false },
+    { "kind": "pmi_ism", "country": "US", "subtype": "final", "importance": 2, "reason": "2026-11-28新設（us_sp_final_mfg_pmi、しょうさん確認済み★★）。US×pmi_ismは上記の一般エントリ（ISM向け）で★★★昇格済みだが、S&P Global米製造業PMI【確報値】は月末のフラッシュ値の確報であり、同日に別途ISM製造業景況指数（★★★）が出るため★★とする（11/30週の手動登録時にしょうさんが★★で確認）", "downgrade_ok": false }
   ],
   "bundling_rule": "同一発表元・同一発表枠（同日・同時刻・同一指標の系列: 前月比/前年比/コア等）は1つの発表枠に束ね、枠の重要度は構成イベントの重要度の最大値を採る（例: 米雇用統計＝非農業部門雇用者数【★★★】＋平均時給【★★】→枠は★★★）",
   "recurring_checks": [
     { "name": "米雇用統計", "rule": "毎月第1金曜（祝日ずれあり）", "action": "対象週に該当し得るのに不在ならWARN" },
     { "name": "米CPI", "rule": "毎月10日〜16日ごろ（祝日ずれあり。既刊実績: 8/12）", "action": "同上（2026-08-15修正: 旧「毎月中旬」は10〜19日と広すぎ、対象外週で誤検知したため日範囲を明示する記法へ変更）" },
     { "name": "RBA総裁下院経済委員会証言", "rule": "毎年2月・8月（開催日は豪州議会日程による。担当ソース未定義のため月内の全週でWARNが出る粗い粒度）", "action": "対象週が該当月に入っているのに検出なしならWARN（担当ソース自体が未確定なので恒常的にWARNが出る想定。しょうさんが手動確認するまでの暫定措置。task #18参照）" },
-    { "name": "中国PMI", "rule": "毎月1日〜7日ごろ（RatingDog製造業・非製造業とも月初公表が通例）", "action": "対象週が該当日範囲に入っているのに検出なしならWARN（担当ソースcn_pmiがstatus=pending_recon[task #16]のため恒常的にWARNが出る想定。担当ソース実装まではWARNで欠落を可視化し、HOLDにはしない。しょうさん指示2026-08-15）" },
+    { "name": "中国PMI", "schedule_source_id": "cn_pmi", "rule": "cn_pmi（年次確定schedule、RatingDog製造業PMI）の日付に基づく（1件でも対象週内にあれば該当）", "action": "対象週に該当し得るのに cn_pmi で pmi_ism の検出なしならWARN（2026-11-28改訂。旧ルール『毎月1日〜7日ごろ』は担当ソースcn_pmiがpending_reconだったため恒常的にWARNが出ていた。cn_pmiをannual_schedule_config化したため、米小売売上高と同じschedule_source_id方式へ変更し、4/30・9/30の前倒し週も正しく該当扱いにする。非製造業PMIは対象外。しょうさん指示2026-08-15の『HOLDにはしない』は従来どおり）" },
     { "name": "英国建設業PMI", "rule": "毎月1日〜7日ごろ（S&P Global系PMIの通例的な公表時期）", "action": "同上（担当ソースgb_construction_pmiがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）" },
     { "name": "ADP雇用統計", "rule": "毎月1日〜7日ごろ（米雇用統計[第1金曜]の直前、水曜公表が通例）", "action": "同上（担当ソースus_adpがstatus=pending_recon[task #16]。しょうさん指示2026-08-15）" },
     { "name": "豪州GDP（ABS）", "rule": "3月・6月・9月・12月の1日〜5日ごろ（四半期末2ヶ月強後の第1水曜が通例。既知実績: 3/4・6/3・9/2・12/2）", "action": "対象週が該当月×該当日範囲に入っているのに au_abs で検出なしならWARN（task #87、しょうさん指摘2026-08-30: au_absのfuture-releases-calendarは掲載horizonが直近1ヶ月強に留まるため、対象発表日がhorizon外の週はweekly_scrapeで自動検出できない。manual-events.jsonでの暫定登録では今後も同じ事象が繰り返されるため、au_absソース自体が拾えなかったことを機械的に可視化する）" },

@@ -1149,6 +1149,55 @@
       "residual_monitor_weeks": 4
     },
     {
+      "id": "us_sp_final_mfg_pmi",
+      "name_ja": "S&P Global（米製造業PMI確報値）",
+      "status": "active",
+      "country": "US",
+      "kinds": [
+        "pmi_ism"
+      ],
+      "type": "annual_schedule_config",
+      "recurring_check_refs": [],
+      "access": {
+        "robots_check": true,
+        "automated_fetch": false,
+        "targets": [
+          { "label": "press_release_hub", "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease" }
+        ],
+        "note": "us_flash_pmiと同じ発表元。pmi.spglobal.comはrobots.txt自体がHTTP 403でGitHub Actionsからも到達不可（us_flash_pmiのaccess.note参照）。UA偽装による回避は行わないため、automated_fetch:falseとし、規則生成＋年1回確認方式とする"
+      },
+      "announce_time_by_kind": {
+        "pmi_ism": {
+          "local_time": "09:45",
+          "tz": "America/New_York"
+        }
+      },
+      "notes": "2026-11-28新設（しょうさん依頼: 11/30週に手動登録した『米製造業PMI【確報値】』を毎月自動で拾う。重要度★★はしょうさん確認済み）。月初のS&P Global米国製造業PMI（月末のフラッシュ値に対する確報値）。2026-12-01分はconfig/manual-events.json（us-sp-final-mfg-pmi-2026-12-01）で登録済みのため、重複しないようscheduleは2027-01分から始める。ISM製造業景況指数（us_ism、subtype:manufacturing、★★★）とは同日だが別の指標（ISMは10:00 ET、こちらは09:45 ET）",
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-11-28",
+      "confirmed_by": "Claude Code（一次ソースへの直接アクセスが構造的に不可能なため、2024-01〜2026-11の35ヶ月の実際の発表日を報道各社の記事日付・URLタイムスタンプ・S&P Global発表文のエンバーゴ表記から確認し、35/35ヶ月で『月の第1米営業日』規則と一致することを検証して採用。us_flash_pmiと同じく、pmi.spglobal.com一次ページの直接確認ではない）",
+      "confirmed_note": "scheduleはscripts/lib/final-mfg-pmi-schedule.js（usFinalMfgPmiDraftForMonth）の計算結果を転記したもの（test/final-mfg-pmi-schedule.test.jsが転記ミスを検知する）。米国の祝日はscripts/lib/us-federal-holidays.jsで計算（2027-01は1/1が元日のため1/4、2027-05は5/1が土曜のため5/3）。ISM側は2027年1月分の公式日程が未確定（us_ismのconfirmed_note参照）だが、S&P Globalは過去3年の1月とも第1営業日に発表しており本規則で扱う",
+      "draft_rule": {
+        "description": "月の第1米営業日（土日＋米連邦祝日を除く）の09:45 ET。scripts/lib/final-mfg-pmi-schedule.js（usFinalMfgPmiDraftForMonth）で計算する",
+        "business_day_rule": "1st_us_business_day_of_month"
+      },
+      "schedule": [
+        { "date": "2027-01-04", "kind": "pmi_ism", "subtype": "final", "note": "2026年12月分" },
+        { "date": "2027-02-01", "kind": "pmi_ism", "subtype": "final", "note": "2027年1月分" },
+        { "date": "2027-03-01", "kind": "pmi_ism", "subtype": "final", "note": "2027年2月分" },
+        { "date": "2027-04-01", "kind": "pmi_ism", "subtype": "final", "note": "2027年3月分" },
+        { "date": "2027-05-03", "kind": "pmi_ism", "subtype": "final", "note": "2027年4月分" },
+        { "date": "2027-06-01", "kind": "pmi_ism", "subtype": "final", "note": "2027年5月分" },
+        { "date": "2027-07-01", "kind": "pmi_ism", "subtype": "final", "note": "2027年6月分" },
+        { "date": "2027-08-02", "kind": "pmi_ism", "subtype": "final", "note": "2027年7月分" },
+        { "date": "2027-09-01", "kind": "pmi_ism", "subtype": "final", "note": "2027年8月分" },
+        { "date": "2027-10-01", "kind": "pmi_ism", "subtype": "final", "note": "2027年9月分" },
+        { "date": "2027-11-01", "kind": "pmi_ism", "subtype": "final", "note": "2027年10月分" },
+        { "date": "2027-12-01", "kind": "pmi_ism", "subtype": "final", "note": "2027年11月分" }
+      ],
+      "residual_monitor_weeks": 4
+    },
+    {
       "id": "us_eia_petroleum",
       "name_ja": "EIA（週間石油在庫統計）",
       "status": "active",
@@ -1783,20 +1832,53 @@
     },
     {
       "id": "cn_pmi",
-      "name_ja": "S&P Global（Caixin/RatingDog中国PMI）",
-      "status": "pending_recon",
+      "name_ja": "S&P Global（RatingDog(旧財新)中国製造業PMI）",
+      "status": "active",
       "country": "CN",
       "kinds": [
         "pmi_ism"
       ],
       "recurring_check_refs": [],
-      "type": "weekly_scrape",
+      "type": "annual_schedule_config",
       "access": {
         "robots_check": true,
-        "targets": []
+        "automated_fetch": false,
+        "targets": [
+          { "label": "press_release_hub", "url": "https://www.pmi.spglobal.com/Public/Home/PressRelease" }
+        ],
+        "note": "pmi.spglobal.com・ratingdog.cnとも自動取得不可（下記notes後半の2026-08-14実測参照）。UA偽装による回避は行わないため、automated_fetch:falseとし、規則生成＋中国の祝日通知（年1回）による確認方式とする"
       },
-      "announce_time_by_kind": {},
-      "notes": "優先度B3。2026-08-14実測: 公表元S&P Globalのpmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（BLSと同様のインフラ側ブロックの疑い。UA偽装による回避は行わない方針）。冠スポンサーのRatingDog自身のサイト（ratingdog.cn）も試したが、Monaco Editor/Viteバンドルを含む本格的なSPA構造で日程データは静的HTMLに含まれないと判明（us_adp・Stats NZと同種の構造的ブロッカー）。follow-up調査対象（task #15と合わせて管理）"
+      "announce_time_by_kind": {
+        "pmi_ism": {
+          "local_time": "09:45",
+          "tz": "Asia/Shanghai"
+        }
+      },
+      "schedule_status": "confirmed",
+      "confirmed_at": "2026-11-28",
+      "confirmed_by": "Claude Code（一次ソースへの直接アクセスが構造的に不可能なため、2024-01〜2026-11の35ヶ月の実際の発表日を報道各社の記事日付・URLタイムスタンプ・S&P Global発表文のエンバーゴ表記から確認して規則を作り、祝日は国务院办公厅の2027年通知[国办发明电〔2026〕10号]本文をGitHub Actions実ネットワーク経由で直接確認して適用）",
+      "confirmed_note": "scheduleはscripts/lib/final-mfg-pmi-schedule.js（cnRatingDogMfgPmiDraftForMonth）の計算結果を転記したもの（test/final-mfg-pmi-schedule.test.jsが転記ミスを検知する）。規則は過去35ヶ月のうち、祝日が重なった3ヶ月（2025-02春节・2025-06端午节・2026-01元旦。実績が前倒し・後ろ倒し・そのままとばらばら）を除く32ヶ月中31ヶ月で一致。唯一の不一致は2026年3月（規則3/2・実績3/4、理由不明）。2027年は祝日が重なる月が劳动节（4/30へ前倒し）・国庆节（9/30へ前倒し）のみで、どちらも過去3年すべて同じ前倒しだったため、要確認の月は無い。2028年分は2027年11月ごろの国务院办公厅通知を待ってconfig/cn-public-holidays.jsonへ追記してから計算する",
+      "draft_rule": {
+        "description": "月の最初の平日（1月は1/1を除く）の09:45 北京時間。その日が中国の法定祝日なら、5月・10月は前月の最終平日へ前倒し、それ以外の月は自動では決めず手動確認（scripts/lib/final-mfg-pmi-schedule.jsのコメント参照）",
+        "business_day_rule": "1st_weekday_of_month_with_cn_holiday_adjustment",
+        "cn_public_holidays_source": "config/cn-public-holidays.json（国务院办公厅『关于XXXX年部分节假日安排的通知』）"
+      },
+      "schedule": [
+        { "date": "2027-01-04", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2026年12月分（元旦休暇は1/1〜1/3）" },
+        { "date": "2027-02-01", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年1月分" },
+        { "date": "2027-03-01", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年2月分（2026年は3/4と規則外だった月のため要注意）" },
+        { "date": "2027-04-01", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年3月分" },
+        { "date": "2027-04-30", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年4月分（劳动节5/1〜5/5のため前倒し）" },
+        { "date": "2027-06-01", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年5月分" },
+        { "date": "2027-07-01", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年6月分" },
+        { "date": "2027-08-02", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年7月分" },
+        { "date": "2027-09-01", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年8月分" },
+        { "date": "2027-09-30", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年9月分（国庆节10/1〜10/7のため前倒し）" },
+        { "date": "2027-11-01", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年10月分" },
+        { "date": "2027-12-01", "kind": "pmi_ism", "subtype": "manufacturing", "note": "2027年11月分" }
+      ],
+      "residual_monitor_weeks": 4,
+      "notes": "2026-11-28、pending_recon（weekly_scrape）からannual_schedule_config（規則生成）へ切り替え（しょうさん依頼: 11/30週に手動登録した『RatingDog(旧財新)製造業PMI』を毎月自動で拾う。重要度★★はしょうさん確認済み）。対象は製造業PMIのみで、非製造業（サービス業）PMIは未対応。2026-12-01分はconfig/manual-events.json（cn-ratingdog-mfg-pmi-2026-12-01）で登録済みのため、重複しないようscheduleは2027-01分から始める。以下は切り替え前の記録: 優先度B3。2026-08-14実測: 公表元S&P Globalのpmi.spglobal.comはrobots.txt自体がHTTP 403で全面ブロック（BLSと同様のインフラ側ブロックの疑い。UA偽装による回避は行わない方針）。冠スポンサーのRatingDog自身のサイト（ratingdog.cn）も試したが、Monaco Editor/Viteバンドルを含む本格的なSPA構造で日程データは静的HTMLに含まれないと判明（us_adp・Stats NZと同種の構造的ブロッカー）。follow-up調査対象（task #15と合わせて管理）"
     },
     {
       "id": "cn_nbs_data",

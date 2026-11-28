@@ -103,6 +103,23 @@ S&P Global/HCOB Flash Manufacturing & Services PMI（DE/EU/GBの3ヶ国、`de_fl
 
 **初回実施記録（2026-08-15）**: Claude Codeが上記2経路の検証を実施し、しょうさんが規則の採用を承認。`schedule_status: "confirmed"`・`confirmed_at: "2026-08-15"`で2026年8月〜2027年11月分（12月除く）を`config/official-sources.json`へ反映した。次回の年次確認目安は2027年11月頃（scheduleの残量が`residual_monitor_weeks`＝4週を下回った時点でWARNが出る）。ただし12月分の穴は上記の別手順で毎年11月中に埋めること。
 
+### 日本・完全失業率／米製造業PMI【確報値】／中国RatingDog製造業PMIの手順（2026-11-28新設、しょうさん依頼）
+
+11/30週に`config/manual-events.json`で手動登録した3指標（いずれも★★）を、翌月以降は自動で拾うために追加した担当ソース。12/1分は手動登録と重複しないよう、各scheduleには含めていない。
+
+| ソース | 発表時刻 | 日程の決め方 | 年1回の更新作業 |
+|---|---|---|---|
+| `jp_stat_labour`（総務省統計局・労働力調査） | 08:30 東京 | 公式の公表予定表PDF（`stat.go.jp/data/roudou/pdf/kohyo{西暦下2桁}.pdf`）をGitHub Actions経由で直接確認し、そのまま転記 | 翌年版PDF（2027年版は2026-11-28時点でHTTP 404）が出たら同じ手順で追記する。scheduleは2027-03-30分で終わるため、残量監視WARN（6週前）が2027年2月中旬ごろに出る |
+| `us_sp_final_mfg_pmi`（S&P Global・米製造業PMI確報値） | 09:45 ET | 規則「月の第1米営業日」（`scripts/lib/final-mfg-pmi-schedule.js`の`usFinalMfgPmiDraftForMonth`）。2024-01〜2026-11の35ヶ月の実績で35/35一致 | 翌年分を規則で計算して転記する（`node -e "console.log(require('./scripts/lib/final-mfg-pmi-schedule').finalMfgPmiDraftRange(2028,1,12))"`）。scheduleは2027-12-01分で終わる |
+| `cn_pmi`（S&P Global・RatingDog(旧財新)中国製造業PMI） | 09:45 北京 | 規則「月の最初の平日（1月は1/1を除く）。中国の祝日に当たれば、5月・10月は前月の最終平日へ前倒し、それ以外は自動で決めない（null）」（`cnRatingDogMfgPmiDraftForMonth`）。祝日は`config/cn-public-holidays.json` | 毎年11月上旬に出る国务院办公厅『关于{翌年}年部分节假日安排的通知』（gov.cn）を確認し、`config/cn-public-holidays.json`へ翌年分を追記してから規則で計算・転記する。nullになった月は自動で決めず、外部カレンダー等で実際の日付を確認して手動で登録する |
+
+**どちらのPMIも一次情報源に直接アクセスできない**（`pmi.spglobal.com`はrobots.txt自体がHTTP 403、UA偽装は行わない）。そのためフラッシュPMIと同じく「過去実績で検証した規則→転記→実際の発表で答え合わせ」の運用とする。過去実績（35ヶ月×2系列）は`test/final-mfg-pmi-schedule.test.js`に残してあり、schedule配列と規則の計算結果がずれていればこのテストが失敗する。
+
+**中国PMIの既知の限界**:
+1. 祝日が重なった月のうち、元旦・春节・端午节は過去の実績が前倒し（2025-12-31）・後ろ倒し（2025-06-03）・祝日中でもそのまま（2025-02-03）とばらばらだったため、規則では決めない。2027年はこの種の月が無い（元旦休暇は1/1〜1/3で、1/4[月]は平日）
+2. 2026年3月は規則の3/2に対して実際は3/4で、理由が分からない。2027年3月分（3/1）のnoteに注意書きを残した
+3. 非製造業（サービス業）PMIは未対応。`中国PMI`の定例チェック（`config/importance-rules.json`の`recurring_checks`）は`schedule_source_id: "cn_pmi"`方式に切り替えたため、以前のような恒常WARNは出なくなった
+
 ### ECBのcountry="EU"採用について（task #19・2026-08-15）
 
 `official-sources.json`のcountryフィールドは他ソースでは全てISO国コード（US/JP/GB/AU/CA/NZ/CH/CN）だが、ECB（ユーロ圏）は単一国に対応しないため`"EU"`とした。影響範囲を確認済み: `scripts/lib/naming.js`のpolicyRateName()等はbankAbbr（"ECB"）を直接受け取る設計でcountry値に依存しない。`resolveCandidateEvent`のruleGenerated分岐（SPEC §4.2の規則生成命名kind向け）を使うためevent-names.json辞書照合（country+kindキー）も経由しない。よって"EU"という非ISOコードによる実害は無いと判断した。`scripts/phase0/phase0.mjs`のCOUNTRY_JA_TO_CODEマップで「ユーロ圏」→「EU」の対応が既に前例としてあり整合的。

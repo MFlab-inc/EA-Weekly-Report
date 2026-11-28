@@ -255,7 +255,7 @@ BOJ・Census(PFEI)・Statistics Canadaと同じ「年次スケジュールconfig
 | `jp_mof` | 日本財務省（JGB入札） | ✅ 月別カレンダーページ到達可能（年次一括ではなく月次ローリング公表と判明） | ✅ 実装済み（`extractors/mof.js`） | ✅ 10年債(8/4)・30年債(8/6)とも日付完全一致（時刻は既刊どおり未公表） |
 | `us_frb_speeches` | FRB理事講演 | ✅ RSS `/feeds/speeches.xml` 到達可能・標準RSS 2.0 | ✅ 日時抽出は実装済み（`extractors/frb-speeches.js`）。**人名・役職解決は未実装**（§8-2参照） | ✅ クック理事講演の日時（8/6 05:05 JST）が完全一致 |
 | `ca_ivey` | Ivey PMI | ✅ FAQページに平文で年間発表日一覧が直接埋め込み | ✅ 実装済み（`extractors/ivey.js`）。annual_schedule_config型へ変更・確定 | ✅ 8/7の日時・重要度・名称すべて完全一致 |
-| `cn_pmi` | S&P Global（RatingDog中国PMI） | ❌ pmi.spglobal.comはrobots.txt自体403でブロック。代替候補ratingdog.cnもSPA構造で静的取得不可 | 未実装 | — |
+| `cn_pmi` | S&P Global（RatingDog中国PMI） | ❌ pmi.spglobal.comはrobots.txt自体403でブロック。代替候補ratingdog.cnもSPA構造で静的取得不可 | 2026-11-28 製造業PMIのみ規則生成のannual_schedule_configで実装（`scripts/lib/final-mfg-pmi-schedule.js`、docs/annual-schedule-maintenance.md参照）。非製造業PMIは未実装 | — |
 | `gb_construction_pmi` | S&P Global／CIPS（英建設業PMI） | ❌ pmi.spglobal.comは同上ブロック。代替候補cips.orgの候補URLは404 | 未実装 | — |
 | `us_adp` | ADP Research Institute | ❌ React/ViteのSPAで静的HTMLに日程データを含まない | 未実装 | — |
 

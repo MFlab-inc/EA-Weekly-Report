@@ -70,6 +70,9 @@ const RECURRING_CHECK_MATCH = {
   // WARNすら出ず完全に無警告で欠落するため追加した）。日付範囲は既知の一般的な公表時期
   // （月初〜第1週）に基づく暫定粒度（RBA証言と同様、task #16で正確な担当ソースが確定するまでの
   // 措置。誤検知よりも見落とし防止を優先する）
+  // 2026-11-28: 中国PMIはcn_pmiをannual_schedule_config（RatingDog製造業PMIの規則生成schedule）へ
+  // 切り替えたため、importance-rules.json側をschedule_source_id:cn_pmi方式へ変更した（恒常WARNは解消。
+  // 米小売売上高と同じく、RECURRING_CHECK_MATCHとの対応ずれを検知する安全網として残す）
   中国PMI: { kind: 'pmi_ism', sourceId: 'cn_pmi' },
   英国建設業PMI: { kind: 'pmi_ism', sourceId: 'gb_construction_pmi' },
   ADP雇用統計: { kind: 'employment_indicator', sourceId: 'us_adp' },
